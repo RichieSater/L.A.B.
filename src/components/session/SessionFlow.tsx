@@ -1,11 +1,14 @@
-import { useEffect } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import type { AdvisorId } from '../../types/advisor';
 import { ADVISOR_CONFIGS } from '../../advisors/registry';
 import { useSessionFlow } from '../../hooks/use-session-flow';
+import { useAdvisor } from '../../hooks/use-advisor';
 import { PromptDisplay } from './PromptDisplay';
 import { JsonImport } from './JsonImport';
 import { SessionConfirmation } from './SessionConfirmation';
 import { SessionComplete } from './SessionComplete';
+import { CopyButton } from '../shared/CopyButton';
+import { buildForceJsonPrompt } from '../../prompt/force-json-prompt';
 
 interface SessionFlowProps {
   advisorId: AdvisorId;
@@ -13,6 +16,9 @@ interface SessionFlowProps {
 
 export function SessionFlow({ advisorId }: SessionFlowProps) {
   const config = ADVISOR_CONFIGS[advisorId];
+  const { state: advisorState } = useAdvisor(advisorId);
+  const [showForcePrompt, setShowForcePrompt] = useState(false);
+  const forceJsonPrompt = useMemo(() => buildForceJsonPrompt(advisorId), [advisorId]);
   const {
     flowState,
     generatePrompt,
@@ -82,6 +88,8 @@ export function SessionFlow({ advisorId }: SessionFlowProps) {
         <PromptDisplay
           prompt={flowState.generatedPrompt}
           onCopied={advanceToAwaiting}
+          config={config}
+          advisorState={advisorState}
         />
       )}
 
@@ -97,6 +105,30 @@ export function SessionFlow({ advisorId }: SessionFlowProps) {
           <p className="text-gray-500 text-sm mb-8 max-w-lg mx-auto">
             At the end, the AI will produce a JSON export block. Copy that block.
           </p>
+
+          {/* Force JSON prompt section */}
+          <div className="max-w-lg mx-auto mb-8">
+            <button
+              onClick={() => setShowForcePrompt(!showForcePrompt)}
+              className="text-sm text-gray-400 hover:text-gray-200 underline transition-colors"
+            >
+              {showForcePrompt ? 'Hide JSON prompt' : "AI didn't produce JSON? Get the export prompt"}
+            </button>
+            {showForcePrompt && (
+              <div className="mt-4 bg-gray-900 border border-gray-800 rounded-xl p-4 text-left">
+                <p className="text-sm text-gray-400 mb-3">
+                  Copy this prompt and paste it into your chat to request the JSON export:
+                </p>
+                <div className="mb-3">
+                  <CopyButton text={forceJsonPrompt} label="Copy JSON Prompt" />
+                </div>
+                <pre className="text-xs text-gray-500 font-mono whitespace-pre-wrap max-h-40 overflow-y-auto">
+                  {forceJsonPrompt}
+                </pre>
+              </div>
+            )}
+          </div>
+
           <button
             onClick={advanceToImport}
             className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
