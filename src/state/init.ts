@@ -74,21 +74,11 @@ export async function saveAppStateToSupabase(
   supabaseStorage: SupabaseStorageService,
   state: AppState,
 ): Promise<void> {
-  console.log('[LAB] saveAppStateToSupabase: starting...');
-
   const saves = ALL_ADVISOR_IDS.map(id =>
-    supabaseStorage.saveAdvisorState(id, state.advisors[id])
-      .then(() => console.log(`[LAB] saved advisor: ${id}`)),
+    supabaseStorage.saveAdvisorState(id, state.advisors[id]),
   );
-  saves.push(
-    supabaseStorage.saveSharedMetrics(state.sharedMetrics)
-      .then(() => console.log('[LAB] saved shared metrics')),
-  );
-  saves.push(
-    supabaseStorage.saveQuickLogs(state.quickLogs)
-      .then(() => console.log('[LAB] saved quick logs')),
-  );
+  saves.push(supabaseStorage.saveSharedMetrics(state.sharedMetrics));
+  saves.push(supabaseStorage.saveQuickLogs(state.quickLogs));
 
   await Promise.all(saves);
-  console.log('[LAB] saveAppStateToSupabase: complete');
 }
