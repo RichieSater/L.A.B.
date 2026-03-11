@@ -3,6 +3,7 @@ import type { AdvisorId } from '../types/advisor';
 import type { SessionExport } from '../types/session';
 import type { ValidationError, ValidationWarning } from '../parser/schema-validator';
 import { useAppState } from '../state/app-context';
+import { appReducer } from '../state/app-reducer';
 import { ADVISOR_CONFIGS } from '../advisors/registry';
 import { buildPrompt } from '../prompt/prompt-builder';
 import { parseSessionExport } from '../parser/session-parser';
@@ -19,7 +20,7 @@ export interface SessionFlowState {
 }
 
 export function useSessionFlow(advisorId: AdvisorId) {
-  const { state, dispatch } = useAppState();
+  const { state, dispatch, saveState } = useAppState();
 
   const [flowState, setFlowState] = useState<SessionFlowState>({
     step: 'generate',
@@ -29,6 +30,8 @@ export function useSessionFlow(advisorId: AdvisorId) {
     validationErrors: [],
     validationWarnings: [],
   });
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const generatePrompt = useCallback(() => {
     const config = ADVISOR_CONFIGS[advisorId];
@@ -71,19 +74,34 @@ export function useSessionFlow(advisorId: AdvisorId) {
     }
   }, []);
 
-  const confirmImport = useCallback(() => {
+  const confirmImport = useCallback(async () => {
     if (!flowState.parsedExport) return;
 
-    dispatch({
-      type: 'IMPORT_SESSION',
+    const action = {
+      type: 'IMPORT_SESSION' as const,
       payload: {
         advisorId,
         sessionExport: flowState.parsedExport,
       },
-    });
+    };
 
-    setFlowState(prev => ({ ...prev, step: 'complete' }));
-  }, [flowState.parsedExport, advisorId, dispatch]);
+    const nextState = appReducer(state, action);
+
+    setIsSaving(true);
+    setSaveError(null);
+
+    try {
+      await saveState(nextState);
+      dispatch(action);
+      setFlowState(prev => ({ ...prev, step: 'complete' }));
+    } catch (err) {
+      setSaveError(
+        err instanceof Error ? err.message : 'Failed to save session. Please try again.',
+      );
+    } finally {
+      setIsSaving(false);
+    }
+  }, [flowState.parsedExport, advisorId, state, dispatch, saveState]);
 
   const reset = useCallback(() => {
     setFlowState({
@@ -98,6 +116,8 @@ export function useSessionFlow(advisorId: AdvisorId) {
 
   return {
     flowState,
+    isSaving,
+    saveError,
     generatePrompt,
     advanceToAwaiting,
     advanceToImport,

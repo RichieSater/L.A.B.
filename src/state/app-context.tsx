@@ -9,6 +9,7 @@ import { useAuth } from '../auth/auth-context';
 interface AppContextValue {
   state: AppState;
   dispatch: React.Dispatch<AppAction>;
+  saveState: (stateToSave: AppState) => Promise<void>;
 }
 
 const AppContext = createContext<AppContextValue | null>(null);
@@ -22,6 +23,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const initializedRef = useRef(false);
   const dismissSaveError = useCallback(() => setSaveError(null), []);
+
+  const saveState = useCallback(async (stateToSave: AppState) => {
+    if (!storageRef.current) {
+      throw new Error('Storage not initialized');
+    }
+    await saveAppStateToSupabase(storageRef.current, stateToSave);
+  }, []);
 
   // Load state from Supabase when user is available
   useEffect(() => {
@@ -85,7 +93,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AppContext.Provider value={{ state, dispatch }}>
+    <AppContext.Provider value={{ state, dispatch, saveState }}>
       {saveError && (
         <div className="fixed top-0 left-0 right-0 z-50 bg-red-900/90 border-b border-red-700 px-4 py-3 text-center">
           <p className="text-red-200 text-sm inline">

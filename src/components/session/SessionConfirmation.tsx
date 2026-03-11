@@ -6,9 +6,11 @@ interface SessionConfirmationProps {
   warnings: ValidationWarning[];
   onConfirm: () => void;
   onBack: () => void;
+  isSaving: boolean;
+  saveError: string | null;
 }
 
-export function SessionConfirmation({ sessionExport, warnings, onConfirm, onBack }: SessionConfirmationProps) {
+export function SessionConfirmation({ sessionExport, warnings, onConfirm, onBack, isSaving, saveError }: SessionConfirmationProps) {
   return (
     <div>
       <div className="mb-6">
@@ -126,19 +128,33 @@ export function SessionConfirmation({ sessionExport, warnings, onConfirm, onBack
         )}
       </div>
 
+      {/* Save error */}
+      {saveError && (
+        <div className="bg-red-950/50 border border-red-800 rounded-lg p-4 mt-4">
+          <p className="text-sm text-red-300">{saveError}</p>
+          <p className="text-xs text-red-400 mt-1">Please try again. If the problem persists, check your connection.</p>
+        </div>
+      )}
+
       {/* Actions */}
       <div className="mt-6 flex justify-between">
         <button
           onClick={onBack}
-          className="px-4 py-2.5 text-gray-400 hover:text-gray-200 transition-colors"
+          disabled={isSaving}
+          className="px-4 py-2.5 text-gray-400 hover:text-gray-200 transition-colors disabled:opacity-50"
         >
           &larr; Back
         </button>
         <button
           onClick={onConfirm}
-          className="px-6 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
+          disabled={isSaving}
+          className={`px-6 py-2.5 rounded-lg font-medium transition-colors ${
+            isSaving
+              ? 'bg-green-800 text-green-300 cursor-wait'
+              : 'bg-green-600 hover:bg-green-700 text-white'
+          }`}
         >
-          Confirm & Save
+          {isSaving ? 'Saving...' : 'Confirm & Save'}
         </button>
       </div>
     </div>

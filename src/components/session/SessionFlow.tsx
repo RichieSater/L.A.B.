@@ -21,6 +21,8 @@ export function SessionFlow({ advisorId }: SessionFlowProps) {
   const forceJsonPrompt = useMemo(() => buildForceJsonPrompt(advisorId), [advisorId]);
   const {
     flowState,
+    isSaving,
+    saveError,
     generatePrompt,
     advanceToAwaiting,
     advanceToImport,
@@ -152,6 +154,8 @@ export function SessionFlow({ advisorId }: SessionFlowProps) {
           warnings={flowState.validationWarnings}
           onConfirm={confirmImport}
           onBack={advanceToImport}
+          isSaving={isSaving}
+          saveError={saveError}
         />
       )}
 
