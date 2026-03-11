@@ -23,20 +23,34 @@ export class SupabaseStorageService {
   }
 
   async saveAdvisorState(id: AdvisorId, state: AdvisorState): Promise<void> {
-    const { error } = await supabase
+    const now = new Date().toISOString();
+
+    // Try UPDATE first
+    const { data, error: updateError } = await supabase
       .from('advisor_states')
-      .upsert(
-        {
+      .update({ state: state as unknown, updated_at: now })
+      .eq('user_id', this.userId)
+      .eq('advisor_id', id)
+      .select('id');
+
+    if (updateError) {
+      throw new Error(`Failed to update advisor state for ${id}: ${updateError.message}`);
+    }
+
+    // If no row existed, INSERT
+    if (!data || data.length === 0) {
+      const { error: insertError } = await supabase
+        .from('advisor_states')
+        .insert({
           user_id: this.userId,
           advisor_id: id,
           state: state as unknown,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: 'user_id,advisor_id' },
-      );
+          updated_at: now,
+        });
 
-    if (error) {
-      throw new Error(`Failed to save advisor state for ${id}: ${error.message}`);
+      if (insertError) {
+        throw new Error(`Failed to insert advisor state for ${id}: ${insertError.message}`);
+      }
     }
   }
 
@@ -54,14 +68,11 @@ export class SupabaseStorageService {
   async saveSharedMetrics(metrics: SharedMetricsStore): Promise<void> {
     const { error } = await supabase
       .from('shared_metrics')
-      .upsert(
-        {
-          user_id: this.userId,
-          metrics: metrics as unknown,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: 'user_id' },
-      );
+      .update({
+        metrics: metrics as unknown,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('user_id', this.userId);
 
     if (error) {
       throw new Error(`Failed to save shared metrics: ${error.message}`);
@@ -82,14 +93,11 @@ export class SupabaseStorageService {
   async saveQuickLogs(logs: QuickLogEntry[]): Promise<void> {
     const { error } = await supabase
       .from('quick_logs')
-      .upsert(
-        {
-          user_id: this.userId,
-          logs: logs as unknown,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: 'user_id' },
-      );
+      .update({
+        logs: logs as unknown,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('user_id', this.userId);
 
     if (error) {
       throw new Error(`Failed to save quick logs: ${error.message}`);
