@@ -23,7 +23,7 @@ export class SupabaseStorageService {
   }
 
   async saveAdvisorState(id: AdvisorId, state: AdvisorState): Promise<void> {
-    await supabase
+    const { error } = await supabase
       .from('advisor_states')
       .upsert(
         {
@@ -34,6 +34,10 @@ export class SupabaseStorageService {
         },
         { onConflict: 'user_id,advisor_id' },
       );
+
+    if (error) {
+      throw new Error(`Failed to save advisor state for ${id}: ${error.message}`);
+    }
   }
 
   async loadSharedMetrics(): Promise<SharedMetricsStore> {
@@ -48,13 +52,20 @@ export class SupabaseStorageService {
   }
 
   async saveSharedMetrics(metrics: SharedMetricsStore): Promise<void> {
-    await supabase
+    const { error } = await supabase
       .from('shared_metrics')
-      .update({
-        metrics: metrics as unknown,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('user_id', this.userId);
+      .upsert(
+        {
+          user_id: this.userId,
+          metrics: metrics as unknown,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'user_id' },
+      );
+
+    if (error) {
+      throw new Error(`Failed to save shared metrics: ${error.message}`);
+    }
   }
 
   async loadQuickLogs(): Promise<QuickLogEntry[]> {
@@ -69,12 +80,19 @@ export class SupabaseStorageService {
   }
 
   async saveQuickLogs(logs: QuickLogEntry[]): Promise<void> {
-    await supabase
+    const { error } = await supabase
       .from('quick_logs')
-      .update({
-        logs: logs as unknown,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('user_id', this.userId);
+      .upsert(
+        {
+          user_id: this.userId,
+          logs: logs as unknown,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'user_id' },
+      );
+
+    if (error) {
+      throw new Error(`Failed to save quick logs: ${error.message}`);
+    }
   }
 }
