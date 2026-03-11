@@ -54,4 +54,5 @@ export interface AdvisorState {
   nextDueDate: string | null;
   contextForNextSession: string | null;
   cardPreview: string | null;
+  customCheckInItems?: MetricDefinition[];
 }

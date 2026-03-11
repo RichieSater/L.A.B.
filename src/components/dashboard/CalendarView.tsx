@@ -10,7 +10,7 @@ import { today, getMonthDays, getMonthLabel } from '../../utils/date';
 import { DayDetailPanel } from './DayDetailPanel';
 
 export function CalendarView() {
-  const { state } = useAppState();
+  const { state, dispatch } = useAppState();
   const { profile } = useAuth();
   const { sessions } = useScheduling();
   const baseEvents = selectCalendarEvents(state);
@@ -40,6 +40,21 @@ export function CalendarView() {
 
     return all.sort((a, b) => a.date.localeCompare(b.date));
   }, [baseEvents, sessions, profile?.schedulingEnabled]);
+
+  const handleToggleComplete = (advisorId: string, itemId: string) => {
+    const advisorState = state.advisors[advisorId as AdvisorId];
+    if (!advisorState) return;
+    const item = advisorState.actionItems.find(i => i.id === itemId);
+    if (!item) return;
+    dispatch({
+      type: 'UPDATE_ACTION_ITEM',
+      payload: {
+        advisorId: advisorId as AdvisorId,
+        itemId,
+        status: item.status === 'completed' ? 'open' : 'completed',
+      },
+    });
+  };
 
   const [currentMonth, setCurrentMonth] = useState(() => {
     const now = new Date();
@@ -152,7 +167,7 @@ export function CalendarView() {
 
       {/* Selected day detail */}
       {selectedDate && (
-        <DayDetailPanel date={selectedDate} events={eventsByDate[selectedDate] || []} />
+        <DayDetailPanel date={selectedDate} events={eventsByDate[selectedDate] || []} onToggleComplete={handleToggleComplete} />
       )}
     </div>
   );

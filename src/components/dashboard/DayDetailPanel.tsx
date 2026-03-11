@@ -4,6 +4,7 @@ import { formatDate } from '../../utils/date';
 interface DayDetailPanelProps {
   date: string;
   events: CalendarEvent[];
+  onToggleComplete?: (advisorId: string, itemId: string) => void;
 }
 
 function formatTime(isoString: string): string {
@@ -11,7 +12,7 @@ function formatTime(isoString: string): string {
   return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
 }
 
-export function DayDetailPanel({ date, events }: DayDetailPanelProps) {
+export function DayDetailPanel({ date, events, onToggleComplete }: DayDetailPanelProps) {
   const tasks = events.filter(e => e.type === 'task');
   const sessions = events.filter(e => e.type === 'session');
   const scheduled = events.filter(e => e.type === 'scheduled');
@@ -61,7 +62,14 @@ export function DayDetailPanel({ date, events }: DayDetailPanelProps) {
           <div className="space-y-1.5">
             {tasks.map((ev, i) => (
               <div key={i} className="flex items-start gap-2">
-                <div className="w-2 h-2 rounded-full mt-1 flex-shrink-0" style={{ backgroundColor: ev.advisorColor }} />
+                {onToggleComplete && ev.itemId ? (
+                  <button
+                    onClick={() => onToggleComplete(ev.advisorId, ev.itemId!)}
+                    className="mt-0.5 w-4 h-4 rounded border border-gray-600 hover:border-gray-400 flex-shrink-0 flex items-center justify-center transition-colors"
+                  />
+                ) : (
+                  <div className="w-2 h-2 rounded-full mt-1 flex-shrink-0" style={{ backgroundColor: ev.advisorColor }} />
+                )}
                 <div className="min-w-0">
                   <p className="text-xs text-gray-300 line-clamp-1">{ev.label}</p>
                   <div className="flex items-center gap-1.5 mt-0.5">

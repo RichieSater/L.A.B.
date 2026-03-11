@@ -122,6 +122,7 @@ export interface CalendarEvent {
   advisorColor: string;
   priority?: 'high' | 'medium' | 'low';
   scheduledTime?: string; // ISO time for scheduled sessions
+  itemId?: string; // action item ID for task completion toggle
 }
 
 export function selectCalendarEvents(state: AppState): CalendarEvent[] {
@@ -144,6 +145,7 @@ export function selectCalendarEvents(state: AppState): CalendarEvent[] {
           advisorName: config.shortName,
           advisorColor: config.domainColor,
           priority: item.priority,
+          itemId: item.id,
         });
       }
     }

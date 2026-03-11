@@ -3,6 +3,7 @@ import type { AdvisorId } from '../../types/advisor';
 import type { MetricDefinition } from '../../types/metrics';
 import type { QuickLogEntry } from '../../types/quick-log';
 import { ADVISOR_CONFIGS } from '../../advisors/registry';
+import { useAppState } from '../../state/app-context';
 import { today } from '../../utils/date';
 
 interface QuickLogFormProps {
@@ -13,7 +14,11 @@ interface QuickLogFormProps {
 
 export function QuickLogForm({ advisorId, onSave, onCancel }: QuickLogFormProps) {
   const config = ADVISOR_CONFIGS[advisorId];
-  const quickMetrics = config.metricDefinitions.filter(m => m.quickLoggable);
+  const { state } = useAppState();
+  const advisorState = state.advisors[advisorId];
+  const quickMetrics = advisorState?.customCheckInItems?.length
+    ? advisorState.customCheckInItems
+    : config.metricDefinitions.filter(m => m.quickLoggable);
 
   const [date, setDate] = useState(today());
   const [values, setValues] = useState<Record<string, number | string>>({});

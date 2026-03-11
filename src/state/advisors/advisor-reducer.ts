@@ -31,9 +31,27 @@ export function applySessionImport(
     return item;
   });
 
-  // 2. Add new action items from export
+  // 2. Split action_items into updates (matching existing IDs) vs truly new items
+  const existingIds = new Set(updatedItems.map(i => i.id));
+  const itemUpdates = sessionExport.action_items.filter(
+    item => item.id && existingIds.has(item.id),
+  );
+  const brandNewItems = sessionExport.action_items.filter(
+    item => !item.id || !existingIds.has(item.id),
+  );
+
+  // Apply in-place updates to existing open items (task text, due date, priority)
+  const finalItems = updatedItems.map(item => {
+    const update = itemUpdates.find(u => u.id === item.id);
+    if (update && item.status === 'open') {
+      return { ...item, task: update.task, due: update.due, priority: update.priority };
+    }
+    return item;
+  });
+
+  // Create only genuinely new items
   const prefix = state.advisorId.slice(0, 3).toUpperCase();
-  const newItems: ActionItem[] = sessionExport.action_items.map(item => ({
+  const newItems: ActionItem[] = brandNewItems.map(item => ({
     id: item.id || generateId(prefix),
     task: item.task,
     due: item.due,
@@ -95,7 +113,7 @@ export function applySessionImport(
 
   return {
     ...state,
-    actionItems: [...updatedItems, ...newItems],
+    actionItems: [...finalItems, ...newItems],
     metricsLatest: newMetricsLatest,
     metricsHistory: [...state.metricsHistory, newHistoryEntry],
     sessions: [...state.sessions, sessionRecord],
@@ -106,6 +124,10 @@ export function applySessionImport(
     cardPreview: sessionExport.card_preview || state.cardPreview,
     streak: newStreak,
     nextDueDate: nextDue,
+    customCheckInItems: sessionExport.check_in_items?.map(item => ({
+      ...item,
+      quickLoggable: true,
+    })) ?? state.customCheckInItems,
   };
 }
 

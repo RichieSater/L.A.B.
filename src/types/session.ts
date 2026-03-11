@@ -24,6 +24,14 @@ export interface SessionExport {
   session_rating: number;
   narrative_update: string;
   card_preview: string;
+  check_in_items?: Array<{
+    id: string;
+    label: string;
+    type: 'number' | 'rating' | 'currency' | 'percentage' | 'binary';
+    unit?: string;
+    min?: number;
+    max?: number;
+  }>;
 }
 
 export interface SessionRecord {
