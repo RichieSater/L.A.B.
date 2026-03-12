@@ -14,6 +14,7 @@ import { buildSchemaSection } from './sections/schema-section';
 import { buildQuickLogSection } from './sections/quick-log-section';
 import { buildIntakeSection } from './sections/intake-section';
 import { buildTherapistNotesSection } from './sections/therapist-notes-section';
+import { buildStartupProtocol } from './boot-sequence';
 
 export function buildPrompt(
   config: AdvisorConfig,
@@ -32,6 +33,9 @@ Advisor: ${config.displayName}
 Date: ${formatDateLong(now)}
 Total sessions to date: ${advisorState.sessions.length}
 Current streak: ${advisorState.streak} consecutive on-time sessions`);
+
+  // Auto-boot behavior for the first assistant reply
+  sections.push(buildStartupProtocol(config, advisorState));
 
   // Persona
   sections.push(buildPersonaSection(config));

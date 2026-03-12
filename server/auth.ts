@@ -1,7 +1,7 @@
 import type { VercelRequest } from '@vercel/node';
 import { createClerkClient } from '@clerk/backend';
-import { env } from './env';
-import { toRequest } from './http';
+import { env } from './env.js';
+import { toRequest } from './http.js';
 
 export const clerkClient = createClerkClient({
   publishableKey: env.clerkPublishableKey,

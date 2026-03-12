@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import type { AppState } from '../src/types/app-state';
-import { requireUser } from '../server/auth';
-import { saveAppState } from '../server/data';
-import { json, methodNotAllowed, readJsonBody } from '../server/http';
+import type { AppState } from '../src/types/app-state.js';
+import { requireUser } from '../server/auth.js';
+import { saveAppState } from '../server/data.js';
+import { json, methodNotAllowed, readJsonBody } from '../server/http.js';
 
 interface SaveAppStateBody {
   appState: AppState;

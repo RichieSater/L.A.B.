@@ -1,25 +1,25 @@
 import { and, eq, lte, sql } from 'drizzle-orm';
-import type { AppState } from '../src/types/app-state';
-import type { AdvisorId } from '../src/types/advisor';
-import { ALL_ADVISOR_IDS } from '../src/advisors/registry';
-import { CURRENT_SCHEMA_VERSION } from '../src/constants/schema';
-import { env } from './env';
+import type { AppState } from '../src/types/app-state.js';
+import type { AdvisorId } from '../src/types/advisor.js';
+import { ALL_ADVISOR_IDS } from '../src/advisors/registry.js';
+import { CURRENT_SCHEMA_VERSION } from '../src/constants/schema.js';
+import { env } from './env.js';
 import type {
   BootstrapResponse,
   CreateScheduledSessionInput,
   UpdateScheduledSessionInput,
   UserProfile,
-} from '../src/types/api';
-import type { ScheduledSession } from '../src/types/scheduled-session';
-import { createDefaultAppState, createDefaultAdvisorState } from '../src/state/init';
-import { clerkClient } from './auth';
-import { db } from './db/client';
+} from '../src/types/api.js';
+import type { ScheduledSession } from '../src/types/scheduled-session.js';
+import { createDefaultAppState, createDefaultAdvisorState } from '../src/state/init.js';
+import { clerkClient } from './auth.js';
+import { db } from './db/client.js';
 import {
   deleteCalendarEvent,
   exchangeGoogleCalendarCode,
   isGoogleCalendarConfigured,
   upsertCalendarEvent,
-} from './google-calendar';
+} from './google-calendar.js';
 import {
   advisorStates,
   quickLogs,
@@ -27,7 +27,7 @@ import {
   sharedMetrics,
   userAppMeta,
   userProfiles,
-} from './db/schema';
+} from './db/schema.js';
 
 function mapProfile(row: typeof userProfiles.$inferSelect | undefined): UserProfile {
   return {
@@ -52,14 +52,22 @@ function mapScheduledSession(row: typeof scheduledSessions.$inferSelect): Schedu
 }
 
 async function deriveDisplayName(userId: string): Promise<string | null> {
-  const user = await clerkClient.users.getUser(userId);
-  const fullName = [user.firstName, user.lastName].filter(Boolean).join(' ').trim();
+  try {
+    const user = await clerkClient.users.getUser(userId);
+    const fullName = [user.firstName, user.lastName].filter(Boolean).join(' ').trim();
 
-  if (fullName) {
-    return fullName;
+    if (fullName) {
+      return fullName;
+    }
+
+    return user.primaryEmailAddress?.emailAddress?.split('@')[0] ?? null;
+  } catch (error) {
+    console.error('[bootstrap] Failed to derive display name from Clerk.', {
+      userId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return null;
   }
-
-  return user.primaryEmailAddress?.emailAddress?.split('@')[0] ?? null;
 }
 
 export async function ensureUserRecords(userId: string): Promise<void> {
@@ -70,25 +78,49 @@ export async function ensureUserRecords(userId: string): Promise<void> {
   if (!existingProfile) {
     const displayName = await deriveDisplayName(userId);
 
-    await db.insert(userProfiles).values({
-      id: userId,
-      displayName,
-    }).onConflictDoNothing();
+    await db
+      .insert(userProfiles)
+      .values({
+        id: userId,
+        displayName,
+      })
+      .onConflictDoNothing();
+  } else if (!existingProfile.displayName) {
+    const displayName = await deriveDisplayName(userId);
+
+    if (displayName) {
+      await db
+        .update(userProfiles)
+        .set({
+          displayName,
+          updatedAt: new Date(),
+        })
+        .where(eq(userProfiles.id, userId));
+    }
   }
 
   await Promise.all([
-    db.insert(sharedMetrics).values({
-      userId,
-      metrics: {},
-    }).onConflictDoNothing(),
-    db.insert(quickLogs).values({
-      userId,
-      logs: [],
-    }).onConflictDoNothing(),
-    db.insert(userAppMeta).values({
-      userId,
-      schemaVersion: CURRENT_SCHEMA_VERSION,
-    }).onConflictDoNothing(),
+    db
+      .insert(sharedMetrics)
+      .values({
+        userId,
+        metrics: {},
+      })
+      .onConflictDoNothing(),
+    db
+      .insert(quickLogs)
+      .values({
+        userId,
+        logs: [],
+      })
+      .onConflictDoNothing(),
+    db
+      .insert(userAppMeta)
+      .values({
+        userId,
+        schemaVersion: CURRENT_SCHEMA_VERSION,
+      })
+      .onConflictDoNothing(),
   ]);
 }
 

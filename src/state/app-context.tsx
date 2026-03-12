@@ -25,7 +25,7 @@ interface AppContextValue {
 const AppContext = createContext<AppContextValue | null>(null);
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const { bootstrapData, loading: authLoading } = useAuth();
+  const { bootstrapData, bootstrapError, loading: authLoading } = useAuth();
   const [state, dispatch] = useReducer(appReducer, null, createDefaultAppState);
   const [saveError, setSaveError] = useState<string | null>(null);
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -45,7 +45,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     initializedRef.current = true;
   }, [authLoading, bootstrapData]);
 
-  const loading = authLoading || !bootstrapData;
+  const loading = authLoading || (!bootstrapData && !bootstrapError);
 
   useEffect(() => {
     if (!initializedRef.current || loading) {

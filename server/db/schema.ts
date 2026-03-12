@@ -10,11 +10,11 @@ import {
   uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core';
-import type { AdvisorState } from '../../src/types/advisor';
-import { CURRENT_SCHEMA_VERSION } from '../../src/constants/schema';
-import type { SharedMetricsStore } from '../../src/types/metrics';
-import type { QuickLogEntry } from '../../src/types/quick-log';
-import type { CalendarSyncStatus, ScheduledSessionStatus } from '../../src/types/scheduled-session';
+import type { AdvisorState } from '../../src/types/advisor.js';
+import { CURRENT_SCHEMA_VERSION } from '../../src/constants/schema.js';
+import type { SharedMetricsStore } from '../../src/types/metrics.js';
+import type { QuickLogEntry } from '../../src/types/quick-log.js';
+import type { CalendarSyncStatus, ScheduledSessionStatus } from '../../src/types/scheduled-session.js';
 
 export const scheduledSessionStatusEnum = pgEnum('scheduled_session_status', [
   'scheduled',

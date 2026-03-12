@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import type { UserProfile } from '../src/types/api';
-import { requireUser } from '../server/auth';
-import { updateUserProfile } from '../server/data';
-import { json, methodNotAllowed, readJsonBody } from '../server/http';
+import type { UserProfile } from '../src/types/api.js';
+import { requireUser } from '../server/auth.js';
+import { updateUserProfile } from '../server/data.js';
+import { json, methodNotAllowed, readJsonBody } from '../server/http.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<VercelResponse | void> {
   if (req.method !== 'PATCH') {

@@ -9,6 +9,13 @@ export interface UserProfile {
   googleCalendarEmail: string | null;
 }
 
+export interface ApiError {
+  error: string;
+  code?: string;
+  requestId?: string;
+  status?: number;
+}
+
 export interface AuthUser {
   id: string;
   primaryEmailAddress: string | null;

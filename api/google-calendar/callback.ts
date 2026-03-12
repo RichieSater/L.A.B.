@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { requireUser } from '../../server/auth';
-import { connectGoogleCalendar } from '../../server/data';
-import { json, methodNotAllowed } from '../../server/http';
+import { requireUser } from '../../server/auth.js';
+import { connectGoogleCalendar } from '../../server/data.js';
+import { json, methodNotAllowed } from '../../server/http.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<VercelResponse | void> {
   if (req.method !== 'GET') {

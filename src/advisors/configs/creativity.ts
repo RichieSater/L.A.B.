@@ -1,4 +1,4 @@
-import type { AdvisorConfig } from '../../types/advisor';
+import type { AdvisorConfig } from '../../types/advisor.js';
 
 export const creativityConfig: AdvisorConfig = {
   id: 'creativity',

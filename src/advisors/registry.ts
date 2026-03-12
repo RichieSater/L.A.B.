@@ -1,11 +1,11 @@
-import type { AdvisorConfig, AdvisorId } from '../types/advisor';
-import { prioritizationConfig } from './configs/prioritization';
-import { careerConfig } from './configs/career';
-import { financialConfig } from './configs/financial';
-import { performanceConfig } from './configs/performance';
-import { fitnessConfig } from './configs/fitness';
-import { creativityConfig } from './configs/creativity';
-import { therapistConfig } from './configs/therapist';
+import type { AdvisorConfig, AdvisorId } from '../types/advisor.js';
+import { prioritizationConfig } from './configs/prioritization.js';
+import { careerConfig } from './configs/career.js';
+import { financialConfig } from './configs/financial.js';
+import { performanceConfig } from './configs/performance.js';
+import { fitnessConfig } from './configs/fitness.js';
+import { creativityConfig } from './configs/creativity.js';
+import { therapistConfig } from './configs/therapist.js';
 
 export const ADVISOR_CONFIGS: Record<AdvisorId, AdvisorConfig> = {
   prioritization: prioritizationConfig,

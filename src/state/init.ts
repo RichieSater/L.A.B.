@@ -1,8 +1,8 @@
-import type { AdvisorId, AdvisorState } from '../types/advisor';
-import type { AppState } from '../types/app-state';
-import { ALL_ADVISOR_IDS, ADVISOR_CONFIGS } from '../advisors/registry';
-import { today } from '../utils/date';
-import { CURRENT_SCHEMA_VERSION } from '../constants/schema';
+import type { AdvisorId, AdvisorState } from '../types/advisor.js';
+import type { AppState } from '../types/app-state.js';
+import { ALL_ADVISOR_IDS, ADVISOR_CONFIGS } from '../advisors/registry.js';
+import { today } from '../utils/date.js';
+import { CURRENT_SCHEMA_VERSION } from '../constants/schema.js';
 
 export interface AppPersistence {
   loadAdvisorState(id: AdvisorId): Promise<AdvisorState | null>;

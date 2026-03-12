@@ -1,5 +1,6 @@
 import type { AppState } from '../types/app-state';
 import type {
+  ApiError,
   BootstrapResponse,
   CreateScheduledSessionInput,
   GoogleCalendarConnection,
@@ -8,10 +9,63 @@ import type {
 } from '../types/api';
 import type { ScheduledSession } from '../types/scheduled-session';
 
+export class ApiClientError extends Error implements ApiError {
+  code?: string;
+  requestId?: string;
+  status?: number;
+  error: string;
+
+  constructor(payload: ApiError) {
+    super(payload.error);
+    this.name = 'ApiClientError';
+    this.error = payload.error;
+    this.code = payload.code;
+    this.requestId = payload.requestId;
+    this.status = payload.status;
+  }
+}
+
+function isApiErrorPayload(value: unknown): value is ApiError {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+
+  return typeof (value as ApiError).error === 'string';
+}
+
+async function parseErrorResponse(response: Response): Promise<ApiClientError> {
+  const fallbackMessage = `Request failed with status ${response.status}`;
+  const body = await response.text();
+
+  if (!body) {
+    return new ApiClientError({
+      error: fallbackMessage,
+      status: response.status,
+    });
+  }
+
+  try {
+    const parsed = JSON.parse(body) as unknown;
+
+    if (isApiErrorPayload(parsed)) {
+      return new ApiClientError({
+        ...parsed,
+        status: response.status,
+      });
+    }
+  } catch {
+    // Fall back to plain text response bodies.
+  }
+
+  return new ApiClientError({
+    error: body,
+    status: response.status,
+  });
+}
+
 async function parseJsonResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
-    const message = await response.text();
-    throw new Error(message || `Request failed with status ${response.status}`);
+    throw await parseErrorResponse(response);
   }
 
   if (response.status === 204) {
@@ -82,3 +136,7 @@ export const apiClient = {
     return request<GoogleCalendarConnection>('/api/google-calendar/connection');
   },
 };
+
+export function isApiClientError(error: unknown): error is ApiClientError {
+  return error instanceof ApiClientError;
+}

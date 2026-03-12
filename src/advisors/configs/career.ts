@@ -1,5 +1,5 @@
-import type { AdvisorConfig } from '../../types/advisor';
-import { today } from '../../utils/date';
+import type { AdvisorConfig } from '../../types/advisor.js';
+import { today } from '../../utils/date.js';
 
 export const careerConfig: AdvisorConfig = {
   id: 'career',
