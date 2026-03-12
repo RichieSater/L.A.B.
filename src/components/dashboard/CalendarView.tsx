@@ -44,13 +44,13 @@ export function CalendarView() {
   const handleToggleComplete = (advisorId: string, itemId: string) => {
     const advisorState = state.advisors[advisorId as AdvisorId];
     if (!advisorState) return;
-    const item = advisorState.actionItems.find(i => i.id === itemId);
+    const item = advisorState.tasks.find(i => i.id === itemId);
     if (!item) return;
     dispatch({
-      type: 'UPDATE_ACTION_ITEM',
+      type: 'UPDATE_TASK',
       payload: {
         advisorId: advisorId as AdvisorId,
-        itemId,
+        taskId: itemId,
         status: item.status === 'completed' ? 'open' : 'completed',
       },
     });

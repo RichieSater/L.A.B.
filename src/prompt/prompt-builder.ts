@@ -14,7 +14,6 @@ import { buildSchemaSection } from './sections/schema-section';
 import { buildQuickLogSection } from './sections/quick-log-section';
 import { buildIntakeSection } from './sections/intake-section';
 import { buildTherapistNotesSection } from './sections/therapist-notes-section';
-import { BOOT_ART } from '../components/session/boot-art';
 
 export function buildPrompt(
   config: AdvisorConfig,
@@ -26,12 +25,6 @@ export function buildPrompt(
   const now = getToday();
 
   const sections: string[] = [];
-
-  // ASCII art identity header
-  const art = BOOT_ART[config.id];
-  if (art) {
-    sections.push(art.trim());
-  }
 
   // Header
   sections.push(`=== LIFE ADVISORY BOARD — SESSION PROMPT ===

@@ -1,12 +1,13 @@
 import { useState, useCallback } from 'react';
 import type { AdvisorId } from '../types/advisor';
-import type { SessionExport } from '../types/session';
+import type { NormalizedSessionImport, SessionImport } from '../types/session';
 import type { ValidationError, ValidationWarning } from '../parser/schema-validator';
 import { useAppState } from '../state/app-context';
 import { appReducer } from '../state/app-reducer';
 import { ADVISOR_CONFIGS } from '../advisors/registry';
 import { buildPrompt } from '../prompt/prompt-builder';
-import { parseSessionExport } from '../parser/session-parser';
+import { parseSessionImport } from '../parser/session-parser';
+import { normalizeSessionImport } from '../parser/import-normalizer';
 
 export type SessionStep = 'generate' | 'awaiting' | 'import' | 'confirm' | 'complete';
 
@@ -14,7 +15,8 @@ export interface SessionFlowState {
   step: SessionStep;
   advisorId: AdvisorId;
   generatedPrompt: string | null;
-  parsedExport: SessionExport | null;
+  parsedImport: SessionImport | null;
+  normalizedImport: NormalizedSessionImport | null;
   validationErrors: ValidationError[];
   validationWarnings: ValidationWarning[];
 }
@@ -26,7 +28,8 @@ export function useSessionFlow(advisorId: AdvisorId) {
     step: 'generate',
     advisorId,
     generatedPrompt: null,
-    parsedExport: null,
+    parsedImport: null,
+    normalizedImport: null,
     validationErrors: [],
     validationWarnings: [],
   });
@@ -54,13 +57,15 @@ export function useSessionFlow(advisorId: AdvisorId) {
   }, []);
 
   const parseJson = useCallback((jsonString: string) => {
-    const result = parseSessionExport(jsonString);
+    const result = parseSessionImport(jsonString);
 
     if (result.valid && result.parsed) {
+      const normalizedImport = normalizeSessionImport(state.advisors[advisorId], result.parsed);
       setFlowState(prev => ({
         ...prev,
         step: 'confirm',
-        parsedExport: result.parsed,
+        parsedImport: result.parsed,
+        normalizedImport,
         validationErrors: [],
         validationWarnings: result.warnings,
       }));
@@ -69,19 +74,20 @@ export function useSessionFlow(advisorId: AdvisorId) {
         ...prev,
         validationErrors: result.errors,
         validationWarnings: result.warnings,
-        parsedExport: null,
+        parsedImport: null,
+        normalizedImport: null,
       }));
     }
-  }, []);
+  }, [advisorId, state.advisors]);
 
   const confirmImport = useCallback(async () => {
-    if (!flowState.parsedExport) return;
+    if (!flowState.normalizedImport) return;
 
     const action = {
       type: 'IMPORT_SESSION' as const,
       payload: {
         advisorId,
-        sessionExport: flowState.parsedExport,
+        normalizedImport: flowState.normalizedImport,
       },
     };
 
@@ -101,14 +107,15 @@ export function useSessionFlow(advisorId: AdvisorId) {
     } finally {
       setIsSaving(false);
     }
-  }, [flowState.parsedExport, advisorId, state, dispatch, saveState]);
+  }, [flowState.normalizedImport, advisorId, state, dispatch, saveState]);
 
   const reset = useCallback(() => {
     setFlowState({
       step: 'generate',
       advisorId,
       generatedPrompt: null,
-      parsedExport: null,
+      parsedImport: null,
+      normalizedImport: null,
       validationErrors: [],
       validationWarnings: [],
     });

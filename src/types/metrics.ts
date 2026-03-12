@@ -1,6 +1,7 @@
 import type { AdvisorId } from './advisor';
 
 export type MetricType = 'number' | 'rating' | 'currency' | 'percentage' | 'binary';
+export type CheckInSource = 'metric' | 'habit';
 
 export interface MetricDefinition {
   id: string;
@@ -10,6 +11,8 @@ export interface MetricDefinition {
   min?: number;
   max?: number;
   quickLoggable?: boolean;
+  source?: CheckInSource;
+  linkedHabitId?: string;
 }
 
 export interface MetricHistoryEntry {

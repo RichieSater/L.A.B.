@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useAppState } from '../../state/app-context';
 import {
   selectAdvisorsWithPinnedOrder,
-  selectAllOpenActionItems,
+  selectAllOpenTasks,
   selectInactiveAdvisorIds,
 } from '../../state/selectors';
 import { ADVISOR_CONFIGS } from '../../advisors/registry';
@@ -19,7 +19,7 @@ export function Dashboard() {
   const [activeTab, setActiveTab] = useState<DashboardTab>('advisors');
   const sortedAdvisors = selectAdvisorsWithPinnedOrder(state);
   const inactiveAdvisors = selectInactiveAdvisorIds(state);
-  const allOpenItems = selectAllOpenActionItems(state);
+  const allOpenItems = selectAllOpenTasks(state);
 
   return (
     <div>
@@ -28,7 +28,7 @@ export function Dashboard() {
         <div>
           <h2 className="text-lg font-semibold text-gray-100">Your Advisors</h2>
           <p className="text-sm text-gray-500 mt-0.5">
-            {allOpenItems.length} open action items across all domains
+            {allOpenItems.length} open tasks across all domains
           </p>
         </div>
         <div className="flex items-center gap-3">

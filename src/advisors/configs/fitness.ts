@@ -94,7 +94,7 @@ Start by asking: "Let's start with the basics. Tell me about your current situat
     {
       id: 'FIT-001',
       task: 'Log weight, sleep, and protein for 7 consecutive days to establish baseline',
-      due: 'ongoing',
+      dueDate: 'ongoing',
       priority: 'high',
       status: 'open',
       createdDate: today(),
@@ -102,7 +102,7 @@ Start by asking: "Let's start with the basics. Tell me about your current situat
     {
       id: 'FIT-002',
       task: 'Define current workout program — exercises, sets, reps, days per week',
-      due: 'ongoing',
+      dueDate: 'ongoing',
       priority: 'high',
       status: 'open',
       createdDate: today(),
@@ -110,7 +110,7 @@ Start by asking: "Let's start with the basics. Tell me about your current situat
     {
       id: 'FIT-003',
       task: 'Set protein target (grams/day) and calorie target based on current goal',
-      due: 'ongoing',
+      dueDate: 'ongoing',
       priority: 'high',
       status: 'open',
       createdDate: today(),
@@ -118,7 +118,7 @@ Start by asking: "Let's start with the basics. Tell me about your current situat
     {
       id: 'FIT-004',
       task: 'Establish sleep protocol — target bedtime, wake time, wind-down routine',
-      due: 'ongoing',
+      dueDate: 'ongoing',
       priority: 'medium',
       status: 'open',
       createdDate: today(),

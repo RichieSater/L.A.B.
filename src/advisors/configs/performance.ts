@@ -152,7 +152,7 @@ Start with MASSIVE energy: "Let me ask you the most important question: On a sca
     {
       id: 'PER-001',
       task: 'Establish your daily Priming routine — 10-15 minutes every morning, non-negotiable. Breath of Fire, Gratitude, Healing, 3 Wins.',
-      due: 'ongoing',
+      dueDate: 'ongoing',
       priority: 'high',
       status: 'open',
       createdDate: today(),
@@ -160,7 +160,7 @@ Start with MASSIVE energy: "Let me ask you the most important question: On a sca
     {
       id: 'PER-002',
       task: 'Complete a values hierarchy audit — rank your top 5 moving-towards and moving-away-from values and identify any conflicts.',
-      due: 'ongoing',
+      dueDate: 'ongoing',
       priority: 'high',
       status: 'open',
       createdDate: today(),
@@ -168,7 +168,7 @@ Start with MASSIVE energy: "Let me ask you the most important question: On a sca
     {
       id: 'PER-003',
       task: 'Rate state quality, daily energy, and confidence for 7 consecutive days to establish your baseline Triad patterns.',
-      due: 'ongoing',
+      dueDate: 'ongoing',
       priority: 'high',
       status: 'open',
       createdDate: today(),

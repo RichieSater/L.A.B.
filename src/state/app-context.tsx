@@ -1,10 +1,20 @@
-import { createContext, useContext, useReducer, useEffect, useRef, useState, useCallback, type ReactNode } from 'react';
+/* eslint-disable react-refresh/only-export-components */
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useReducer,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 import type { AppState } from '../types/app-state';
 import type { AppAction } from './actions';
 import { appReducer } from './app-reducer';
-import { createDefaultAppState, loadAppStateFromSupabase, saveAppStateToSupabase } from './init';
-import { SupabaseStorageService } from '../storage/supabase-storage';
+import { createDefaultAppState } from './init';
 import { useAuth } from '../auth/auth-context';
+import { apiClient } from '../lib/api';
 
 interface AppContextValue {
   state: AppState;
@@ -15,66 +25,43 @@ interface AppContextValue {
 const AppContext = createContext<AppContextValue | null>(null);
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const { user } = useAuth();
+  const { bootstrapData, loading: authLoading } = useAuth();
   const [state, dispatch] = useReducer(appReducer, null, createDefaultAppState);
-  const [loading, setLoading] = useState(true);
   const [saveError, setSaveError] = useState<string | null>(null);
-  const storageRef = useRef<SupabaseStorageService | null>(null);
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const initializedRef = useRef(false);
   const dismissSaveError = useCallback(() => setSaveError(null), []);
 
   const saveState = useCallback(async (stateToSave: AppState) => {
-    if (!storageRef.current) {
-      throw new Error('Storage not initialized');
-    }
-    await saveAppStateToSupabase(storageRef.current, stateToSave);
+    await apiClient.saveAppState(stateToSave);
   }, []);
 
-  // Load state from Supabase when user is available
   useEffect(() => {
-    if (!user) return;
-
-    let cancelled = false;
-    const supabaseStorage = new SupabaseStorageService(user.id);
-    storageRef.current = supabaseStorage;
-
-    async function init() {
-      const loadedState = await loadAppStateFromSupabase(supabaseStorage);
-      if (!cancelled) {
-        dispatch({ type: 'INITIALIZE', payload: loadedState });
-        initializedRef.current = true;
-        setLoading(false);
-      }
+    if (authLoading || !bootstrapData) {
+      return;
     }
 
-    init().catch(() => {
-      // Fallback: if Supabase fails, the default state is already in the reducer
-      if (!cancelled) {
-        initializedRef.current = true;
-        setLoading(false);
-      }
-    });
+    dispatch({ type: 'INITIALIZE', payload: bootstrapData.appState });
+    initializedRef.current = true;
+  }, [authLoading, bootstrapData]);
 
-    return () => { cancelled = true; };
-  }, [user]);
+  const loading = authLoading || !bootstrapData;
 
-  // Debounced persistence to Supabase
   useEffect(() => {
-    if (!initializedRef.current || loading) return;
+    if (!initializedRef.current || loading) {
+      return;
+    }
 
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current);
     }
 
     saveTimeoutRef.current = setTimeout(() => {
-      if (storageRef.current) {
-        setSaveError(null);
-        saveAppStateToSupabase(storageRef.current, state).catch(err => {
-          console.error('Failed to save to Supabase:', err);
-          setSaveError(err instanceof Error ? err.message : 'Failed to save data. Changes may not persist.');
-        });
-      }
+      setSaveError(null);
+      apiClient.saveAppState(state).catch(err => {
+        console.error('Failed to save app state:', err);
+        setSaveError(err instanceof Error ? err.message : 'Failed to save data. Changes may not persist.');
+      });
     }, 500);
 
     return () => {

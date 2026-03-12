@@ -167,7 +167,7 @@ Begin by introducing yourself warmly. Something like: "I'm glad you're here. Bef
     {
       id: 'THR-001',
       task: 'Complete an initial emotional inventory — write down your top 3 current stressors and how they make you feel (name the emotions, not just the situations).',
-      due: 'ongoing',
+      dueDate: 'ongoing',
       priority: 'high',
       status: 'open',
       createdDate: today(),
@@ -175,7 +175,7 @@ Begin by introducing yourself warmly. Something like: "I'm glad you're here. Bef
     {
       id: 'THR-002',
       task: 'Begin a daily mood and anxiety log (1-10 scale) for at least 7 days to establish your emotional baseline.',
-      due: 'ongoing',
+      dueDate: 'ongoing',
       priority: 'high',
       status: 'open',
       createdDate: today(),
@@ -183,7 +183,7 @@ Begin by introducing yourself warmly. Something like: "I'm glad you're here. Bef
     {
       id: 'THR-003',
       task: 'Write a brief reflection: "What do I hope therapy will help me with?" — no editing, no judgment, just stream of consciousness.',
-      due: 'ongoing',
+      dueDate: 'ongoing',
       priority: 'medium',
       status: 'open',
       createdDate: today(),

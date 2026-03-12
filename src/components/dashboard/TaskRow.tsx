@@ -1,14 +1,14 @@
-import type { EnrichedActionItem } from '../../state/selectors';
+import type { EnrichedTaskItem } from '../../state/selectors';
 import { daysAgo } from '../../utils/date';
 
 interface TaskRowProps {
-  item: EnrichedActionItem;
+  item: EnrichedTaskItem;
   onToggleComplete: (advisorId: string, itemId: string) => void;
 }
 
 export function TaskRow({ item, onToggleComplete }: TaskRowProps) {
   const isCompleted = item.status === 'completed';
-  const isOverdue = !isCompleted && item.due !== 'ongoing' && daysAgo(item.due) > 0;
+  const isOverdue = !isCompleted && item.dueDate !== 'ongoing' && daysAgo(item.dueDate) > 0;
 
   return (
     <div className="flex items-start gap-3 p-3 rounded-lg bg-gray-800/50">
@@ -55,9 +55,9 @@ export function TaskRow({ item, onToggleComplete }: TaskRowProps) {
           </span>
 
           {/* Due date */}
-          {item.due !== 'ongoing' ? (
+          {item.dueDate !== 'ongoing' ? (
             <span className={`text-xs ${isOverdue ? 'text-red-400' : 'text-gray-500'}`}>
-              due {item.due}
+              due {item.dueDate}
             </span>
           ) : (
             <span className="text-xs text-gray-600">ongoing</span>

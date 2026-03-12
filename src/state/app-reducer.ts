@@ -2,7 +2,7 @@ import type { AppState } from '../types/app-state';
 import type { AdvisorId } from '../types/advisor';
 import type { AppAction } from './actions';
 import type { SharedMetricsStore } from '../types/metrics';
-import { applySessionImport, updateActionItemStatus } from './advisors/advisor-reducer';
+import { applySessionImport, updateTaskStatus } from './advisors/advisor-reducer';
 import { ADVISOR_CONFIGS } from '../advisors/registry';
 import { createDefaultAdvisorState } from './init';
 
@@ -46,18 +46,18 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       return action.payload;
 
     case 'IMPORT_SESSION': {
-      const { advisorId, sessionExport } = action.payload;
+      const { advisorId, normalizedImport } = action.payload;
       const currentAdvisorState = state.advisors[advisorId];
       if (!currentAdvisorState) return state;
 
-      const newAdvisorState = applySessionImport(currentAdvisorState, sessionExport);
+      const newAdvisorState = applySessionImport(currentAdvisorState, normalizedImport);
 
       // Extract shared metrics
       const sharedUpdates = extractSharedMetrics(
         advisorId,
-        sessionExport.metrics,
-        sessionExport.mood,
-        sessionExport.date,
+        normalizedImport.sessionImport.metrics,
+        normalizedImport.sessionImport.mood,
+        normalizedImport.sessionImport.date,
       );
 
       return {
@@ -73,8 +73,8 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       };
     }
 
-    case 'UPDATE_ACTION_ITEM': {
-      const { advisorId, itemId, status } = action.payload;
+    case 'UPDATE_TASK': {
+      const { advisorId, taskId, status } = action.payload;
       const currentAdvisorState = state.advisors[advisorId];
       if (!currentAdvisorState) return state;
 
@@ -82,7 +82,7 @@ export function appReducer(state: AppState, action: AppAction): AppState {
         ...state,
         advisors: {
           ...state.advisors,
-          [advisorId]: updateActionItemStatus(currentAdvisorState, itemId, status),
+          [advisorId]: updateTaskStatus(currentAdvisorState, taskId, status),
         },
       };
     }

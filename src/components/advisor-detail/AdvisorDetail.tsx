@@ -25,12 +25,12 @@ export function AdvisorDetail({ advisorId }: AdvisorDetailProps) {
     : undefined;
 
   const handleToggleComplete = (itemId: string) => {
-    const item = state.actionItems.find(i => i.id === itemId);
+    const item = state.tasks.find(i => i.id === itemId);
     if (!item) return;
     const newStatus = item.status === 'completed' ? 'open' : 'completed';
     dispatch({
-      type: 'UPDATE_ACTION_ITEM',
-      payload: { advisorId, itemId, status: newStatus },
+      type: 'UPDATE_TASK',
+      payload: { advisorId, taskId: itemId, status: newStatus },
     });
   };
 
@@ -117,12 +117,29 @@ export function AdvisorDetail({ advisorId }: AdvisorDetailProps) {
         <div className="lg:col-span-2">
           <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
             <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-4">
-              Action Items
+              Tasks
             </h3>
             <ActionItemList
-              items={state.actionItems}
+              items={state.tasks}
               onToggleComplete={handleToggleComplete}
             />
+            {state.habits.length > 0 && (
+              <div className="mt-6 pt-6 border-t border-gray-800">
+                <h4 className="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-3">
+                  Habits
+                </h4>
+                <div className="space-y-2">
+                  {state.habits.map(habit => (
+                    <div key={habit.id} className="rounded-lg bg-gray-800/40 px-3 py-2">
+                      <p className="text-sm text-gray-200">{habit.name}</p>
+                      <p className="text-xs text-gray-500">
+                        {habit.cadence} target {habit.targetCount}{habit.unit ? ` ${habit.unit}` : ''} · {habit.status}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -179,8 +196,7 @@ export function AdvisorDetail({ advisorId }: AdvisorDetailProps) {
 
 function RecentQuickLogs({ advisorId }: { advisorId: AdvisorId }) {
   const { appState } = useAdvisor(advisorId);
-  const config = ADVISOR_CONFIGS[advisorId];
-  const metricDefs = config.metricDefinitions;
+  const metricDefs = appState.advisors[advisorId].checkInConfig ?? ADVISOR_CONFIGS[advisorId].metricDefinitions;
 
   const recentLogs = appState.quickLogs
     .filter(l => l.advisorId === advisorId)

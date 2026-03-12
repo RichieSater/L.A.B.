@@ -16,8 +16,8 @@ export function QuickLogForm({ advisorId, onSave, onCancel }: QuickLogFormProps)
   const config = ADVISOR_CONFIGS[advisorId];
   const { state } = useAppState();
   const advisorState = state.advisors[advisorId];
-  const quickMetrics = advisorState?.customCheckInItems?.length
-    ? advisorState.customCheckInItems
+  const quickMetrics = advisorState?.checkInConfig?.length
+    ? advisorState.checkInConfig
     : config.metricDefinitions.filter(m => m.quickLoggable);
 
   const [date, setDate] = useState(today());

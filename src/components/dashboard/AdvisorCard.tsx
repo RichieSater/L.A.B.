@@ -28,10 +28,10 @@ export function AdvisorCard({ advisorId }: AdvisorCardProps) {
   const upcomingSession = getUpcomingSession(advisorId);
   const lockStatus = getSessionLockStatus(upcomingSession, schedulingEnabled);
 
-  const openItems = state.actionItems.filter(i => i.status === 'open');
+  const openItems = state.tasks.filter(i => i.status === 'open');
   const topItem = openItems[0];
   const overdueCount = openItems.filter(
-    i => i.due !== 'ongoing' && daysAgo(i.due) > 0,
+    i => i.dueDate !== 'ongoing' && daysAgo(i.dueDate) > 0,
   ).length;
 
   const daysOverdue = status === 'overdue' && state.nextDueDate
@@ -106,8 +106,8 @@ export function AdvisorCard({ advisorId }: AdvisorCardProps) {
               }`}>
                 {topItem.priority}
               </span>
-              {topItem.due !== 'ongoing' && (
-                <span className="text-xs text-gray-500">due {topItem.due}</span>
+              {topItem.dueDate !== 'ongoing' && (
+                <span className="text-xs text-gray-500">due {topItem.dueDate}</span>
               )}
             </div>
           </div>
@@ -115,7 +115,7 @@ export function AdvisorCard({ advisorId }: AdvisorCardProps) {
 
         {/* Stats row */}
         <div className="flex items-center justify-between text-xs text-gray-500 mb-4">
-          <span>{openItems.length} open items</span>
+          <span>{openItems.length} open tasks</span>
           {overdueCount > 0 && (
             <span className="text-red-400">{overdueCount} overdue</span>
           )}
@@ -154,7 +154,7 @@ export function AdvisorCard({ advisorId }: AdvisorCardProps) {
 
         {/* Schedule / Quick Log buttons */}
         <div className="flex gap-2 mt-2">
-          {schedulingEnabled && !upcomingSession && (
+          {schedulingEnabled && (
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -162,7 +162,7 @@ export function AdvisorCard({ advisorId }: AdvisorCardProps) {
               }}
               className="flex-1 py-2 rounded-lg text-sm text-gray-400 hover:text-gray-200 hover:bg-gray-800 transition-colors"
             >
-              Schedule
+              {upcomingSession ? 'Reschedule' : 'Schedule'}
             </button>
           )}
           {supportsQuickLog && (

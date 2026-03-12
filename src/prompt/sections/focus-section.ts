@@ -16,13 +16,13 @@ export function buildFocusSection(
   }
 
   // Overdue action items
-  const overdueItems = state.actionItems.filter(
-    item => item.status === 'open' && item.due !== 'ongoing' && isOverdue(item.due),
+  const overdueItems = state.tasks.filter(
+    item => item.status === 'open' && item.dueDate !== 'ongoing' && isOverdue(item.dueDate),
   );
   if (overdueItems.length > 0) {
-    const worstOverdue = overdueItems.sort((a, b) => daysAgo(b.due) - daysAgo(a.due))[0];
+    const worstOverdue = overdueItems.sort((a, b) => daysAgo(b.dueDate) - daysAgo(a.dueDate))[0];
     suggestions.push(
-      `${overdueItems.length} action item(s) overdue. Most urgent: "${worstOverdue.task}" (${daysAgo(worstOverdue.due)} days overdue). Review and either complete, defer, or close.`,
+      `${overdueItems.length} action item(s) overdue. Most urgent: "${worstOverdue.task}" (${daysAgo(worstOverdue.dueDate)} days overdue). Review and either complete, defer, or close.`,
     );
   }
 

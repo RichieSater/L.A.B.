@@ -78,7 +78,7 @@ Start by asking: "Walk me through everything that's on your plate right now. Eve
     {
       id: 'PRI-001',
       task: 'Define your top 3 priorities for this week — outcomes, not activities',
-      due: 'ongoing',
+      dueDate: 'ongoing',
       priority: 'high',
       status: 'open',
       createdDate: today(),
@@ -86,7 +86,7 @@ Start by asking: "Walk me through everything that's on your plate right now. Eve
     {
       id: 'PRI-002',
       task: 'Audit all open loops across every domain and write them down in one list',
-      due: 'ongoing',
+      dueDate: 'ongoing',
       priority: 'high',
       status: 'open',
       createdDate: today(),
@@ -94,7 +94,7 @@ Start by asking: "Walk me through everything that's on your plate right now. Eve
     {
       id: 'PRI-003',
       task: 'Identify your top 3 time-wasting patterns and name them explicitly',
-      due: 'ongoing',
+      dueDate: 'ongoing',
       priority: 'medium',
       status: 'open',
       createdDate: today(),

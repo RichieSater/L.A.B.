@@ -45,10 +45,10 @@ export function buildCrossAdvisorSection(
 
   for (const id of activatedIds) {
     const advisor = appState.advisors[id];
-    for (const item of advisor.actionItems) {
+    for (const item of advisor.tasks) {
       if (item.status === 'open') {
         totalOpen++;
-        if (item.due !== 'ongoing' && item.due < now) {
+        if (item.dueDate !== 'ongoing' && item.dueDate < now) {
           totalOverdue++;
         }
       }
@@ -70,7 +70,7 @@ export function buildCrossAdvisorSection(
     if (id === config.id) continue;
     const advisor = appState.advisors[id];
     const otherConfig = ADVISOR_CONFIGS[id];
-    const openTasks = advisor.actionItems.filter(i => i.status === 'open');
+    const openTasks = advisor.tasks.filter(i => i.status === 'open');
 
     if (openTasks.length === 0) continue;
     hasAnyTasks = true;
@@ -79,17 +79,17 @@ export function buildCrossAdvisorSection(
       const pa = priorityOrder[a.priority] ?? 2;
       const pb = priorityOrder[b.priority] ?? 2;
       if (pa !== pb) return pa - pb;
-      if (a.due === 'ongoing') return 1;
-      if (b.due === 'ongoing') return -1;
-      return a.due.localeCompare(b.due);
+      if (a.dueDate === 'ongoing') return 1;
+      if (b.dueDate === 'ongoing') return -1;
+      return a.dueDate.localeCompare(b.dueDate);
     });
 
-    const allItems = advisor.actionItems;
+    const allItems = advisor.tasks;
     const completedCount = allItems.filter(i => i.status === 'completed').length;
     const completionRate = allItems.length > 0 ? Math.round((completedCount / allItems.length) * 100) : 0;
     section += `${otherConfig.shortName} (${openTasks.length} open, ${completionRate}% completion rate):\n`;
     for (const item of sorted.slice(0, 3)) {
-      section += `- [${item.id}] ${item.task} (due: ${item.due}, priority: ${item.priority})\n`;
+      section += `- [${item.id}] ${item.task} (due: ${item.dueDate}, priority: ${item.priority})\n`;
     }
     if (openTasks.length > 3) {
       section += `  ... and ${openTasks.length - 3} more\n`;

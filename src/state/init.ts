@@ -1,10 +1,17 @@
 import type { AdvisorId, AdvisorState } from '../types/advisor';
 import type { AppState } from '../types/app-state';
 import { ALL_ADVISOR_IDS, ADVISOR_CONFIGS } from '../advisors/registry';
-import type { SupabaseStorageService } from '../storage/supabase-storage';
 import { today } from '../utils/date';
+import { CURRENT_SCHEMA_VERSION } from '../constants/schema';
 
-const CURRENT_SCHEMA_VERSION = 2;
+export interface AppPersistence {
+  loadAdvisorState(id: AdvisorId): Promise<AdvisorState | null>;
+  saveAdvisorState(id: AdvisorId, state: AdvisorState): Promise<void>;
+  loadSharedMetrics(): Promise<AppState['sharedMetrics']>;
+  saveSharedMetrics(metrics: AppState['sharedMetrics']): Promise<void>;
+  loadQuickLogs(): Promise<AppState['quickLogs']>;
+  saveQuickLogs(logs: AppState['quickLogs']): Promise<void>;
+}
 
 export function createDefaultAdvisorState(advisorId: AdvisorId): AdvisorState {
   const config = ADVISOR_CONFIGS[advisorId];
@@ -14,7 +21,18 @@ export function createDefaultAdvisorState(advisorId: AdvisorId): AdvisorState {
     narrative: '',
     lastSessionDate: null,
     lastSessionSummary: null,
-    actionItems: [...config.initialActionItems],
+    tasks: config.initialActionItems.map(item => ({
+      id: item.id,
+      task: item.task,
+      dueDate: item.dueDate ?? item.due ?? 'ongoing',
+      priority: item.priority,
+      status: item.status === 'closed' ? 'closed' : item.status,
+      createdDate: item.createdDate,
+      completedDate: item.completedDate,
+      deferredReason: item.deferredReason,
+      sourceSessionDate: item.sourceSessionDate,
+    })),
+    habits: [],
     metricsLatest: {},
     metricsHistory: [],
     sessions: [],
@@ -22,6 +40,7 @@ export function createDefaultAdvisorState(advisorId: AdvisorId): AdvisorState {
     nextDueDate: today(), // Due immediately on first setup
     contextForNextSession: null,
     cardPreview: null,
+    checkInConfig: config.metricDefinitions.filter(metric => metric.quickLoggable),
   };
 }
 
@@ -40,14 +59,14 @@ export function createDefaultAppState(): AppState {
   };
 }
 
-export async function loadAppStateFromSupabase(
-  supabaseStorage: SupabaseStorageService,
+export async function loadAppStateFromStorage(
+  storage: AppPersistence,
 ): Promise<AppState> {
   const advisors = {} as Record<AdvisorId, AdvisorState>;
 
   const results = await Promise.all(
     ALL_ADVISOR_IDS.map(async id => {
-      const saved = await supabaseStorage.loadAdvisorState(id);
+      const saved = await storage.loadAdvisorState(id);
       return { id, state: saved };
     }),
   );
@@ -57,8 +76,8 @@ export async function loadAppStateFromSupabase(
   }
 
   const [sharedMetrics, quickLogs] = await Promise.all([
-    supabaseStorage.loadSharedMetrics(),
-    supabaseStorage.loadQuickLogs(),
+    storage.loadSharedMetrics(),
+    storage.loadQuickLogs(),
   ]);
 
   return {
@@ -70,15 +89,15 @@ export async function loadAppStateFromSupabase(
   };
 }
 
-export async function saveAppStateToSupabase(
-  supabaseStorage: SupabaseStorageService,
+export async function saveAppStateToStorage(
+  storage: AppPersistence,
   state: AppState,
 ): Promise<void> {
   const saves = ALL_ADVISOR_IDS.map(id =>
-    supabaseStorage.saveAdvisorState(id, state.advisors[id]),
+    storage.saveAdvisorState(id, state.advisors[id]),
   );
-  saves.push(supabaseStorage.saveSharedMetrics(state.sharedMetrics));
-  saves.push(supabaseStorage.saveQuickLogs(state.quickLogs));
+  saves.push(storage.saveSharedMetrics(state.sharedMetrics));
+  saves.push(storage.saveQuickLogs(state.quickLogs));
 
   await Promise.all(saves);
 }

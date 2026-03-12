@@ -44,7 +44,8 @@ function DailyLogModal({ onClose }: { onClose: () => void }) {
   const activatedIds = selectActivatedAdvisorIds(state);
   const loggableAdvisors = activatedIds.filter(id => {
     const config = ADVISOR_CONFIGS[id];
-    return config.metricDefinitions.some(m => m.quickLoggable);
+    const advisorConfig = state.advisors[id].checkInConfig;
+    return (advisorConfig?.length ?? config.metricDefinitions.filter(m => m.quickLoggable).length) > 0;
   });
 
   const updateValue = (advisorId: AdvisorId, metricId: string, value: number | string) => {
@@ -128,7 +129,9 @@ function DailyLogModal({ onClose }: { onClose: () => void }) {
         <div className="space-y-6">
           {loggableAdvisors.map(advisorId => {
             const config = ADVISOR_CONFIGS[advisorId];
-            const quickMetrics = config.metricDefinitions.filter(m => m.quickLoggable);
+            const quickMetrics = state.advisors[advisorId].checkInConfig?.length
+              ? state.advisors[advisorId].checkInConfig!
+              : config.metricDefinitions.filter(m => m.quickLoggable);
 
             return (
               <div key={advisorId}>

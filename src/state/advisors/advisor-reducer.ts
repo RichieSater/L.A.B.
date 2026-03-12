@@ -1,71 +1,90 @@
 import type { AdvisorState } from '../../types/advisor';
-import type { SessionExport } from '../../types/session';
-import type { ActionItem, ActionItemStatus } from '../../types/action-item';
+import type { NormalizedSessionImport } from '../../types/session';
+import type { HabitItem, TaskItem, TaskStatus } from '../../types/action-item';
 import { generateId } from '../../utils/id';
 import { today, addDays } from '../../utils/date';
 import { ADVISOR_CONFIGS } from '../../advisors/registry';
 
 export function applySessionImport(
   state: AdvisorState,
-  sessionExport: SessionExport,
+  normalizedImport: NormalizedSessionImport,
 ): AdvisorState {
   const config = ADVISOR_CONFIGS[state.advisorId];
-  const sessionDate = sessionExport.date || today();
+  const sessionImport = normalizedImport.sessionImport;
+  const sessionDate = sessionImport.date || today();
 
-  // 1. Process completed items
-  const updatedItems = state.actionItems.map(item => {
-    if (sessionExport.completed_items.includes(item.id)) {
+  let tasks = [...state.tasks];
+
+  tasks = tasks.map(item => {
+    const update = normalizedImport.taskUpdates.find(entry => entry.id === item.id);
+    if (!update) {
+      return item;
+    }
+
+    const nextItem = { ...item, ...update.changes };
+    return {
+      ...nextItem,
+      due: nextItem.dueDate,
+    };
+  });
+
+  tasks = tasks.map(item => {
+    if (normalizedImport.taskCompletes.includes(item.id)) {
       return { ...item, status: 'completed' as const, completedDate: sessionDate };
     }
-    // Check for deferred items
-    const deferred = sessionExport.deferred_items.find(d => d.id === item.id);
+
+    const deferred = normalizedImport.taskDefers.find(entry => entry.id === item.id);
     if (deferred) {
       return {
         ...item,
+        dueDate: deferred.newDueDate,
+        due: deferred.newDueDate,
         status: 'deferred' as const,
         deferredReason: deferred.reason,
-        newDue: deferred.new_due,
-        due: deferred.new_due,
       };
     }
-    return item;
-  });
 
-  // 2. Split action_items into updates (matching existing IDs) vs truly new items
-  const existingIds = new Set(updatedItems.map(i => i.id));
-  const itemUpdates = sessionExport.action_items.filter(
-    item => item.id && existingIds.has(item.id),
-  );
-  const brandNewItems = sessionExport.action_items.filter(
-    item => !item.id || !existingIds.has(item.id),
-  );
-
-  // Apply in-place updates to existing open items (task text, due date, priority)
-  const finalItems = updatedItems.map(item => {
-    const update = itemUpdates.find(u => u.id === item.id);
-    if (update && item.status === 'open') {
-      return { ...item, task: update.task, due: update.due, priority: update.priority };
+    if (normalizedImport.taskCloses.includes(item.id)) {
+      return { ...item, status: 'closed' as const };
     }
+
     return item;
   });
 
-  // Create only genuinely new items
-  const prefix = state.advisorId.slice(0, 3).toUpperCase();
-  const newItems: ActionItem[] = brandNewItems.map(item => ({
-    id: item.id || generateId(prefix),
-    task: item.task,
-    due: item.due,
-    priority: item.priority,
-    status: 'open' as const,
-    createdDate: sessionDate,
-    sourceSessionDate: sessionDate,
+  const newTasks: TaskItem[] = normalizedImport.taskCreates.map(item => ({
+    ...item,
+    id: item.id || generateId(state.advisorId.slice(0, 3).toUpperCase()),
+    due: item.dueDate,
   }));
 
+  let habits = [...state.habits];
+  habits = habits.map(item => {
+    const update = normalizedImport.habitUpdates.find(entry => entry.id === item.id);
+    if (!update) {
+      return item;
+    }
+
+    return { ...item, ...update.changes };
+  });
+  habits = habits.map(item => {
+    if (normalizedImport.habitArchives.includes(item.id)) {
+      return {
+        ...item,
+        status: 'archived' as const,
+        archivedDate: sessionDate,
+      };
+    }
+
+    return item;
+  });
+
+  const newHabits: HabitItem[] = normalizedImport.habitCreates;
+
   // 3. Update metrics
-  const newMetricsLatest = { ...state.metricsLatest, ...sessionExport.metrics };
+  const newMetricsLatest = { ...state.metricsLatest, ...sessionImport.metrics };
   const newHistoryEntry = {
     date: sessionDate,
-    values: { ...sessionExport.metrics },
+    values: { ...sessionImport.metrics },
   };
 
   // 4. Create session record
@@ -73,19 +92,20 @@ export function applySessionImport(
     id: generateId('sess'),
     advisorId: state.advisorId,
     date: sessionDate,
-    summary: sessionExport.summary,
-    mood: sessionExport.mood,
-    energy: sessionExport.energy,
-    sessionRating: sessionExport.session_rating,
-    actionItemsCreated: newItems.length,
-    actionItemsCompleted: sessionExport.completed_items.length,
-    narrativeUpdate: sessionExport.narrative_update,
-    rawExport: sessionExport,
+    summary: sessionImport.summary,
+    mood: sessionImport.mood,
+    energy: sessionImport.energy,
+    sessionRating: sessionImport.session_rating,
+    tasksCreated: newTasks.length,
+    tasksCompleted: normalizedImport.taskCompletes.length,
+    habitsCreated: newHabits.length,
+    narrativeUpdate: sessionImport.narrative_update,
+    rawImport: sessionImport,
   };
 
   // 5. Update narrative
-  const narrativeAddition = sessionExport.narrative_update
-    ? `\n\n[Session ${sessionDate}] ${sessionExport.narrative_update}`
+  const narrativeAddition = sessionImport.narrative_update
+    ? `\n\n[Session ${sessionDate}] ${sessionImport.narrative_update}`
     : '';
 
   // 6. Calculate streak
@@ -111,39 +131,40 @@ export function applySessionImport(
     : config.defaultCadence.intervalDays;
   const nextDue = addDays(sessionDate, Math.ceil(interval));
 
-  return {
+    return {
     ...state,
-    actionItems: [...finalItems, ...newItems],
+    tasks: [...tasks, ...newTasks],
+    habits: [...habits, ...newHabits],
     metricsLatest: newMetricsLatest,
     metricsHistory: [...state.metricsHistory, newHistoryEntry],
     sessions: [...state.sessions, sessionRecord],
     narrative: state.narrative + narrativeAddition,
     lastSessionDate: sessionDate,
-    lastSessionSummary: sessionExport.summary,
-    contextForNextSession: sessionExport.context_for_next_session,
-    cardPreview: sessionExport.card_preview || state.cardPreview,
+    lastSessionSummary: sessionImport.summary,
+    contextForNextSession: sessionImport.context_for_next_session,
+    cardPreview: sessionImport.card_preview || state.cardPreview,
     streak: newStreak,
     nextDueDate: nextDue,
-    customCheckInItems: sessionExport.check_in_items?.map(item => ({
+    checkInConfig: normalizedImport.checkInConfig?.map(item => ({
       ...item,
       quickLoggable: true,
-    })) ?? state.customCheckInItems,
+    })) ?? state.checkInConfig,
   };
 }
 
-export function updateActionItemStatus(
+export function updateTaskStatus(
   state: AdvisorState,
-  itemId: string,
-  status: ActionItemStatus,
+  taskId: string,
+  status: TaskStatus,
 ): AdvisorState {
   return {
     ...state,
-    actionItems: state.actionItems.map(item =>
-      item.id === itemId
+    tasks: state.tasks.map(item =>
+      item.id === taskId
         ? {
             ...item,
             status,
-            completedDate: status === 'completed' ? today() : item.completedDate,
+            completedDate: status === 'completed' ? today() : undefined,
           }
         : item,
     ),

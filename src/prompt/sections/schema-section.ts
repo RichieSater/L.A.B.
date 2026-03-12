@@ -1,61 +1,101 @@
 import type { AdvisorId } from '../../types/advisor';
 
 export function buildSchemaSection(advisorId: AdvisorId): string {
+  const prefix = advisorId.slice(0, 3).toUpperCase();
+
   return `[SESSION INSTRUCTIONS]
-Conduct a focused advisory session. At the end of our conversation, you MUST produce a JSON export block wrapped in \`\`\`json code fences in EXACTLY this format:
+Conduct a focused advisory session. At the end of our conversation, output ONLY a valid JSON block wrapped in \`\`\`json code fences using this structure:
 
 \`\`\`json
 {
   "advisor": "${advisorId}",
   "date": "YYYY-MM-DD",
   "summary": "2-4 sentence recap of what was discussed and decided",
-  "action_items": [
-    {
-      "id": "${advisorId.slice(0, 3).toUpperCase()}-XXX",
-      "task": "Specific actionable task description",
-      "due": "YYYY-MM-DD or ongoing",
-      "priority": "high | medium | low"
-    }
-  ],
-  "completed_items": ["ID-of-previously-open-item-now-done"],
-  "deferred_items": [
-    {
-      "id": "ID-of-item-being-deferred",
-      "reason": "Why this is being deferred",
-      "new_due": "YYYY-MM-DD"
-    }
-  ],
+  "task_ops": {
+    "create": [
+      {
+        "id": "${prefix}-XXX",
+        "task": "Specific one-time task",
+        "dueDate": "YYYY-MM-DD or ongoing",
+        "priority": "high | medium | low"
+      }
+    ],
+    "update": [
+      {
+        "id": "${prefix}-EXISTING",
+        "task": "Updated task text if needed",
+        "dueDate": "YYYY-MM-DD or ongoing",
+        "priority": "high | medium | low"
+      }
+    ],
+    "complete": ["${prefix}-EXISTING"],
+    "defer": [
+      {
+        "id": "${prefix}-EXISTING",
+        "reason": "Why this is being deferred",
+        "newDueDate": "YYYY-MM-DD"
+      }
+    ],
+    "close": ["${prefix}-EXISTING"]
+  },
+  "habit_ops": {
+    "create": [
+      {
+        "id": "${prefix}H-XXX",
+        "name": "Recurring habit",
+        "cadence": "daily | weekly",
+        "targetCount": 1,
+        "unit": "times"
+      }
+    ],
+    "update": [
+      {
+        "id": "${prefix}H-EXISTING",
+        "name": "Updated habit name",
+        "cadence": "daily | weekly",
+        "targetCount": 1,
+        "unit": "times",
+        "status": "active | paused"
+      }
+    ],
+    "archive": ["${prefix}H-EXISTING"]
+  },
   "metrics": {
     "metric_name": 7
   },
-  "context_for_next_session": "Key threads, unresolved questions, or important context to carry forward to next session",
-  "mood": "one-word emotional state tag (e.g. focused, anxious, motivated, drained)",
+  "context_for_next_session": "Key threads, unresolved questions, or important context to carry forward",
+  "mood": "one-word emotional state",
   "energy": 7,
   "session_rating": 8,
-  "narrative_update": "2-3 sentences updating the ongoing story of our advisory relationship. What changed, what was learned, what shifted.",
-  "card_preview": "1-2 sentence status update for the dashboard card reflecting current focus and progress",
-  "check_in_items": [
+  "narrative_update": "2-3 sentences updating the advisory relationship story",
+  "card_preview": "1-2 sentence dashboard status update",
+  "check_in_config": [
     {
-      "id": "custom_metric_id",
-      "label": "Display Label",
-      "type": "rating | number | binary",
+      "id": "focus_quality",
+      "label": "Focus quality",
+      "type": "rating",
       "min": 1,
-      "max": 10
+      "max": 10,
+      "source": "metric"
+    },
+    {
+      "id": "habit_consistency",
+      "label": "Did the habit happen?",
+      "type": "binary",
+      "source": "habit",
+      "linkedHabitId": "${prefix}H-EXISTING"
     }
   ]
 }
 \`\`\`
 
-IMPORTANT RULES FOR THE JSON EXPORT:
-- The JSON must be valid and parseable
-- action_items: To UPDATE an existing task (change its due date, priority, or description), include it with the SAME ID it already has. To create a genuinely NEW task, use a new unique ID with the format ${advisorId.slice(0, 3).toUpperCase()}-XXX. NEVER create a duplicate of an existing task — if you want to modify a task, reuse its existing ID.
-- completed_items: Reference IDs of previously open items that are now done
-- deferred_items: Reference IDs of items being pushed back, with a reason and new date
-- metrics: ALL metric values MUST be numbers (integers or decimals). For yes/no metrics use 1 or 0. No strings allowed in metric values.
-- energy and session_rating: integers from 1-10
-- narrative_update: This becomes part of the permanent record of our relationship
-- card_preview: A short 1-2 sentence status shown on your dashboard card. Reflect current focus, progress, or next milestone.
-- check_in_items (OPTIONAL): Customize what the user tracks in their daily check-in. Include an array of metric definitions tailored to this specific user's situation and goals. Each needs: id (string), label (string), type ("rating"|"number"|"binary"), and optionally min/max/unit. Only include this when you want to change what the user logs daily. If omitted, previous custom items (or defaults) are preserved. Make these specific and relevant to the user — e.g. "Relationship anxiety" instead of generic "Mood".
+IMPORTANT RULES:
+- Use ASCII characters only in the JSON output
+- Use task_ops.update to change an existing task instead of creating duplicates
+- Use habit_ops for recurring behaviors and task_ops for one-time work
+- All metric values must be numeric; for yes/no values use 1 or 0
+- If you do not want to change the daily check-in, omit check_in_config entirely
+- Energy and session_rating must be integers from 1-10
 
 Begin the session now.`;
 }

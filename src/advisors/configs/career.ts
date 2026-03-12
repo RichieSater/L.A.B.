@@ -95,7 +95,7 @@ Start by asking: "Tell me your story. Not the LinkedIn version — the real one.
     {
       id: 'CAR-001',
       task: 'Define target role criteria: title, comp range, company stage, location/remote preferences, industry',
-      due: 'ongoing',
+      dueDate: 'ongoing',
       priority: 'high',
       status: 'open',
       createdDate: today(),
@@ -103,7 +103,7 @@ Start by asking: "Tell me your story. Not the LinkedIn version — the real one.
     {
       id: 'CAR-002',
       task: 'Update resume positioned for target roles — outcomes and impact over narrative',
-      due: 'ongoing',
+      dueDate: 'ongoing',
       priority: 'high',
       status: 'open',
       createdDate: today(),
@@ -111,7 +111,7 @@ Start by asking: "Tell me your story. Not the LinkedIn version — the real one.
     {
       id: 'CAR-003',
       task: 'Build career positioning statement — 2 sentences max explaining your unique value',
-      due: 'ongoing',
+      dueDate: 'ongoing',
       priority: 'high',
       status: 'open',
       createdDate: today(),
@@ -119,7 +119,7 @@ Start by asking: "Tell me your story. Not the LinkedIn version — the real one.
     {
       id: 'CAR-004',
       task: 'Set weekly application target (minimum 5 tailored applications)',
-      due: 'ongoing',
+      dueDate: 'ongoing',
       priority: 'medium',
       status: 'open',
       createdDate: today(),

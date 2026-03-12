@@ -1,4 +1,4 @@
-import type { ActionItem } from './action-item';
+import type { ActionItem, HabitItem, TaskItem } from './action-item';
 import type { MetricDefinition, MetricHistoryEntry } from './metrics';
 import type { SessionRecord } from './session';
 
@@ -46,7 +46,8 @@ export interface AdvisorState {
   narrative: string;
   lastSessionDate: string | null;
   lastSessionSummary: string | null;
-  actionItems: ActionItem[];
+  tasks: TaskItem[];
+  habits: HabitItem[];
   metricsLatest: Record<string, number | string>;
   metricsHistory: MetricHistoryEntry[];
   sessions: SessionRecord[];
@@ -54,5 +55,5 @@ export interface AdvisorState {
   nextDueDate: string | null;
   contextForNextSession: string | null;
   cardPreview: string | null;
-  customCheckInItems?: MetricDefinition[];
+  checkInConfig?: MetricDefinition[];
 }

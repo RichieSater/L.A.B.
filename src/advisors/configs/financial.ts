@@ -86,7 +86,7 @@ Start by asking: "Before I can help you, I need to see the full picture. Walk me
     {
       id: 'FIN-001',
       task: 'Complete full financial snapshot: all accounts, balances, debts, monthly obligations',
-      due: 'ongoing',
+      dueDate: 'ongoing',
       priority: 'high',
       status: 'open',
       createdDate: today(),
@@ -94,7 +94,7 @@ Start by asking: "Before I can help you, I need to see the full picture. Walk me
     {
       id: 'FIN-002',
       task: 'Calculate exact monthly burn rate including all subscriptions and recurring costs',
-      due: 'ongoing',
+      dueDate: 'ongoing',
       priority: 'high',
       status: 'open',
       createdDate: today(),
@@ -102,7 +102,7 @@ Start by asking: "Before I can help you, I need to see the full picture. Walk me
     {
       id: 'FIN-003',
       task: 'Determine runway in months at current burn rate with zero new income',
-      due: 'ongoing',
+      dueDate: 'ongoing',
       priority: 'high',
       status: 'open',
       createdDate: today(),

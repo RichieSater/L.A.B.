@@ -1,10 +1,10 @@
 import { extractJson, safeJsonParse } from '../utils/json';
-import { validateSessionExport, type ValidationResult } from './schema-validator';
+import { validateSessionImport, type ValidationResult } from './schema-validator';
 
 /**
- * Parse a raw string (potentially containing markdown/explanation) into a validated SessionExport.
+ * Parse a raw string (potentially containing markdown/explanation) into a validated SessionImport.
  */
-export function parseSessionExport(rawInput: string): ValidationResult {
+export function parseSessionImport(rawInput: string): ValidationResult {
   const trimmed = rawInput.trim();
 
   if (!trimmed) {
@@ -36,5 +36,5 @@ export function parseSessionExport(rawInput: string): ValidationResult {
   }
 
   // Validate the parsed object against our schema
-  return validateSessionExport(parseResult.data);
+  return validateSessionImport(parseResult.data);
 }

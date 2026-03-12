@@ -1,11 +1,22 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useAuth } from '../auth/auth-context';
+import { apiClient } from '../lib/api';
 
 export function SettingsPage() {
-  const { profile, updateProfile } = useAuth();
+  const { profile, updateProfile, refreshBootstrap } = useAuth();
   const [displayName, setDisplayName] = useState(profile?.displayName ?? '');
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [disconnectingCalendar, setDisconnectingCalendar] = useState(false);
+  const calendarStatus = useMemo(() => {
+    if (profile?.googleCalendarConnected) {
+      return profile.googleCalendarEmail
+        ? `Connected as ${profile.googleCalendarEmail}`
+        : 'Connected';
+    }
+
+    return 'Not connected';
+  }, [profile?.googleCalendarConnected, profile?.googleCalendarEmail]);
 
   async function handleSaveName() {
     setSaving(true);
@@ -17,6 +28,13 @@ export function SettingsPage() {
 
   async function handleToggleScheduling() {
     await updateProfile({ schedulingEnabled: !profile?.schedulingEnabled });
+  }
+
+  async function handleDisconnectCalendar() {
+    setDisconnectingCalendar(true);
+    await apiClient.disconnectGoogleCalendar();
+    await refreshBootstrap();
+    setDisconnectingCalendar(false);
   }
 
   return (
@@ -73,6 +91,34 @@ export function SettingsPage() {
               }`}
             />
           </button>
+        </div>
+      </div>
+
+      <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-100">Google Calendar</h3>
+            <p className="text-sm text-gray-400 mt-1">
+              One-way sync for scheduled session events.
+            </p>
+            <p className="text-xs text-gray-500 mt-2">{calendarStatus}</p>
+          </div>
+          {profile?.googleCalendarConnected ? (
+            <button
+              onClick={handleDisconnectCalendar}
+              disabled={disconnectingCalendar}
+              className="px-4 py-2.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-200 text-sm font-medium transition-colors disabled:opacity-50"
+            >
+              {disconnectingCalendar ? 'Disconnecting...' : 'Disconnect'}
+            </button>
+          ) : (
+            <a
+              href="/api/google-calendar/connect"
+              className="px-4 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium transition-colors"
+            >
+              Connect Google Calendar
+            </a>
+          )}
         </div>
       </div>
     </div>

@@ -3,40 +3,46 @@ import type { AdvisorId } from '../types/advisor';
 export function buildForceJsonPrompt(advisorId: AdvisorId): string {
   const prefix = advisorId.slice(0, 3).toUpperCase();
 
-  return `Please produce the session export JSON now. Output ONLY a valid JSON block wrapped in \`\`\`json code fences. Use EXACTLY this format:
+  return `Produce the final session import JSON now. Output only one valid JSON block inside \`\`\`json fences.
 
 \`\`\`json
 {
   "advisor": "${advisorId}",
   "date": "YYYY-MM-DD",
-  "summary": "2-4 sentence recap of what was discussed and decided",
-  "action_items": [
-    {
-      "id": "${prefix}-XXX",
-      "task": "Specific actionable task",
-      "due": "YYYY-MM-DD or ongoing",
-      "priority": "high | medium | low"
-    }
-  ],
-  "completed_items": ["ID-of-completed-item"],
-  "deferred_items": [
-    {
-      "id": "ID-of-deferred-item",
-      "reason": "Why deferred",
-      "new_due": "YYYY-MM-DD"
-    }
-  ],
+  "summary": "2-4 sentence recap",
+  "task_ops": {
+    "create": [],
+    "update": [],
+    "complete": [],
+    "defer": [],
+    "close": []
+  },
+  "habit_ops": {
+    "create": [],
+    "update": [],
+    "archive": []
+  },
   "metrics": {
     "metric_name": 7
   },
   "context_for_next_session": "Key context to carry forward",
-  "mood": "one-word emotional state",
+  "mood": "focused",
   "energy": 7,
   "session_rating": 8,
-  "narrative_update": "2-3 sentences updating our advisory relationship story",
-  "card_preview": "1-2 sentence dashboard status"
+  "narrative_update": "2-3 sentence relationship update",
+  "card_preview": "1-2 sentence dashboard status",
+  "check_in_config": [
+    {
+      "id": "${prefix}_metric",
+      "label": "Custom check-in field",
+      "type": "rating",
+      "min": 1,
+      "max": 10,
+      "source": "metric"
+    }
+  ]
 }
 \`\`\`
 
-Base this on our conversation above. All metric values must be numbers. Energy and session_rating must be 1-10 integers.`;
+Use ASCII only. Use task_ops.update instead of duplicating an existing task. Use habit_ops for recurring habits.`;
 }

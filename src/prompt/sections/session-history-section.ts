@@ -17,8 +17,8 @@ export function buildSessionHistorySection(state: AdvisorState): string {
 
   for (const session of pastSessions) {
     section += `[${session.date}] ${session.summary}`;
-    if (session.actionItemsCreated > 0) {
-      section += ` (${session.actionItemsCreated} tasks created)`;
+    if (session.tasksCreated > 0 || session.habitsCreated > 0) {
+      section += ` (${session.tasksCreated} tasks, ${session.habitsCreated} habits created)`;
     }
     section += '\n';
   }

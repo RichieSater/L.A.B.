@@ -148,9 +148,10 @@ export function SessionFlow({ advisorId }: SessionFlowProps) {
         />
       )}
 
-      {flowState.step === 'confirm' && flowState.parsedExport && (
+      {flowState.step === 'confirm' && flowState.parsedImport && flowState.normalizedImport && (
         <SessionConfirmation
-          sessionExport={flowState.parsedExport}
+          sessionImport={flowState.parsedImport}
+          normalizedImport={flowState.normalizedImport}
           warnings={flowState.validationWarnings}
           onConfirm={confirmImport}
           onBack={advanceToImport}

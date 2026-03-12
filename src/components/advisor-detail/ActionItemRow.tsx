@@ -7,7 +7,7 @@ interface ActionItemRowProps {
 }
 
 export function ActionItemRow({ item, onToggleComplete }: ActionItemRowProps) {
-  const isOverdue = item.due !== 'ongoing' && item.status === 'open' && checkOverdue(item.due);
+  const isOverdue = item.dueDate !== 'ongoing' && item.status === 'open' && checkOverdue(item.dueDate);
   const isCompleted = item.status === 'completed';
 
   return (
@@ -40,9 +40,9 @@ export function ActionItemRow({ item, onToggleComplete }: ActionItemRowProps) {
           }`}>
             {item.priority}
           </span>
-          {item.due !== 'ongoing' ? (
+          {item.dueDate !== 'ongoing' ? (
             <span className={`text-xs ${isOverdue ? 'text-red-400' : 'text-gray-500'}`}>
-              {isOverdue ? `Overdue ${daysAgo(item.due)}d` : `due ${item.due}`}
+              {isOverdue ? `Overdue ${daysAgo(item.dueDate)}d` : `due ${item.dueDate}`}
             </span>
           ) : (
             <span className="text-xs text-gray-500">ongoing</span>

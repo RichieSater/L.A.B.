@@ -25,7 +25,7 @@ export function buildQuickLogSection(
   for (const log of relevantLogs) {
     section += `\n${log.date}:`;
     for (const [metricId, value] of Object.entries(log.logs)) {
-      const def = config.metricDefinitions.find(d => d.id === metricId);
+      const def = (state.checkInConfig ?? config.metricDefinitions).find(d => d.id === metricId);
       const label = def?.label ?? metricId;
       const unit = def?.unit ? ` ${def.unit}` : '';
       section += `\n  - ${label}: ${value}${unit}`;
@@ -34,7 +34,9 @@ export function buildQuickLogSection(
 
   // Add trend summary if 3+ entries
   if (relevantLogs.length >= 3) {
-    const quickLoggableMetrics = config.metricDefinitions.filter(m => m.quickLoggable);
+    const quickLoggableMetrics = state.checkInConfig?.length
+      ? state.checkInConfig
+      : config.metricDefinitions.filter(m => m.quickLoggable);
     const trendLines: string[] = [];
 
     for (const metric of quickLoggableMetrics) {

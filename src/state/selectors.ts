@@ -1,6 +1,6 @@
 import type { AppState } from '../types/app-state';
 import type { AdvisorId } from '../types/advisor';
-import type { ActionItem } from '../types/action-item';
+import type { HabitItem, TaskItem } from '../types/action-item';
 import type { ScheduleEntry } from '../types/schedule';
 import type { QuickLogEntry } from '../types/quick-log';
 import { ADVISOR_CONFIGS, ACTIVE_ADVISOR_IDS } from '../advisors/registry';
@@ -76,21 +76,21 @@ export function selectAdvisorsWithPinnedOrder(state: AppState): AdvisorId[] {
   return [...pinned, ...rest];
 }
 
-export interface EnrichedActionItem extends ActionItem {
+export interface EnrichedTaskItem extends TaskItem {
   advisorId: AdvisorId;
   advisorIcon: string;
   advisorName: string;
   advisorColor: string;
 }
 
-export function selectAllActionItems(state: AppState): EnrichedActionItem[] {
-  const items: EnrichedActionItem[] = [];
+export function selectAllTaskItems(state: AppState): EnrichedTaskItem[] {
+  const items: EnrichedTaskItem[] = [];
   const activatedIds = selectActivatedAdvisorIds(state);
 
   for (const id of activatedIds) {
     const advisor = state.advisors[id];
     const config = ADVISOR_CONFIGS[id];
-    for (const item of advisor.actionItems) {
+    for (const item of advisor.tasks) {
       items.push({
         ...item,
         advisorId: id,
@@ -106,10 +106,38 @@ export function selectAllActionItems(state: AppState): EnrichedActionItem[] {
     const pa = priorityOrder[a.priority];
     const pb = priorityOrder[b.priority];
     if (pa !== pb) return pa - pb;
-    if (a.due === 'ongoing') return 1;
-    if (b.due === 'ongoing') return -1;
-    return a.due.localeCompare(b.due);
+    if (a.dueDate === 'ongoing') return 1;
+    if (b.dueDate === 'ongoing') return -1;
+    return a.dueDate.localeCompare(b.dueDate);
   });
+}
+
+export interface EnrichedHabitItem extends HabitItem {
+  advisorId: AdvisorId;
+  advisorIcon: string;
+  advisorName: string;
+  advisorColor: string;
+}
+
+export function selectAllHabits(state: AppState): EnrichedHabitItem[] {
+  const habits: EnrichedHabitItem[] = [];
+  const activatedIds = selectActivatedAdvisorIds(state);
+
+  for (const id of activatedIds) {
+    const advisor = state.advisors[id];
+    const config = ADVISOR_CONFIGS[id];
+    for (const habit of advisor.habits) {
+      habits.push({
+        ...habit,
+        advisorId: id,
+        advisorIcon: config.icon,
+        advisorName: config.shortName,
+        advisorColor: config.domainColor,
+      });
+    }
+  }
+
+  return habits.sort((a, b) => a.name.localeCompare(b.name));
 }
 
 export interface CalendarEvent {
@@ -134,10 +162,10 @@ export function selectCalendarEvents(state: AppState): CalendarEvent[] {
     const config = ADVISOR_CONFIGS[id];
 
     // Task due dates
-    for (const item of advisor.actionItems) {
-      if (item.status === 'open' && item.due !== 'ongoing') {
+    for (const item of advisor.tasks) {
+      if (item.status === 'open' && item.dueDate !== 'ongoing') {
         events.push({
-          date: item.due,
+          date: item.dueDate,
           type: 'task',
           label: item.task,
           advisorId: id,
@@ -204,15 +232,15 @@ export function selectOverallStreak(state: AppState): number {
   return Math.min(...streaks);
 }
 
-export function selectAllOpenActionItems(
+export function selectAllOpenTasks(
   state: AppState,
-): (ActionItem & { advisorId: AdvisorId })[] {
-  const items: (ActionItem & { advisorId: AdvisorId })[] = [];
+): (TaskItem & { advisorId: AdvisorId })[] {
+  const items: (TaskItem & { advisorId: AdvisorId })[] = [];
   const activatedIds = selectActivatedAdvisorIds(state);
 
   for (const id of activatedIds) {
     const advisor = state.advisors[id];
-    for (const item of advisor.actionItems) {
+    for (const item of advisor.tasks) {
       if (item.status === 'open') {
         items.push({ ...item, advisorId: id });
       }
@@ -225,9 +253,9 @@ export function selectAllOpenActionItems(
     const pa = priorityOrder[a.priority];
     const pb = priorityOrder[b.priority];
     if (pa !== pb) return pa - pb;
-    if (a.due === 'ongoing') return 1;
-    if (b.due === 'ongoing') return -1;
-    return a.due.localeCompare(b.due);
+    if (a.dueDate === 'ongoing') return 1;
+    if (b.dueDate === 'ongoing') return -1;
+    return a.dueDate.localeCompare(b.dueDate);
   });
 }
 

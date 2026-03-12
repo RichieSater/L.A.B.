@@ -1,8 +1,9 @@
-import type { SessionExport } from '../../types/session';
+import type { NormalizedSessionImport, SessionImport } from '../../types/session';
 import type { ValidationWarning } from '../../parser/schema-validator';
 
 interface SessionConfirmationProps {
-  sessionExport: SessionExport;
+  sessionImport: SessionImport;
+  normalizedImport: NormalizedSessionImport;
   warnings: ValidationWarning[];
   onConfirm: () => void;
   onBack: () => void;
@@ -10,7 +11,15 @@ interface SessionConfirmationProps {
   saveError: string | null;
 }
 
-export function SessionConfirmation({ sessionExport, warnings, onConfirm, onBack, isSaving, saveError }: SessionConfirmationProps) {
+export function SessionConfirmation({
+  sessionImport,
+  normalizedImport,
+  warnings,
+  onConfirm,
+  onBack,
+  isSaving,
+  saveError,
+}: SessionConfirmationProps) {
   return (
     <div>
       <div className="mb-6">
@@ -24,78 +33,76 @@ export function SessionConfirmation({ sessionExport, warnings, onConfirm, onBack
         {/* Summary */}
         <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
           <h4 className="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-2">Session Summary</h4>
-          <p className="text-sm text-gray-300">{sessionExport.summary}</p>
+          <p className="text-sm text-gray-300">{sessionImport.summary}</p>
           <div className="flex flex-wrap gap-x-4 gap-y-1 mt-3 text-xs text-gray-500">
-            <span>Date: {sessionExport.date}</span>
-            <span>Mood: {sessionExport.mood}</span>
-            <span>Energy: {sessionExport.energy}/10</span>
-            <span>Rating: {sessionExport.session_rating}/10</span>
+            <span>Date: {sessionImport.date}</span>
+            <span>Mood: {sessionImport.mood}</span>
+            <span>Energy: {sessionImport.energy}/10</span>
+            <span>Rating: {sessionImport.session_rating}/10</span>
           </div>
         </div>
 
-        {/* New action items */}
-        {sessionExport.action_items.length > 0 && (
+        {normalizedImport.preview.tasks.length > 0 && (
           <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
             <h4 className="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-2">
-              New Action Items ({sessionExport.action_items.length})
+              Task Changes ({normalizedImport.preview.tasks.length})
             </h4>
             <ul className="space-y-2">
-              {sessionExport.action_items.map((item, i) => (
+              {normalizedImport.preview.tasks.map((item, i) => (
                 <li key={i} className="text-sm text-gray-300 flex items-start gap-2">
                   <span className={`px-1.5 py-0.5 rounded text-xs ${
-                    item.priority === 'high' ? 'bg-red-900/50 text-red-400' :
-                    item.priority === 'medium' ? 'bg-yellow-900/50 text-yellow-400' :
-                    'bg-gray-700 text-gray-400'
+                    item.type === 'create' ? 'bg-green-900/50 text-green-300' :
+                    item.type === 'auto-merge' ? 'bg-blue-900/50 text-blue-300' :
+                    'bg-gray-700 text-gray-300'
                   }`}>
-                    {item.priority}
+                    {item.type}
                   </span>
-                  <span>{item.task}</span>
-                  <span className="text-gray-500 text-xs ml-auto whitespace-nowrap">due {item.due}</span>
+                  <span>{item.after?.task ?? item.before?.task ?? item.taskId}</span>
+                  {item.after?.dueDate && (
+                    <span className="text-gray-500 text-xs ml-auto whitespace-nowrap">
+                      due {item.after.dueDate}
+                    </span>
+                  )}
                 </li>
               ))}
             </ul>
           </div>
         )}
 
-        {/* Completed items */}
-        {sessionExport.completed_items.length > 0 && (
+        {normalizedImport.preview.habits.length > 0 && (
           <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
             <h4 className="text-sm font-semibold text-green-400 uppercase tracking-wide mb-2">
-              Completed Items ({sessionExport.completed_items.length})
+              Habit Changes ({normalizedImport.preview.habits.length})
             </h4>
             <ul className="space-y-1">
-              {sessionExport.completed_items.map((id, i) => (
-                <li key={i} className="text-sm text-green-300">{id}</li>
+              {normalizedImport.preview.habits.map((item, i) => (
+                <li key={i} className="text-sm text-green-300">
+                  {item.type}: {item.after?.name ?? item.before?.name ?? item.habitId}
+                </li>
               ))}
             </ul>
           </div>
         )}
 
-        {/* Deferred items */}
-        {sessionExport.deferred_items.length > 0 && (
+        {normalizedImport.preview.checkInConfigChanged && (
           <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
             <h4 className="text-sm font-semibold text-yellow-400 uppercase tracking-wide mb-2">
-              Deferred Items ({sessionExport.deferred_items.length})
+              Daily Check-in Update
             </h4>
-            <ul className="space-y-2">
-              {sessionExport.deferred_items.map((item, i) => (
-                <li key={i} className="text-sm text-gray-300">
-                  <span className="text-yellow-300">{item.id}</span> &rarr; {item.new_due}
-                  <span className="text-gray-500 block text-xs">{item.reason}</span>
-                </li>
-              ))}
-            </ul>
+            <p className="text-sm text-yellow-200">
+              This import replaces the advisor check-in with {sessionImport.check_in_config?.length ?? 0} item(s).
+            </p>
           </div>
         )}
 
         {/* Metrics */}
-        {Object.keys(sessionExport.metrics).length > 0 && (
+        {Object.keys(sessionImport.metrics).length > 0 && (
           <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
             <h4 className="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-2">
               Metrics Update
             </h4>
             <div className="grid grid-cols-2 gap-2">
-              {Object.entries(sessionExport.metrics).map(([key, value]) => (
+              {Object.entries(sessionImport.metrics).map(([key, value]) => (
                 <div key={key} className="text-sm">
                   <span className="text-gray-500">{key}:</span>{' '}
                   <span className="text-gray-300">{String(value)}</span>
@@ -106,12 +113,12 @@ export function SessionConfirmation({ sessionExport, warnings, onConfirm, onBack
         )}
 
         {/* Narrative update */}
-        {sessionExport.narrative_update && (
+        {sessionImport.narrative_update && (
           <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
             <h4 className="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-2">
               Narrative Update
             </h4>
-            <p className="text-sm text-gray-300 italic">{sessionExport.narrative_update}</p>
+            <p className="text-sm text-gray-300 italic">{sessionImport.narrative_update}</p>
           </div>
         )}
 

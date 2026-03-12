@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { AdvisorId } from '../../types/advisor';
 import { useAppState } from '../../state/app-context';
-import { selectAllActionItems } from '../../state/selectors';
+import { selectAllHabits, selectAllTaskItems } from '../../state/selectors';
 import { ACTIVE_ADVISOR_IDS, ADVISOR_CONFIGS } from '../../advisors/registry';
 import { today } from '../../utils/date';
 import { TaskRow } from './TaskRow';
@@ -11,7 +11,8 @@ type PriorityFilter = 'all' | 'high' | 'medium' | 'low';
 
 export function TaskDashboard() {
   const { state, dispatch } = useAppState();
-  const allItems = selectAllActionItems(state);
+  const allItems = selectAllTaskItems(state);
+  const habits = selectAllHabits(state);
 
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('open');
   const [advisorFilter, setAdvisorFilter] = useState<AdvisorId | 'all'>('all');
@@ -27,18 +28,18 @@ export function TaskDashboard() {
 
   const now = today();
   const overdueCount = allItems.filter(
-    i => i.status === 'open' && i.due !== 'ongoing' && i.due < now,
+    i => i.status === 'open' && i.dueDate !== 'ongoing' && i.dueDate < now,
   ).length;
   const openCount = allItems.filter(i => i.status === 'open').length;
 
-  const handleToggle = (advisorId: string, itemId: string) => {
-    const item = allItems.find(i => i.id === itemId && i.advisorId === advisorId);
+  const handleToggle = (advisorId: string, taskId: string) => {
+    const item = allItems.find(i => i.id === taskId && i.advisorId === advisorId);
     if (!item) return;
     dispatch({
-      type: 'UPDATE_ACTION_ITEM',
+      type: 'UPDATE_TASK',
       payload: {
         advisorId: advisorId as AdvisorId,
-        itemId,
+        taskId,
         status: item.status === 'completed' ? 'open' : 'completed',
       },
     });
@@ -49,10 +50,34 @@ export function TaskDashboard() {
       {/* Summary */}
       <div className="flex items-center gap-4 mb-4 text-sm">
         <span className="text-gray-400">{openCount} open</span>
+        <span className="text-gray-500">{habits.filter(h => h.status === 'active').length} habits</span>
         {overdueCount > 0 && (
           <span className="text-red-400">{overdueCount} overdue</span>
         )}
       </div>
+
+      {habits.length > 0 && (
+        <div className="mb-5">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">Active Habits</h3>
+          <div className="grid gap-2 md:grid-cols-2">
+            {habits.filter(habit => habit.status === 'active').map(habit => (
+              <div key={habit.id} className="rounded-lg bg-gray-800/40 border border-gray-800 px-3 py-2">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm text-gray-200">{habit.name}</p>
+                    <p className="text-xs text-gray-500">
+                      {habit.cadence} target {habit.targetCount}{habit.unit ? ` ${habit.unit}` : ''}
+                    </p>
+                  </div>
+                  <span className="text-xs" style={{ color: habit.advisorColor }}>
+                    {habit.advisorIcon} {habit.advisorName}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Filters */}
       <div className="flex flex-wrap gap-4 mb-4">
