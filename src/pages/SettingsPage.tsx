@@ -1,9 +1,32 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../auth/auth-context';
 import { apiClient } from '../lib/api';
 
+type GoogleCalendarStatus = 'connected' | 'failed' | 'invalid_state' | 'expired_state';
+
+const GOOGLE_CALENDAR_MESSAGES: Record<GoogleCalendarStatus, { tone: 'success' | 'error'; text: string }> = {
+  connected: {
+    tone: 'success',
+    text: 'Google Calendar connected successfully.',
+  },
+  failed: {
+    tone: 'error',
+    text: 'Google Calendar connection failed. Please try again.',
+  },
+  invalid_state: {
+    tone: 'error',
+    text: 'Google Calendar connection could not be verified. Please try again.',
+  },
+  expired_state: {
+    tone: 'error',
+    text: 'Google Calendar connection timed out. Please try again.',
+  },
+};
+
 export function SettingsPage() {
   const { profile, updateProfile, refreshBootstrap } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [displayName, setDisplayName] = useState(profile?.displayName ?? '');
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -11,6 +34,7 @@ export function SettingsPage() {
   const [resettingData, setResettingData] = useState(false);
   const [resetMessage, setResetMessage] = useState<string | null>(null);
   const [resetError, setResetError] = useState<string | null>(null);
+  const [googleCalendarNotice, setGoogleCalendarNotice] = useState<GoogleCalendarStatus | null>(null);
   const calendarStatus = useMemo(() => {
     if (profile?.googleCalendarConnected) {
       return profile.googleCalendarEmail
@@ -20,6 +44,20 @@ export function SettingsPage() {
 
     return 'Not connected';
   }, [profile?.googleCalendarConnected, profile?.googleCalendarEmail]);
+
+  useEffect(() => {
+    const nextStatus = searchParams.get('google_calendar');
+
+    if (!nextStatus || !(nextStatus in GOOGLE_CALENDAR_MESSAGES)) {
+      return;
+    }
+
+    setGoogleCalendarNotice(nextStatus as GoogleCalendarStatus);
+
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete('google_calendar');
+    setSearchParams(nextParams, { replace: true });
+  }, [searchParams, setSearchParams]);
 
   async function handleSaveName() {
     setSaving(true);
@@ -129,6 +167,17 @@ export function SettingsPage() {
               One-way sync for scheduled session events.
             </p>
             <p className="text-xs text-gray-500 mt-2">{calendarStatus}</p>
+            {googleCalendarNotice ? (
+              <p
+                className={`text-sm mt-3 ${
+                  GOOGLE_CALENDAR_MESSAGES[googleCalendarNotice].tone === 'success'
+                    ? 'text-green-400'
+                    : 'text-red-400'
+                }`}
+              >
+                {GOOGLE_CALENDAR_MESSAGES[googleCalendarNotice].text}
+              </p>
+            ) : null}
           </div>
           {profile?.googleCalendarConnected ? (
             <button

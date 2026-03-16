@@ -1,7 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { requireUser } from '../../server/auth.js';
 import { buildBootstrapResponse, disconnectGoogleCalendar } from '../../server/data.js';
-import { getGoogleCalendarAuthUrl } from '../../server/google-calendar.js';
 import { json, methodNotAllowed } from '../../server/http.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<VercelResponse | void> {
@@ -15,7 +14,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     return json(res, 200, {
       connected: bootstrap.profile.googleCalendarConnected,
       email: bootstrap.profile.googleCalendarEmail,
-      authUrl: bootstrap.profile.googleCalendarConnected ? null : getGoogleCalendarAuthUrl(),
+      authUrl: bootstrap.profile.googleCalendarConnected ? null : '/api/google-calendar/connect',
     });
   }
 

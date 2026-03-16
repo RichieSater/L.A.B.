@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { requireUser } from '../../server/auth.js';
+import { createGoogleCalendarState } from '../../server/google-calendar-state.js';
 import { getGoogleCalendarAuthUrl } from '../../server/google-calendar.js';
 import { json, methodNotAllowed } from '../../server/http.js';
 
@@ -13,7 +14,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     return json(res, 401, { error: 'Unauthorized' });
   }
 
-  const authUrl = getGoogleCalendarAuthUrl();
+  const authUrl = getGoogleCalendarAuthUrl(createGoogleCalendarState(auth.userId));
   if (!authUrl) {
     return json(res, 503, { error: 'Google Calendar is not configured.' });
   }

@@ -61,7 +61,7 @@ export function isGoogleCalendarConfigured(): boolean {
   return !!requireGoogleConfig();
 }
 
-export function getGoogleCalendarAuthUrl(): string | null {
+export function getGoogleCalendarAuthUrl(state: string): string | null {
   const config = requireGoogleConfig();
   if (!config) {
     return null;
@@ -73,6 +73,7 @@ export function getGoogleCalendarAuthUrl(): string | null {
     response_type: 'code',
     access_type: 'offline',
     prompt: 'consent',
+    state,
     scope: [
       'https://www.googleapis.com/auth/calendar.events',
       'https://www.googleapis.com/auth/userinfo.email',

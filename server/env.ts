@@ -17,6 +17,7 @@ export const env = {
   clerkSecretKey: required('CLERK_SECRET_KEY'),
   databaseUrl: required('DATABASE_URL'),
   buildVersion: optional('VERCEL_GIT_COMMIT_SHA') ?? 'dev',
+  oauthStateSecret: optional('OAUTH_STATE_SECRET'),
   googleClientId: optional('GOOGLE_CLIENT_ID'),
   googleClientSecret: optional('GOOGLE_CLIENT_SECRET'),
   appUrl: optional('APP_URL'),
