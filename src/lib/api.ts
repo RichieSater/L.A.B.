@@ -108,6 +108,12 @@ export const apiClient = {
     });
   },
 
+  resetUserData(): Promise<void> {
+    return request<void>('/api/reset-user-data', {
+      method: 'POST',
+    });
+  },
+
   listScheduledSessions(): Promise<ScheduledSession[]> {
     return request<ScheduledSession[]>('/api/scheduled-sessions');
   },

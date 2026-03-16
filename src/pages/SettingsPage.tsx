@@ -8,6 +8,9 @@ export function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [disconnectingCalendar, setDisconnectingCalendar] = useState(false);
+  const [resettingData, setResettingData] = useState(false);
+  const [resetMessage, setResetMessage] = useState<string | null>(null);
+  const [resetError, setResetError] = useState<string | null>(null);
   const calendarStatus = useMemo(() => {
     if (profile?.googleCalendarConnected) {
       return profile.googleCalendarEmail
@@ -35,6 +38,30 @@ export function SettingsPage() {
     await apiClient.disconnectGoogleCalendar();
     await refreshBootstrap();
     setDisconnectingCalendar(false);
+  }
+
+  async function handleResetData() {
+    const confirmed = window.confirm(
+      'Start fresh? This clears your advisor state, quick logs, shared metrics, and scheduled sessions. Your account and settings stay intact.',
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setResettingData(true);
+    setResetMessage(null);
+    setResetError(null);
+
+    try {
+      await apiClient.resetUserData();
+      await refreshBootstrap();
+      setResetMessage('Your app data has been cleared.');
+    } catch (error) {
+      setResetError(error instanceof Error ? error.message : 'Failed to reset your data.');
+    } finally {
+      setResettingData(false);
+    }
   }
 
   return (
@@ -119,6 +146,29 @@ export function SettingsPage() {
               Connect Google Calendar
             </a>
           )}
+        </div>
+      </div>
+
+      <div className="bg-gray-900 border border-red-950 rounded-xl p-5">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-100">Start Fresh</h3>
+            <p className="text-sm text-gray-400 mt-1">
+              Clear your app data without deleting your account.
+            </p>
+            <p className="text-xs text-gray-500 mt-2">
+              This resets advisor state, quick logs, shared metrics, and scheduled sessions. Your profile and sign-in stay the same.
+            </p>
+            {resetMessage ? <p className="text-sm text-green-400 mt-3">{resetMessage}</p> : null}
+            {resetError ? <p className="text-sm text-red-400 mt-3">{resetError}</p> : null}
+          </div>
+          <button
+            onClick={handleResetData}
+            disabled={resettingData}
+            className="px-4 py-2.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-medium transition-colors disabled:opacity-50"
+          >
+            {resettingData ? 'Clearing...' : 'Start Fresh'}
+          </button>
         </div>
       </div>
     </div>

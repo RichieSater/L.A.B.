@@ -172,6 +172,69 @@ async function resetLegacyUserState(userId: string): Promise<void> {
   ]);
 }
 
+export async function resetUserData(userId: string): Promise<void> {
+  await ensureUserRecords(userId);
+
+  const profile = await db.query.userProfiles.findFirst({
+    where: eq(userProfiles.id, userId),
+  });
+
+  const sessionRows = await db
+    .select()
+    .from(scheduledSessions)
+    .where(eq(scheduledSessions.userId, userId));
+
+  const calendarRefreshToken = profile?.googleCalendarRefreshToken;
+
+  if (profile?.googleCalendarConnected && calendarRefreshToken && isGoogleCalendarConfigured()) {
+    const eventIds = sessionRows
+      .map(row => row.googleCalendarEventId)
+      .filter((eventId): eventId is string => Boolean(eventId));
+
+    await Promise.all(
+      eventIds.map(async eventId => {
+        try {
+          await deleteCalendarEvent(calendarRefreshToken, eventId);
+        } catch (error) {
+          console.warn('[resetUserData] Failed to delete Google Calendar event during reset.', {
+            userId,
+            eventId,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+      }),
+    );
+  }
+
+  const freshState = createDefaultAppState();
+
+  await db.delete(advisorStates).where(eq(advisorStates.userId, userId));
+  await db.delete(scheduledSessions).where(eq(scheduledSessions.userId, userId));
+
+  await Promise.all([
+    db.insert(advisorStates).values(
+      ALL_ADVISOR_IDS.map(advisorId => ({
+        userId,
+        advisorId,
+        state: freshState.advisors[advisorId],
+        updatedAt: new Date(),
+      })),
+    ),
+    db
+      .update(sharedMetrics)
+      .set({ metrics: {}, updatedAt: new Date() })
+      .where(eq(sharedMetrics.userId, userId)),
+    db
+      .update(quickLogs)
+      .set({ logs: [], updatedAt: new Date() })
+      .where(eq(quickLogs.userId, userId)),
+    db
+      .update(userAppMeta)
+      .set({ schemaVersion: CURRENT_SCHEMA_VERSION, updatedAt: new Date() })
+      .where(eq(userAppMeta.userId, userId)),
+  ]);
+}
+
 async function markExpiredScheduledSessions(userId: string): Promise<void> {
   await db
     .update(scheduledSessions)
