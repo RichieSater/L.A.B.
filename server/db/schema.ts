@@ -10,15 +10,15 @@ import {
   uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core';
-import type { AdvisorState } from '../../src/types/advisor';
-import { CURRENT_SCHEMA_VERSION } from '../../src/constants/schema';
-import type { SharedMetricsStore } from '../../src/types/metrics';
-import type { QuickLogEntry } from '../../src/types/quick-log';
-import type { CalendarSyncStatus, ScheduledSessionStatus } from '../../src/types/scheduled-session';
-import type { TaskPlanningStore } from '../../src/types/task-planning';
-import type { DailyPlanningState } from '../../src/types/daily-planning';
-import type { WeeklyFocusState } from '../../src/types/weekly-focus';
-import type { WeeklyReviewState } from '../../src/types/weekly-review';
+import type { AdvisorState } from '../../src/types/advisor.js';
+import { CURRENT_SCHEMA_VERSION } from '../../src/constants/schema.js';
+import type { SharedMetricsStore } from '../../src/types/metrics.js';
+import type { QuickLogEntry } from '../../src/types/quick-log.js';
+import type { CalendarSyncStatus, ScheduledSessionStatus } from '../../src/types/scheduled-session.js';
+import type { TaskPlanningStore } from '../../src/types/task-planning.js';
+import type { DailyPlanningState } from '../../src/types/daily-planning.js';
+import type { WeeklyFocusState } from '../../src/types/weekly-focus.js';
+import type { WeeklyReviewState } from '../../src/types/weekly-review.js';
 
 export const scheduledSessionStatusEnum = pgEnum('scheduled_session_status', [
   'scheduled',
