@@ -128,6 +128,40 @@ function makeSummary(
         note: '1 completed, 1 quick log',
       },
     ],
+    recapSections: [
+      {
+        id: 'wins',
+        title: 'What moved',
+        description: 'Concrete wins from the week so the review starts from evidence.',
+        lines: ['Closed the therapist intake loop (Therapist)'],
+        emptyState: 'No completed task wins were captured this week yet.',
+        tone: 'success',
+      },
+      {
+        id: 'advisors',
+        title: 'Active domains',
+        description: 'Which advisors generated momentum or still need attention.',
+        lines: ['Therapist: 1 completed, 1 session, 1 quick log, but 1 overdue task still open.'],
+        emptyState: 'No advisor-specific movement is standing out yet.',
+        tone: 'primary',
+      },
+      {
+        id: 'pressure',
+        title: 'Unfinished pressure',
+        description: 'The queue or planning friction most likely to leak into next week.',
+        lines: ['Overdue planned: Rebook therapist session.'],
+        emptyState: 'The queue is balanced right now; there is no obvious spillover pressure.',
+        tone: 'attention',
+      },
+      {
+        id: 'focus',
+        title: 'Next week focus',
+        description: 'Deterministic prompts for what deserves the first planning decision next.',
+        lines: ['Resolve Rebook therapist session before adding fresh commitments.'],
+        emptyState: 'Protect momentum and schedule from the current Today bucket before adding more backlog.',
+        tone: 'neutral',
+      },
+    ],
     ...overrides,
   };
 }
@@ -160,6 +194,10 @@ describe('WeeklyReviewCard', () => {
     expect(screen.getByText('Momentum Snapshot')).toBeInTheDocument();
     expect(screen.getByText('Closed the therapist intake loop')).toBeInTheDocument();
     expect(screen.getByText('Advisor Signals')).toBeInTheDocument();
+    expect(screen.getByText('Weekly Recap')).toBeInTheDocument();
+    expect(screen.getByText('What moved')).toBeInTheDocument();
+    expect(screen.getByText('Unfinished pressure')).toBeInTheDocument();
+    expect(screen.getByText('Resolve Rebook therapist session before adding fresh commitments.')).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText('Biggest win'), {
       target: { value: 'Finally closed the lingering therapist loop.' },

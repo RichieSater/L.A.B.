@@ -4,6 +4,7 @@ import { appReducer } from '../app-reducer';
 import {
   selectAdvisorAttentionSummary,
   selectDailyPlanningSummary,
+  selectRecentActivitySummary,
   selectTaskPlanningSummary,
   selectWeeklyFocusSummary,
   selectWeeklyReviewSummary,
@@ -179,6 +180,110 @@ describe('selectWeeklyReviewSummary', () => {
     expect(summary.recentWins.map(item => item.id)).toEqual([therapistTask.id]);
     expect(summary.advisorSnapshots.find(item => item.advisorId === 'therapist')?.status).toBe('momentum');
     expect(summary.advisorSnapshots.find(item => item.advisorId === 'prioritization')?.status).toBe('attention');
+    expect(summary.recapSections.map(section => section.id)).toEqual([
+      'wins',
+      'advisors',
+      'pressure',
+      'focus',
+    ]);
+    expect(summary.recapSections.find(section => section.id === 'wins')?.lines).toEqual([
+      `${therapistTask.task} (Therapist)`,
+    ]);
+    expect(summary.recapSections.find(section => section.id === 'pressure')?.lines).toContain(
+      `Overdue planned: ${firstTask.task}, ${thirdTask.task}.`,
+    );
+    expect(summary.recapSections.find(section => section.id === 'focus')?.lines).toContain(
+      `Resolve ${firstTask.task} before adding fresh commitments.`,
+    );
+  });
+});
+
+describe('selectRecentActivitySummary', () => {
+  it('builds a mixed activity feed across tasks, sessions, quick logs, and planning rituals', () => {
+    const initialState = createDefaultAppState();
+    initialState.advisors.prioritization.activated = true;
+    initialState.advisors.therapist.activated = true;
+
+    const prioritizationTask = initialState.advisors.prioritization.tasks[0];
+    if (!prioritizationTask) {
+      throw new Error('Expected prioritization task for recent activity selector test.');
+    }
+
+    prioritizationTask.status = 'completed';
+    prioritizationTask.completedDate = '2026-03-31';
+
+    initialState.advisors.therapist.sessions.push({
+      id: 'sess-1',
+      advisorId: 'therapist',
+      date: '2026-03-30',
+      summary: 'Therapy reset',
+      mood: 'steady',
+      energy: 7,
+      sessionRating: 8,
+      tasksCreated: 0,
+      tasksCompleted: 1,
+      habitsCreated: 0,
+      narrativeUpdate: '',
+      rawImport: {
+        advisor: 'therapist',
+        date: '2026-03-30',
+        summary: 'Therapy reset',
+        task_ops: { create: [], update: [], complete: [], defer: [], close: [] },
+        habit_ops: { create: [], update: [], archive: [] },
+        metrics: {},
+        context_for_next_session: '',
+        mood: 'steady',
+        energy: 7,
+        session_rating: 8,
+        narrative_update: '',
+        card_preview: '',
+      },
+    });
+    initialState.quickLogs.push({
+      advisorId: 'therapist',
+      date: '2026-03-29',
+      timestamp: '2026-03-29T12:00:00.000Z',
+      logs: { mood_rating: 7, energy: 6 },
+    });
+    initialState.dailyPlanning = {
+      entries: [
+        {
+          date: '2026-03-31',
+          completedAt: '2026-03-31T08:00:00.000Z',
+          headline: 'Protect the real block.',
+          guardrail: '',
+        },
+      ],
+    };
+    initialState.weeklyReview = {
+      entries: [
+        {
+          weekStart: '2026-03-29',
+          completedAt: '2026-03-30T09:00:00.000Z',
+          biggestWin: 'Stopped carrying therapist follow-up as background guilt.',
+          biggestLesson: '',
+          nextWeekNote: '',
+        },
+      ],
+    };
+
+    const summary = selectRecentActivitySummary(initialState, 'last_7_days', '2026-03-31');
+    const todaySummary = selectRecentActivitySummary(initialState, 'today', '2026-03-31');
+
+    expect(summary.total).toBe(5);
+    expect(summary.counts).toEqual({
+      completedTasks: 1,
+      sessions: 1,
+      quickLogs: 1,
+      rituals: 2,
+    });
+    expect(summary.items.map(item => item.type)).toContain('task_complete');
+    expect(summary.items.map(item => item.type)).toContain('session');
+    expect(summary.items.map(item => item.type)).toContain('quick_log');
+    expect(summary.items.map(item => item.type)).toContain('daily_plan');
+    expect(summary.items.map(item => item.type)).toContain('weekly_review');
+    expect(todaySummary.total).toBe(2);
+    expect(todaySummary.items.map(item => item.type)).toEqual(['task_complete', 'daily_plan']);
   });
 });
 

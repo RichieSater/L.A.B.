@@ -229,6 +229,21 @@ export function WeeklyReviewCard({
         </section>
       </div>
 
+      <section className="mt-4 rounded-lg border border-gray-800 bg-gray-950/80 p-4">
+        <div className="mb-3">
+          <h4 className="text-sm font-semibold text-gray-200">Weekly Recap</h4>
+          <p className="mt-1 text-xs text-gray-500">
+            A deterministic readout from this week&apos;s wins, advisor momentum, and unresolved planner pressure.
+          </p>
+        </div>
+
+        <div className="grid gap-3 lg:grid-cols-2 2xl:grid-cols-4">
+          {summary.recapSections.map(section => (
+            <RecapSectionCard key={section.id} summary={section} />
+          ))}
+        </div>
+      </section>
+
       <div className="mt-4 grid gap-3 xl:grid-cols-[1.35fr_0.95fr]">
         <section className="rounded-lg border border-gray-800 bg-gray-950/80 p-4">
           <div className="mb-3">
@@ -343,6 +358,37 @@ export function WeeklyReviewCard({
             </section>
           ))}
         </div>
+      )}
+    </section>
+  );
+}
+
+function RecapSectionCard({
+  summary,
+}: {
+  summary: WeeklyReviewSummary['recapSections'][number];
+}) {
+  const toneClasses = {
+    success: 'border-emerald-500/15 bg-emerald-500/5',
+    primary: 'border-sky-500/15 bg-sky-500/5',
+    attention: 'border-amber-500/15 bg-amber-500/5',
+    neutral: 'border-gray-800 bg-gray-900/70',
+  } satisfies Record<WeeklyReviewSummary['recapSections'][number]['tone'], string>;
+
+  return (
+    <section className={`rounded-lg border p-3 ${toneClasses[summary.tone]}`}>
+      <h5 className="text-sm font-semibold text-gray-100">{summary.title}</h5>
+      <p className="mt-1 text-xs text-gray-500">{summary.description}</p>
+      {summary.lines.length > 0 ? (
+        <div className="mt-3 space-y-2">
+          {summary.lines.map(line => (
+            <p key={line} className="text-sm leading-6 text-gray-200">
+              {line}
+            </p>
+          ))}
+        </div>
+      ) : (
+        <p className="mt-3 text-sm leading-6 text-gray-500">{summary.emptyState}</p>
       )}
     </section>
   );

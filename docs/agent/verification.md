@@ -31,14 +31,26 @@ For weekly-focus changes, verify the persistence and derivation boundaries toget
 
 For weekly-review changes, verify both the derived signals and the persistence boundary: stale `today`, overdue planned, and high-priority unplanned counts should reflect current queue state, weekly momentum stats should reflect completed tasks, sessions, and quick logs inside the correct week window, marking a review complete should survive bootstrap/save reloads for the same week, and reflection notes should reload into the correct week entry without overwriting the prior week's notes.
 
+For weekly recap changes, keep the recap deterministic: wins should come from completed tasks, advisor callouts should match weekly advisor snapshot state, unfinished pressure should mirror the same queue signals shown elsewhere in the review, and next-week focus prompts should stay derived from those signals instead of introducing another saved summary model.
+
+For strategic-dashboard changes, verify the server-owned round-trip as well as the planner behavior: `strategicDashboard` should survive `/api/bootstrap` and `/api/app-state` reloads, year/quarter/month goal edits should remain scoped to the right year entry, and promoting a goal into work should create or update canonical advisor tasks instead of creating a second planner-only record.
+
+For Compass changes, verify autosave, resume, and completion together: in-progress answers should reload into the saved session, completion should derive fresh Compass insights, and current-year goal seeding should only overwrite `yearGoals` when that year has not been manually edited in LAB.
+
+For weekly-first dashboard changes, verify that the root LAB home opens on the planner view, strategic panels and queue cards stay in sync, and advisor-created or advisor-updated tasks appear in the planner with the correct bucket and weekly-focus state without duplicate task content.
+
+For recent-activity timeline changes, verify the derivation boundary instead of inventing a new record source: completed tasks, recorded sessions, quick logs, and completed daily/weekly rituals should all appear in the correct window, the `today`, `last 7 days`, and `this week` filters should change the feed deterministically, and empty windows should degrade to a clear zero-state instead of stale activity.
+
 For advisor-attention changes, verify the action routing as well as the ranking: cadence pressure should beat purely presentational “quiet” states, task-triage nudges should open the task board, quick-log nudges should open the quick-log modal, and schedule nudges should still degrade cleanly when scheduling is disabled.
 
 Date-only values in the UI are local calendar dates. Do not derive a `YYYY-MM-DD` value with `toISOString().split('T')[0]` when the user-facing intent is "today" or a local date input, because that silently shifts dates across timezones.
 
 For Google Calendar lifecycle changes, verify both directions: connecting should sync already-scheduled future sessions, and disconnecting should clear session sync metadata without leaving stale "synced" state in app data.
 
+For Google Calendar reconciliation changes, verify the manual repair contract as well as the API flow: future scheduled sessions without an event ID should be recreated, drifted remote events should be rewritten to match the app-owned schedule, already-healthy events should stay untouched, and the Settings surface should report the resulting counts clearly after refresh.
+
 For data-shape changes, keep the reducer types aligned with `src/types/*` and prefer removing `any` casts instead of suppressing lint rules.
 
 For deploy-time caching or lazy-route changes, verify both a clean load and the stale-assets path. Keep one-time recovery logic bounded so a bad chunk does not cause an infinite reload loop, but scope that guard tightly enough that a later deploy in the same tab can still recover.
 
-For auth bootstrap, `vite.config.ts`, or `api/` boundary changes, run `npm run test:dev-api` before the broader baseline. That suite exists specifically to catch the local-dev failure mode where `/api/*` returns transformed source or misses non-`VITE_` env vars from `.env.local`.
+For auth bootstrap, `vite.config.ts`, `api/`, `server/`, `drizzle/`, or deploy-flow changes, run `npm run test:guardrails` before the broader baseline. That suite catches the local-dev `/api/*` source-serving failure, missing non-`VITE_` env hydration, runtime import specifiers that fail on Vercel, and deploy-script drift around migrations and guardrail checks.
