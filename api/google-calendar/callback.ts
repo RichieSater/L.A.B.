@@ -23,7 +23,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   }
 
   const verifiedState = verifyGoogleCalendarState(state);
-  if (!verifiedState.ok) {
+  if (verifiedState.ok === false) {
     return redirectToSettings(res, verifiedState.reason === 'expired' ? 'expired_state' : 'invalid_state');
   }
 
