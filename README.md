@@ -1,73 +1,77 @@
-# React + TypeScript + Vite
+# The L.A.B.
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+The L.A.B. is a personal "Life Advisory Board" app. It gives the user a set of domain-specific advisors, tracks shared metrics across them, captures quick daily logs, and supports scheduled sessions with optional Google Calendar sync.
 
-Currently, two official plugins are available:
+## Current shape
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- Frontend: Vite + React 19 + TypeScript
+- Auth: Clerk
+- Persistence: Neon Postgres via Drizzle
+- Server surface: Vercel-style functions in `api/` backed by shared logic in `server/`
+- Core product areas: advisor dashboard, task tracking, quick logs, scheduling, Google Calendar connection
 
-## React Compiler
+## Important directories
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- `src/`: client app, routing, state, advisor registry, parser, scheduler, pages, and UI
+- `api/`: serverless handlers
+- `server/`: persistence, auth, env, Google Calendar integration, and shared HTTP helpers
+- `server/db/`: Drizzle schema and database client
+- `docs/agent/`: canonical repo harness and verification docs
+- `docs/exec-plans/`: active and completed implementation plans
 
-## Expanding the ESLint configuration
+## Local setup
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+1. Install dependencies:
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+2. Create `.env.local` with the required values:
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+VITE_CLERK_PUBLISHABLE_KEY=...
+CLERK_PUBLISHABLE_KEY=...
+CLERK_SECRET_KEY=...
+DATABASE_URL=...
 ```
+
+3. Optional calendar integration variables:
+
+```bash
+GOOGLE_CLIENT_ID=...
+GOOGLE_CLIENT_SECRET=...
+OAUTH_STATE_SECRET=...
+APP_URL=http://localhost:5173
+```
+
+4. Start the client:
+
+```bash
+npm run dev
+```
+
+## Useful commands
+
+```bash
+npm run lint
+npm run test
+npm run build
+npm run bundle:check
+npm run db:generate
+npm run db:migrate
+```
+
+## Verification baseline
+
+Before closing substantial work, run:
+
+```bash
+npm run lint
+npm run test
+npm run build
+```
+
+`npm run build` now includes a stable bundle-budget gate for the main entry chunk plus the long-lived `router`, `clerk`, and `react-vendor` bundles. Use `npm run bundle:check` after an existing build if you only want to re-evaluate the emitted asset sizes.
+
+For architecture, workflows, and repo-specific guardrails, use the harness docs in [`docs/agent/`](docs/agent).

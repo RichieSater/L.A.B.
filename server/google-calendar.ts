@@ -182,7 +182,7 @@ export async function deleteCalendarEvent(refreshToken: string, eventId: string)
     },
   });
 
-  if (!response.ok && response.status !== 404) {
+  if (!response.ok && response.status !== 404 && response.status !== 410) {
     throw new Error('Failed to delete Google Calendar event.');
   }
 }

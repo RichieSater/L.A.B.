@@ -1,27 +1,41 @@
-import { BrowserRouter, Routes, Route, Outlet } from 'react-router-dom';
+import { Suspense, lazy } from 'react';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './auth/auth-context';
-import { ProtectedRoute } from './auth/ProtectedRoute';
-import { AppProvider } from './state/app-context';
-import { SchedulingProvider } from './state/scheduling-context';
 import { ErrorBoundary } from './components/shared/ErrorBoundary';
-import { AppShell } from './components/layout/AppShell';
-import { DashboardPage } from './pages/DashboardPage';
-import { SessionPage } from './pages/SessionPage';
-import { AdvisorPage } from './pages/AdvisorPage';
-import { SettingsPage } from './pages/SettingsPage';
-import { LoginPage } from './pages/LoginPage';
-import { SignupPage } from './pages/SignupPage';
-import { NotFoundPage } from './pages/NotFoundPage';
 
-function ProtectedLayout() {
+const DashboardPage = lazy(() =>
+  import('./pages/DashboardPage').then(module => ({ default: module.DashboardPage })),
+);
+const ProtectedRoute = lazy(() =>
+  import('./auth/ProtectedRoute').then(module => ({ default: module.ProtectedRoute })),
+);
+const ProtectedLayout = lazy(() =>
+  import('./components/layout/ProtectedLayout').then(module => ({ default: module.ProtectedLayout })),
+);
+const SessionPage = lazy(() =>
+  import('./pages/SessionPage').then(module => ({ default: module.SessionPage })),
+);
+const AdvisorPage = lazy(() =>
+  import('./pages/AdvisorPage').then(module => ({ default: module.AdvisorPage })),
+);
+const SettingsPage = lazy(() =>
+  import('./pages/SettingsPage').then(module => ({ default: module.SettingsPage })),
+);
+const LoginPage = lazy(() =>
+  import('./pages/LoginPage').then(module => ({ default: module.LoginPage })),
+);
+const SignupPage = lazy(() =>
+  import('./pages/SignupPage').then(module => ({ default: module.SignupPage })),
+);
+const NotFoundPage = lazy(() =>
+  import('./pages/NotFoundPage').then(module => ({ default: module.NotFoundPage })),
+);
+
+function RouteFallback() {
   return (
-    <AppProvider>
-      <SchedulingProvider>
-        <AppShell>
-          <Outlet />
-        </AppShell>
-      </SchedulingProvider>
-    </AppProvider>
+    <div className="flex min-h-dvh items-center justify-center bg-gray-950 px-4 text-sm text-gray-400">
+      Loading...
+    </div>
   );
 }
 
@@ -30,21 +44,23 @@ function App() {
     <ErrorBoundary>
       <AuthProvider>
         <BrowserRouter>
-          <Routes>
-            {/* Public routes */}
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/signup" element={<SignupPage />} />
+          <Suspense fallback={<RouteFallback />}>
+            <Routes>
+              {/* Public routes */}
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/signup" element={<SignupPage />} />
 
-            {/* Protected routes */}
-            <Route element={<ProtectedRoute><ProtectedLayout /></ProtectedRoute>}>
-              <Route path="/" element={<DashboardPage />} />
-              <Route path="/session/:advisorId" element={<SessionPage />} />
-              <Route path="/advisor/:advisorId" element={<AdvisorPage />} />
-              <Route path="/settings" element={<SettingsPage />} />
-            </Route>
+              {/* Protected routes */}
+              <Route element={<ProtectedRoute><ProtectedLayout /></ProtectedRoute>}>
+                <Route path="/" element={<DashboardPage />} />
+                <Route path="/session/:advisorId" element={<SessionPage />} />
+                <Route path="/advisor/:advisorId" element={<AdvisorPage />} />
+                <Route path="/settings" element={<SettingsPage />} />
+              </Route>
 
-            <Route path="*" element={<NotFoundPage />} />
-          </Routes>
+              <Route path="*" element={<NotFoundPage />} />
+            </Routes>
+          </Suspense>
         </BrowserRouter>
       </AuthProvider>
     </ErrorBoundary>

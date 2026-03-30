@@ -3,7 +3,7 @@ import type { AppState } from '../../types/app-state';
 import type { SharedMetricsStore } from '../../types/metrics';
 import { ADVISOR_CONFIGS } from '../../advisors/registry';
 import { selectActivatedAdvisorIds } from '../../state/selectors';
-import { formatDaysAgo } from '../../utils/date';
+import { formatDaysAgo, today } from '../../utils/date';
 
 export function buildCrossAdvisorSection(
   config: AdvisorConfig,
@@ -41,7 +41,7 @@ export function buildCrossAdvisorSection(
   // Dashboard summary
   let totalOpen = 0;
   let totalOverdue = 0;
-  const now = new Date().toISOString().split('T')[0];
+  const now = today();
 
   for (const id of activatedIds) {
     const advisor = appState.advisors[id];

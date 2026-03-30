@@ -31,12 +31,12 @@ fi
 echo -e "${GREEN}  Tests OK${NC}"
 
 # 3. Build
-echo -e "${BLUE}[3/5]${NC} Building..."
+echo -e "${BLUE}[3/5]${NC} Building and checking bundle budgets..."
 if ! npm run build > /dev/null 2>&1; then
-  echo -e "${RED}Build failed. Fix before deploying.${NC}"
+  echo -e "${RED}Build or bundle budget check failed. Fix before deploying.${NC}"
   exit 1
 fi
-echo -e "${GREEN}  Build OK${NC}"
+echo -e "${GREEN}  Build and bundle budgets OK${NC}"
 
 # 4. Git commit & push
 echo -e "${BLUE}[4/5]${NC} Checking git status..."

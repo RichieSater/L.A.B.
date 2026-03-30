@@ -1,3 +1,4 @@
+import type { AdvisorId } from '../types/advisor';
 import type { SharedMetricConfig } from '../types/metrics';
 
 export const SHARED_METRICS_MAP: SharedMetricConfig[] = [
@@ -61,16 +62,16 @@ export const SHARED_METRICS_MAP: SharedMetricConfig[] = [
 /**
  * Get the shared metrics that a given advisor consumes (reads from other advisors).
  */
-export function getConsumedMetrics(advisorId: string): string[] {
+export function getConsumedMetrics(advisorId: AdvisorId): string[] {
   return SHARED_METRICS_MAP
-    .filter(m => m.consumers.includes(advisorId as any))
+    .filter(m => m.consumers.includes(advisorId))
     .map(m => m.metricId);
 }
 
 /**
  * Get the shared metrics that a given advisor produces (writes for other advisors).
  */
-export function getProducedMetrics(advisorId: string): string[] {
+export function getProducedMetrics(advisorId: AdvisorId): string[] {
   return SHARED_METRICS_MAP
     .filter(m => m.owner === advisorId)
     .map(m => m.metricId);

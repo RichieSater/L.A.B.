@@ -12,6 +12,32 @@ export default defineConfig({
   define: {
     __APP_BUILD_VERSION__: JSON.stringify(buildVersion),
   },
+  build: {
+    manifest: true,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes('node_modules')) {
+            return undefined;
+          }
+
+          if (id.includes('/@clerk/')) {
+            return 'clerk';
+          }
+
+          if (id.includes('/react-router') || id.includes('/@remix-run/router')) {
+            return 'router';
+          }
+
+          if (id.includes('/react/') || id.includes('/react-dom/') || id.includes('/scheduler/')) {
+            return 'react-vendor';
+          }
+
+          return undefined;
+        },
+      },
+    },
+  },
   test: {
     environment: 'jsdom',
     globals: true,

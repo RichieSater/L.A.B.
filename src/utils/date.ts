@@ -1,5 +1,35 @@
-export function today(): string {
-  return new Date().toISOString().split('T')[0];
+function padDatePart(value: number): string {
+  return String(value).padStart(2, '0');
+}
+
+function getFormatter(timeZone?: string): Intl.DateTimeFormat {
+  return new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  });
+}
+
+export function formatDateKey(date: Date, timeZone?: string): string {
+  const parts = getFormatter(timeZone).formatToParts(date);
+  const year = parts.find(part => part.type === 'year')?.value;
+  const month = parts.find(part => part.type === 'month')?.value;
+  const day = parts.find(part => part.type === 'day')?.value;
+
+  if (!year || !month || !day) {
+    throw new Error('Failed to format date key.');
+  }
+
+  return `${year}-${month}-${day}`;
+}
+
+export function today(timeZone?: string): string {
+  return formatDateKey(new Date(), timeZone);
+}
+
+export function formatTimeInputValue(date: Date): string {
+  return `${padDatePart(date.getHours())}:${padDatePart(date.getMinutes())}`;
 }
 
 export function daysAgo(dateStr: string): number {
@@ -12,7 +42,7 @@ export function daysAgo(dateStr: string): number {
 export function addDays(dateStr: string, days: number): string {
   const date = new Date(dateStr + 'T00:00:00');
   date.setDate(date.getDate() + days);
-  return date.toISOString().split('T')[0];
+  return formatDateKey(date);
 }
 
 export function daysBetween(dateA: string, dateB: string): number {
@@ -61,18 +91,18 @@ export function getMonthDays(year: number, month: number): { date: string; isCur
 
   for (let i = startPadding - 1; i >= 0; i--) {
     const d = new Date(year, month, -i);
-    days.push({ date: d.toISOString().split('T')[0], isCurrentMonth: false });
+    days.push({ date: formatDateKey(d), isCurrentMonth: false });
   }
 
   for (let d = 1; d <= lastDay.getDate(); d++) {
     const dateObj = new Date(year, month, d);
-    days.push({ date: dateObj.toISOString().split('T')[0], isCurrentMonth: true });
+    days.push({ date: formatDateKey(dateObj), isCurrentMonth: true });
   }
 
   const totalCells = days.length <= 35 ? 35 : 42;
   while (days.length < totalCells) {
     const d = new Date(year, month + 1, days.length - startPadding - lastDay.getDate() + 1);
-    days.push({ date: d.toISOString().split('T')[0], isCurrentMonth: false });
+    days.push({ date: formatDateKey(d), isCurrentMonth: false });
   }
 
   return days;

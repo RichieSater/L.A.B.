@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import type { AdvisorId } from '../../types/advisor';
 import { ADVISOR_CONFIGS } from '../../advisors/registry';
 import { useScheduling } from '../../state/scheduling-context';
+import { formatDateKey, formatTimeInputValue, today } from '../../utils/date';
 
 interface ScheduleModalProps {
   advisorId: AdvisorId;
@@ -13,16 +14,10 @@ export function ScheduleModal({ advisorId, onClose }: ScheduleModalProps) {
   const { scheduleSession, getUpcomingSession } = useScheduling();
   const existingSession = getUpcomingSession(advisorId);
   const existingDate = existingSession ? new Date(existingSession.scheduledAt) : null;
-  const [date, setDate] = useState(existingDate ? existingDate.toISOString().split('T')[0] : '');
-  const [time, setTime] = useState('09:00');
+  const [date, setDate] = useState(existingDate ? formatDateKey(existingDate) : '');
+  const [time, setTime] = useState(existingDate ? formatTimeInputValue(existingDate) : '09:00');
   const [durationMinutes, setDurationMinutes] = useState(existingSession?.durationMinutes ?? 60);
   const [submitting, setSubmitting] = useState(false);
-
-  useEffect(() => {
-    if (existingDate) {
-      setTime(existingDate.toISOString().slice(11, 16));
-    }
-  }, [existingDate]);
 
   async function handleSchedule() {
     if (!date || !time) return;
@@ -35,7 +30,7 @@ export function ScheduleModal({ advisorId, onClose }: ScheduleModalProps) {
   }
 
   // Minimum date is today
-  const minDate = new Date().toISOString().split('T')[0];
+  const minDate = today();
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">

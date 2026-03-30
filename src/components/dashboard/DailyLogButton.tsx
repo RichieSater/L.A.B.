@@ -6,6 +6,8 @@ import { ADVISOR_CONFIGS } from '../../advisors/registry';
 import { selectActivatedAdvisorIds } from '../../state/selectors';
 import { today } from '../../utils/date';
 
+type DraftMetricValue = number | '';
+
 export function DailyLogButton() {
   const [showModal, setShowModal] = useState(false);
 
@@ -28,7 +30,7 @@ export function DailyLogButton() {
 function DailyLogModal({ onClose }: { onClose: () => void }) {
   const { state, dispatch } = useAppState();
   const [date, setDate] = useState(today());
-  const [values, setValues] = useState<Record<string, Record<string, number | string>>>({});
+  const [values, setValues] = useState<Record<string, Record<string, DraftMetricValue>>>({});
   const [saved, setSaved] = useState(false);
 
   const handleEscape = useCallback((e: KeyboardEvent) => {
@@ -48,7 +50,7 @@ function DailyLogModal({ onClose }: { onClose: () => void }) {
     return (advisorConfig?.length ?? config.metricDefinitions.filter(m => m.quickLoggable).length) > 0;
   });
 
-  const updateValue = (advisorId: AdvisorId, metricId: string, value: number | string) => {
+  const updateValue = (advisorId: AdvisorId, metricId: string, value: DraftMetricValue) => {
     setValues(prev => ({
       ...prev,
       [advisorId]: {
@@ -185,8 +187,8 @@ function CompactMetricInput({
   onChange,
 }: {
   metric: MetricDefinition;
-  value: number | string | undefined;
-  onChange: (val: number | string) => void;
+  value: DraftMetricValue | undefined;
+  onChange: (val: DraftMetricValue) => void;
 }) {
   if (metric.type === 'rating' && metric.min !== undefined && metric.max !== undefined) {
     const numbers = Array.from({ length: metric.max - metric.min + 1 }, (_, i) => i + metric.min!);
@@ -254,7 +256,7 @@ function CompactMetricInput({
         value={value ?? ''}
         onChange={(e) => {
           const v = e.target.value;
-          onChange(v === '' ? '' as any : Number(v));
+          onChange(v === '' ? '' : Number(v));
         }}
         placeholder={metric.label.toLowerCase()}
         className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-1.5 text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-gray-600"

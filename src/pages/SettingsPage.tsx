@@ -164,7 +164,7 @@ export function SettingsPage() {
           <div>
             <h3 className="text-lg font-semibold text-gray-100">Google Calendar</h3>
             <p className="text-sm text-gray-400 mt-1">
-              One-way sync for scheduled session events.
+              One-way sync for scheduled session events. Connecting backfills upcoming sessions, and disconnecting removes synced events from Google Calendar.
             </p>
             <p className="text-xs text-gray-500 mt-2">{calendarStatus}</p>
             {googleCalendarNotice ? (

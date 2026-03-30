@@ -6,6 +6,8 @@ import { ADVISOR_CONFIGS } from '../../advisors/registry';
 import { useAppState } from '../../state/app-context';
 import { today } from '../../utils/date';
 
+type DraftMetricValue = number | '';
+
 interface QuickLogFormProps {
   advisorId: AdvisorId;
   onSave: (entry: QuickLogEntry) => void;
@@ -21,10 +23,10 @@ export function QuickLogForm({ advisorId, onSave, onCancel }: QuickLogFormProps)
     : config.metricDefinitions.filter(m => m.quickLoggable);
 
   const [date, setDate] = useState(today());
-  const [values, setValues] = useState<Record<string, number | string>>({});
+  const [values, setValues] = useState<Record<string, DraftMetricValue>>({});
   const [saved, setSaved] = useState(false);
 
-  const updateValue = (metricId: string, value: number | string) => {
+  const updateValue = (metricId: string, value: DraftMetricValue) => {
     setValues(prev => ({ ...prev, [metricId]: value }));
   };
 
@@ -120,8 +122,8 @@ function MetricInput({
   onChange,
 }: {
   metric: MetricDefinition;
-  value: number | string | undefined;
-  onChange: (val: number | string) => void;
+  value: DraftMetricValue | undefined;
+  onChange: (val: DraftMetricValue) => void;
 }) {
   if (metric.type === 'rating' && metric.min !== undefined && metric.max !== undefined) {
     return (
@@ -156,7 +158,7 @@ function MetricInput({
         value={value ?? ''}
         onChange={(e) => {
           const v = e.target.value;
-          onChange(v === '' ? '' as any : Number(v));
+          onChange(v === '' ? '' : Number(v));
         }}
         placeholder={`Enter ${metric.label.toLowerCase()}`}
         className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-gray-600"

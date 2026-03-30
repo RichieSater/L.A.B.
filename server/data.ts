@@ -51,6 +51,16 @@ function mapScheduledSession(row: typeof scheduledSessions.$inferSelect): Schedu
   };
 }
 
+function hasUsableGoogleCalendarProfile(
+  profile: typeof userProfiles.$inferSelect | undefined,
+): profile is typeof userProfiles.$inferSelect & { googleCalendarRefreshToken: string } {
+  return !!(
+    profile?.googleCalendarConnected &&
+    profile.googleCalendarRefreshToken &&
+    isGoogleCalendarConfigured()
+  );
+}
+
 async function deriveDisplayName(userId: string): Promise<string | null> {
   try {
     const user = await clerkClient.users.getUser(userId);
@@ -280,18 +290,14 @@ async function loadAppState(userId: string): Promise<AppState> {
   return baseState;
 }
 
-async function syncScheduledSessionCalendar(
-  userId: string,
+async function syncScheduledSessionCalendarForProfile(
+  profile: typeof userProfiles.$inferSelect | undefined,
   row: typeof scheduledSessions.$inferSelect,
 ): Promise<{
   calendarSyncStatus: typeof row.calendarSyncStatus;
   googleCalendarEventId: string | null;
 }> {
-  const profile = await db.query.userProfiles.findFirst({
-    where: eq(userProfiles.id, userId),
-  });
-
-  if (!profile?.googleCalendarConnected || !profile.googleCalendarRefreshToken || !isGoogleCalendarConfigured()) {
+  if (!hasUsableGoogleCalendarProfile(profile)) {
     return {
       calendarSyncStatus: 'disabled',
       googleCalendarEventId: row.googleCalendarEventId ?? null,
@@ -322,6 +328,109 @@ async function syncScheduledSessionCalendar(
     calendarSyncStatus: 'synced',
     googleCalendarEventId: eventId,
   };
+}
+
+async function syncScheduledSessionCalendar(
+  userId: string,
+  row: typeof scheduledSessions.$inferSelect,
+): Promise<{
+  calendarSyncStatus: typeof row.calendarSyncStatus;
+  googleCalendarEventId: string | null;
+}> {
+  const profile = await db.query.userProfiles.findFirst({
+    where: eq(userProfiles.id, userId),
+  });
+
+  return syncScheduledSessionCalendarForProfile(profile, row);
+}
+
+async function backfillGoogleCalendarScheduledSessions(
+  userId: string,
+  profile: typeof userProfiles.$inferSelect | undefined,
+): Promise<void> {
+  if (!hasUsableGoogleCalendarProfile(profile)) {
+    return;
+  }
+
+  const rows = await db
+    .select()
+    .from(scheduledSessions)
+    .where(
+      and(
+        eq(scheduledSessions.userId, userId),
+        eq(scheduledSessions.status, 'scheduled'),
+      ),
+    );
+
+  await Promise.all(
+    rows.map(async row => {
+      try {
+        const syncState = await syncScheduledSessionCalendarForProfile(profile, row);
+
+        await db
+          .update(scheduledSessions)
+          .set({
+            ...syncState,
+            updatedAt: new Date(),
+          })
+          .where(eq(scheduledSessions.id, row.id));
+      } catch (error) {
+        console.warn('[googleCalendar] Failed to backfill scheduled session after connect.', {
+          userId,
+          sessionId: row.id,
+          error: error instanceof Error ? error.message : String(error),
+        });
+
+        await db
+          .update(scheduledSessions)
+          .set({
+            calendarSyncStatus: 'failed',
+            updatedAt: new Date(),
+          })
+          .where(eq(scheduledSessions.id, row.id));
+      }
+    }),
+  );
+}
+
+async function clearGoogleCalendarScheduledSessionSync(
+  userId: string,
+  profile: typeof userProfiles.$inferSelect | undefined,
+): Promise<void> {
+  const rows = await db
+    .select()
+    .from(scheduledSessions)
+    .where(eq(scheduledSessions.userId, userId));
+
+  if (hasUsableGoogleCalendarProfile(profile)) {
+    await Promise.all(
+      rows.map(async row => {
+        if (!row.googleCalendarEventId) {
+          return;
+        }
+
+        try {
+          await deleteCalendarEvent(profile.googleCalendarRefreshToken, row.googleCalendarEventId);
+        } catch (error) {
+          console.warn('[googleCalendar] Failed to delete synced event during disconnect.', {
+            userId,
+            sessionId: row.id,
+            eventId: row.googleCalendarEventId,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+      }),
+    );
+  }
+
+  await db
+    .update(scheduledSessions)
+    .set({
+      calendarSyncStatus: 'disabled',
+      googleCalendarEventId: null,
+      updatedAt: new Date(),
+    })
+    .where(eq(scheduledSessions.userId, userId));
 }
 
 export async function buildBootstrapResponse(userId: string): Promise<BootstrapResponse> {
@@ -600,11 +709,19 @@ export async function connectGoogleCalendar(userId: string, code: string): Promi
     where: eq(userProfiles.id, userId),
   });
 
+  await backfillGoogleCalendarScheduledSessions(userId, updated);
+
   return mapProfile(updated);
 }
 
 export async function disconnectGoogleCalendar(userId: string): Promise<UserProfile> {
   await ensureUserRecords(userId);
+
+  const existingProfile = await db.query.userProfiles.findFirst({
+    where: eq(userProfiles.id, userId),
+  });
+
+  await clearGoogleCalendarScheduledSessionSync(userId, existingProfile);
 
   await db
     .update(userProfiles)

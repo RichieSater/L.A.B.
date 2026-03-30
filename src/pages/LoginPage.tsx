@@ -1,7 +1,8 @@
 import { SignIn } from '@clerk/react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../auth/auth-context';
-import { AuthPageShell, authComponentAppearance } from '../components/auth/AuthPageShell';
+import { AuthPageShell } from '../components/auth/AuthPageShell';
+import { authComponentAppearance } from '../components/auth/auth-component-appearance';
 
 export function LoginPage() {
   const { user, loading } = useAuth();

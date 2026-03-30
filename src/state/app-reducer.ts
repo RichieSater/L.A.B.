@@ -7,12 +7,12 @@ import { ADVISOR_CONFIGS } from '../advisors/registry';
 import { createDefaultAdvisorState } from './init';
 
 function extractSharedMetrics(
-  advisorId: string,
+  advisorId: AdvisorId,
   metrics: Record<string, number | string>,
   mood: string,
   date: string,
 ): Partial<SharedMetricsStore> {
-  const config = ADVISOR_CONFIGS[advisorId as keyof typeof ADVISOR_CONFIGS];
+  const config = ADVISOR_CONFIGS[advisorId];
   if (!config) return {};
 
   const updates: Partial<SharedMetricsStore> = {};
@@ -23,7 +23,7 @@ function extractSharedMetrics(
       updates[metricId] = {
         value: metrics[metricId],
         date,
-        source: advisorId as any,
+        source: advisorId,
       };
     }
   }
@@ -123,7 +123,7 @@ export function appReducer(state: AppState, action: AppAction): AppState {
 
     case 'ADD_QUICK_LOG': {
       const entry = action.payload;
-      const config = ADVISOR_CONFIGS[entry.advisorId as keyof typeof ADVISOR_CONFIGS];
+      const config = ADVISOR_CONFIGS[entry.advisorId];
 
       // Update shared metrics for any produced metrics in this log
       const sharedUpdates: Partial<SharedMetricsStore> = {};
@@ -133,14 +133,14 @@ export function appReducer(state: AppState, action: AppAction): AppState {
             sharedUpdates[metricId] = {
               value: entry.logs[metricId],
               date: entry.date,
-              source: entry.advisorId as any,
+              source: entry.advisorId,
             };
           }
         }
       }
 
       // Update advisor's metricsLatest with logged values
-      const logAdvisorId = entry.advisorId as AdvisorId;
+      const logAdvisorId = entry.advisorId;
       const currentAdvisorState = state.advisors[logAdvisorId];
 
       return {
