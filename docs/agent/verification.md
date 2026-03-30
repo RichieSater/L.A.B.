@@ -33,7 +33,7 @@ For weekly-review changes, verify both the derived signals and the persistence b
 
 For weekly recap changes, keep the recap deterministic: wins should come from completed tasks, advisor callouts should match weekly advisor snapshot state, unfinished pressure should mirror the same queue signals shown elsewhere in the review, and next-week focus prompts should stay derived from those signals instead of introducing another saved summary model.
 
-For strategic-dashboard changes, verify the server-owned round-trip as well as the planner behavior: `strategicDashboard` should survive `/api/bootstrap` and `/api/app-state` reloads, year/quarter/month goal edits should remain scoped to the right year entry, and promoting a goal into work should create or update canonical advisor tasks instead of creating a second planner-only record.
+For strategic-dashboard changes, verify the server-owned round-trip as well as the planner behavior: `strategicDashboard` should survive `/api/bootstrap` and `/api/app-state` reloads, year/quarter/month goal edits should remain scoped to the right year entry, promoting a goal into work should create or update canonical advisor tasks instead of creating a second planner-only record, and linked-task controls in the strategic planner should update the same planning bucket and weekly-focus state used by the task board.
 
 For Compass changes, verify autosave, resume, and completion together: in-progress answers should reload into the saved session, completion should derive fresh Compass insights, and current-year goal seeding should only overwrite `yearGoals` when that year has not been manually edited in LAB.
 

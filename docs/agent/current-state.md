@@ -11,6 +11,7 @@ The durable product baseline is a planning-first "Life Advisory Board" app:
 - a daily-planning loop, weekly focus layer, and weekly review flow with stored reflection notes
 - an in-app Golden Compass flow with autosaved sessions, derived strategy insights, and a server-owned strategic dashboard for year / quarter / month planning
 - strategic goal rows keep a durable link to the canonical advisor task they promoted, so re-promoting a goal updates existing planner work instead of duplicating it
+- open linked strategic tasks can now be re-bucketed or added/removed from weekly focus directly from the strategic planner without leaving the weekly-first view
 - a weekly momentum digest plus a recent-activity timeline derived from completed tasks, sessions, quick logs, and completed planning/review rituals
 - the weekly review now includes a deterministic recap built from those same signals, compressing wins, active advisors, unfinished pressure, and next-week focus without a second summary store
 - scheduled advisory sessions with optional one-way Google Calendar sync and an explicit manual sync-health repair action
