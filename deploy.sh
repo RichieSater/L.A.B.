@@ -15,31 +15,47 @@ echo -e "${BLUE}=== L.A.B. Deploy ===${NC}"
 echo ""
 
 # 1. Type check
-echo -e "${BLUE}[1/5]${NC} Type checking..."
+echo -e "${BLUE}[1/7]${NC} Type checking..."
 if ! npx tsc -b --noEmit 2>/dev/null; then
   echo -e "${RED}TypeScript errors found. Fix before deploying.${NC}"
   exit 1
 fi
 echo -e "${GREEN}  Types OK${NC}"
 
-# 2. Run tests
-echo -e "${BLUE}[2/5]${NC} Running tests..."
+# 2. Run focused dev/API regression checks
+echo -e "${BLUE}[2/7]${NC} Running dev/API regression checks..."
+if ! npm run test:dev-api 2>/dev/null; then
+  echo -e "${RED}Dev/API regression checks failed. Fix before deploying.${NC}"
+  exit 1
+fi
+echo -e "${GREEN}  Dev/API regression checks OK${NC}"
+
+# 3. Run tests
+echo -e "${BLUE}[3/7]${NC} Running tests..."
 if ! npm run test 2>/dev/null; then
   echo -e "${RED}Tests failed. Fix before deploying.${NC}"
   exit 1
 fi
 echo -e "${GREEN}  Tests OK${NC}"
 
-# 3. Build
-echo -e "${BLUE}[3/5]${NC} Building and checking bundle budgets..."
+# 4. Build
+echo -e "${BLUE}[4/7]${NC} Building and checking bundle budgets..."
 if ! npm run build > /dev/null 2>&1; then
   echo -e "${RED}Build or bundle budget check failed. Fix before deploying.${NC}"
   exit 1
 fi
 echo -e "${GREEN}  Build and bundle budgets OK${NC}"
 
-# 4. Git commit & push
-echo -e "${BLUE}[4/5]${NC} Checking git status..."
+# 5. Apply database migrations
+echo -e "${BLUE}[5/7]${NC} Applying database migrations..."
+if ! npm run db:migrate 2>/dev/null; then
+  echo -e "${RED}Database migrations failed. Fix before deploying.${NC}"
+  exit 1
+fi
+echo -e "${GREEN}  Database migrations OK${NC}"
+
+# 6. Git commit & push
+echo -e "${BLUE}[6/7]${NC} Checking git status..."
 if git diff --quiet && git diff --cached --quiet; then
   echo -e "${YELLOW}  No changes to commit. Pushing any unpushed commits...${NC}"
 else
@@ -49,7 +65,7 @@ else
   echo -e "${GREEN}  Committed: $MSG${NC}"
 fi
 
-echo -e "${BLUE}[5/5]${NC} Pushing to GitHub..."
+echo -e "${BLUE}[7/7]${NC} Pushing to GitHub..."
 git push origin main
 echo -e "${GREEN}  Pushed to origin/main${NC}"
 

@@ -23,6 +23,16 @@
 
 For scheduling changes, verify both create and reschedule flows and confirm the UI still derives its initial date/time values correctly without extra render churn.
 
+For task-planning changes, verify both directions of the queue-to-calendar bridge: planned tasks should move cleanly between `today`, `this week`, and `later`, and scheduling from the queue should clear the planning assignment without losing the underlying task.
+
+For daily-planning changes, verify the annotation boundary as well as the action flow: today's headline and guardrail should survive bootstrap/save reloads for the same date, prior-day notes should remain available as reference instead of being overwritten, carry-over items should only include tasks that actually sat in `today` before the current local date, and pull-in actions should still move the canonical task between queue buckets without creating duplicate task state.
+
+For weekly-focus changes, verify the persistence and derivation boundaries together: current-week focus should survive bootstrap/save reloads, previous-week unfinished focus items should appear as carry-forward candidates, and focus badges/actions should stay attached to the canonical task instead of drifting into a second task model.
+
+For weekly-review changes, verify both the derived signals and the persistence boundary: stale `today`, overdue planned, and high-priority unplanned counts should reflect current queue state, weekly momentum stats should reflect completed tasks, sessions, and quick logs inside the correct week window, marking a review complete should survive bootstrap/save reloads for the same week, and reflection notes should reload into the correct week entry without overwriting the prior week's notes.
+
+For advisor-attention changes, verify the action routing as well as the ranking: cadence pressure should beat purely presentational “quiet” states, task-triage nudges should open the task board, quick-log nudges should open the quick-log modal, and schedule nudges should still degrade cleanly when scheduling is disabled.
+
 Date-only values in the UI are local calendar dates. Do not derive a `YYYY-MM-DD` value with `toISOString().split('T')[0]` when the user-facing intent is "today" or a local date input, because that silently shifts dates across timezones.
 
 For Google Calendar lifecycle changes, verify both directions: connecting should sync already-scheduled future sessions, and disconnecting should clear session sync metadata without leaving stale "synced" state in app data.
@@ -30,3 +40,5 @@ For Google Calendar lifecycle changes, verify both directions: connecting should
 For data-shape changes, keep the reducer types aligned with `src/types/*` and prefer removing `any` casts instead of suppressing lint rules.
 
 For deploy-time caching or lazy-route changes, verify both a clean load and the stale-assets path. Keep one-time recovery logic bounded so a bad chunk does not cause an infinite reload loop, but scope that guard tightly enough that a later deploy in the same tab can still recover.
+
+For auth bootstrap, `vite.config.ts`, or `api/` boundary changes, run `npm run test:dev-api` before the broader baseline. That suite exists specifically to catch the local-dev failure mode where `/api/*` returns transformed source or misses non-`VITE_` env vars from `.env.local`.

@@ -111,3 +111,25 @@ That means the next work should optimize for product leverage and future-proofin
 
 - Vite troubleshooting guide: <https://vite.dev/guide/troubleshooting.html#failed-to-fetch-dynamically-imported-module>
 - Vite issue `#11804`: <https://github.com/vitejs/vite/issues/11804>
+
+## 6. Weekly Review Card For Queue Hygiene
+
+### Why it matters
+
+- The planning queue now creates a better bridge between captured advisor work and concrete scheduling, but it still relies on the user remembering to sweep and re-balance it.
+- Recent productivity discussions consistently point to the same behavioral gap: a task list gets messy without a recurring review moment, and users particularly notice when an app lacks a weekly planning section that sits between backlog and dated calendar events.
+- Open-source planners that emphasize weekly workflow commonly pair that planning layer with reminders or recurrence, which suggests a review card plus lightweight cadence metadata would be more valuable than adding another raw task view.
+
+### Proposed task
+
+1. Add a weekly review card to the dashboard that summarizes `today`, `this week`, `later`, overdue, and still-unplanned work.
+2. Let the user mark the review as done for the current week so the nudge is persistent instead of purely presentational.
+3. Surface "stale queue" insights such as tasks that stayed in `today` too long or repeatedly remained unplanned across reviews.
+4. Keep the first pass in-app only; defer notifications until the review loop proves useful in the product itself.
+
+### Sources
+
+- WeekToDo feature set and weekly-planner positioning: <https://github.com/manuelernestog/weektodo>
+- Reddit discussion stressing weekly review/planning as the difference between a useful app and a decaying queue: <https://www.reddit.com/r/productivity/comments/1h8fj3v/apps_that_have_actually_worked_for_you_and_that/>
+- Reddit request for a true weekly planning section between backlog and calendar: <https://www.reddit.com/r/ProductivityApps/comments/1gufll6/looking_for_something_specific/>
+- Reddit discussion framing review loops as the source of long-term value in planning tools: <https://www.reddit.com/r/ProductivityApps/comments/1rv8pr7/the_real_value_of_a_productivity_app_is_in_the/>

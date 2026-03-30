@@ -2,6 +2,10 @@ import type { AdvisorState } from './advisor';
 import type { SharedMetricsStore } from './metrics';
 import type { QuickLogEntry } from './quick-log';
 import type { ScheduledSessionStatus } from './scheduled-session';
+import type { TaskPlanningStore } from './task-planning';
+import type { DailyPlanningState } from './daily-planning';
+import type { WeeklyFocusState } from './weekly-focus';
+import type { WeeklyReviewState } from './weekly-review';
 
 export interface Database {
   public: {
@@ -75,6 +79,21 @@ export interface Database {
           updated_at?: string;
         };
       };
+      task_planning_assignments: {
+        Row: {
+          user_id: string;
+          assignments: TaskPlanningStore;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          assignments?: TaskPlanningStore;
+        };
+        Update: {
+          assignments?: TaskPlanningStore;
+          updated_at?: string;
+        };
+      };
       scheduled_sessions: {
         Row: {
           id: string;
@@ -105,14 +124,23 @@ export interface Database {
         Row: {
           user_id: string;
           schema_version: number;
+          daily_planning: DailyPlanningState;
+          weekly_focus: WeeklyFocusState;
+          weekly_review: WeeklyReviewState;
           updated_at: string;
         };
         Insert: {
           user_id: string;
           schema_version?: number;
+          daily_planning?: DailyPlanningState;
+          weekly_focus?: WeeklyFocusState;
+          weekly_review?: WeeklyReviewState;
         };
         Update: {
           schema_version?: number;
+          daily_planning?: DailyPlanningState;
+          weekly_focus?: WeeklyFocusState;
+          weekly_review?: WeeklyReviewState;
           updated_at?: string;
         };
       };

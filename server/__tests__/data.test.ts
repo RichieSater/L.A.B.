@@ -24,14 +24,17 @@ vi.mock('../auth', () => ({
 }));
 
 vi.mock('../db/client', () => ({
-  db: {
-    query: {
-      userProfiles: {
-        findFirst: findUserProfile,
+    db: {
+      query: {
+        userProfiles: {
+          findFirst: findUserProfile,
+        },
+        taskPlanningAssignments: {
+          findFirst: vi.fn(),
+        },
       },
-    },
-    insert,
-    update,
+      insert,
+      update,
   },
 }));
 
@@ -63,7 +66,7 @@ describe('ensureUserRecords', () => {
     await expect(ensureUserRecords('user_123')).resolves.toBeUndefined();
 
     expect(getUser).toHaveBeenCalledWith('user_123');
-    expect(insert).toHaveBeenCalledTimes(4);
+    expect(insert).toHaveBeenCalledTimes(5);
     expect(insertCalls[0]?.payload).toEqual({
       id: 'user_123',
       displayName: null,
@@ -71,7 +74,20 @@ describe('ensureUserRecords', () => {
     expect(insertCalls.slice(1).map(call => call.payload)).toEqual([
       { userId: 'user_123', metrics: {} },
       { userId: 'user_123', logs: [] },
-      { userId: 'user_123', schemaVersion: 3 },
+      { userId: 'user_123', assignments: {} },
+      {
+        userId: 'user_123',
+        schemaVersion: 3,
+        dailyPlanning: {
+          entries: [],
+        },
+        weeklyFocus: {
+          weeks: [],
+        },
+        weeklyReview: {
+          entries: [],
+        },
+      },
     ]);
 
     consoleError.mockRestore();

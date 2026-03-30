@@ -1,6 +1,6 @@
 # The L.A.B.
 
-The L.A.B. is a personal "Life Advisory Board" app. It gives the user a set of domain-specific advisors, tracks shared metrics across them, captures quick daily logs, and supports scheduled sessions with optional Google Calendar sync.
+The L.A.B. is a personal "Life Advisory Board" app. It gives the user a set of domain-specific advisors, tracks shared metrics across them, captures quick daily logs, adds an advisor-attention radar for next-action triage, adds a planning queue plus a daily planning loop for deciding what truly belongs in `today`, surfaces a small weekly-focus layer for objective-setting, folds weekly momentum digests into the weekly review flow, stores short daily and weekly reflections, and supports scheduled sessions with optional Google Calendar sync.
 
 ## Current shape
 
@@ -8,7 +8,7 @@ The L.A.B. is a personal "Life Advisory Board" app. It gives the user a set of d
 - Auth: Clerk
 - Persistence: Neon Postgres via Drizzle
 - Server surface: Vercel-style functions in `api/` backed by shared logic in `server/`
-- Core product areas: advisor dashboard, task tracking, quick logs, scheduling, Google Calendar connection
+- Core product areas: advisor dashboard, advisor attention radar, task tracking, planning queue, daily planning, weekly focus, weekly review reflections, weekly momentum digests, quick logs, scheduling, Google Calendar connection
 
 ## Important directories
 
@@ -56,6 +56,7 @@ npm run dev
 ```bash
 npm run lint
 npm run test
+npm run test:dev-api
 npm run build
 npm run bundle:check
 npm run db:generate
@@ -67,11 +68,14 @@ npm run db:migrate
 Before closing substantial work, run:
 
 ```bash
+npm run test:dev-api
 npm run lint
 npm run test
 npm run build
 ```
 
 `npm run build` now includes a stable bundle-budget gate for the main entry chunk plus the long-lived `router`, `clerk`, and `react-vendor` bundles. Use `npm run bundle:check` after an existing build if you only want to re-evaluate the emitted asset sizes.
+
+Use `npm run test:dev-api` whenever you touch local bootstrap, `vite.config.ts`, `api/`, `server/`, or the auth-to-API boundary. It catches the specific regression where Vite serves `api/*.ts` as source instead of executing the handlers, and it also verifies that local server-side env vars are hydrated from `.env.local`.
 
 For architecture, workflows, and repo-specific guardrails, use the harness docs in [`docs/agent/`](docs/agent).

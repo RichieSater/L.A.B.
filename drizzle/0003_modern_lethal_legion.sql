@@ -1,0 +1,1 @@
+ALTER TABLE "user_app_meta" ADD COLUMN "weekly_review" jsonb DEFAULT '{"lastCompletedWeekStart":null,"completedAt":null}'::jsonb NOT NULL;

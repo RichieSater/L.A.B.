@@ -1,7 +1,24 @@
 import type { AppState } from '../types/app-state';
 import type { AdvisorId } from '../types/advisor';
+import type { TaskItem } from '../types/action-item';
 import type { AppAction } from './actions';
 import type { SharedMetricsStore } from '../types/metrics';
+import { getTaskPlanningKey } from '../types/task-planning';
+import {
+  createDailyPlanningEntry,
+  sortDailyPlanningEntries,
+  type DailyPlanningEntry,
+} from '../types/daily-planning';
+import {
+  MAX_WEEKLY_FOCUS_HISTORY_WEEKS,
+  MAX_WEEKLY_FOCUS_ITEMS,
+  type WeeklyFocusTaskRef,
+} from '../types/weekly-focus';
+import {
+  createWeeklyReviewEntry,
+  sortWeeklyReviewEntries,
+  type WeeklyReviewEntry,
+} from '../types/weekly-review';
 import { applySessionImport, updateTaskStatus } from './advisors/advisor-reducer';
 import { ADVISOR_CONFIGS } from '../advisors/registry';
 import { createDefaultAdvisorState } from './init';
@@ -40,6 +57,149 @@ function extractSharedMetrics(
   return updates;
 }
 
+function clearTaskPlanningAssignment(
+  taskPlanning: AppState['taskPlanning'],
+  advisorId: AdvisorId,
+  taskId: string,
+): AppState['taskPlanning'] {
+  const key = getTaskPlanningKey(advisorId, taskId);
+
+  if (!taskPlanning[key]) {
+    return taskPlanning;
+  }
+
+  const next = { ...taskPlanning };
+  delete next[key];
+  return next;
+}
+
+function pruneTaskPlanningForAdvisor(
+  taskPlanning: AppState['taskPlanning'],
+  advisorId: AdvisorId,
+  tasks: TaskItem[],
+): AppState['taskPlanning'] {
+  const openTaskIds = new Set(
+    tasks.filter(task => task.status === 'open').map(task => task.id),
+  );
+  const next = { ...taskPlanning };
+  let changed = false;
+
+  for (const key of Object.keys(next)) {
+    const assignment = next[key];
+
+    if (assignment?.advisorId !== advisorId) {
+      continue;
+    }
+
+    if (!openTaskIds.has(assignment.taskId)) {
+      delete next[key];
+      changed = true;
+    }
+  }
+
+  return changed ? next : taskPlanning;
+}
+
+function sortWeeklyFocusWeeks(weeks: AppState['weeklyFocus']['weeks']): AppState['weeklyFocus']['weeks'] {
+  return [...weeks]
+    .filter(week => week.items.length > 0)
+    .sort((a, b) => b.weekStart.localeCompare(a.weekStart))
+    .slice(0, MAX_WEEKLY_FOCUS_HISTORY_WEEKS);
+}
+
+function upsertWeeklyFocusWeek(
+  weeklyFocus: AppState['weeklyFocus'],
+  weekStart: string,
+  updateItems: (items: WeeklyFocusTaskRef[]) => WeeklyFocusTaskRef[],
+): AppState['weeklyFocus'] {
+  const existingWeek = weeklyFocus.weeks.find(week => week.weekStart === weekStart);
+  const nextItems = updateItems(existingWeek?.items ?? []);
+  const nextWeeks = weeklyFocus.weeks.filter(week => week.weekStart !== weekStart);
+
+  if (nextItems.length > 0) {
+    nextWeeks.push({
+      weekStart,
+      items: nextItems,
+    });
+  }
+
+  return {
+    weeks: sortWeeklyFocusWeeks(nextWeeks),
+  };
+}
+
+function pruneWeeklyFocusForAdvisor(
+  weeklyFocus: AppState['weeklyFocus'],
+  advisorId: AdvisorId,
+  tasks: TaskItem[],
+): AppState['weeklyFocus'] {
+  const taskIds = new Set(tasks.map(task => task.id));
+  let changed = false;
+  const nextWeeks = weeklyFocus.weeks
+    .map(week => {
+      const nextItems = week.items.filter(item => {
+        if (item.advisorId !== advisorId) {
+          return true;
+        }
+
+        const keep = taskIds.has(item.taskId);
+        if (!keep) {
+          changed = true;
+        }
+
+        return keep;
+      });
+
+      if (nextItems.length !== week.items.length) {
+        changed = true;
+      }
+
+      return {
+        ...week,
+        items: nextItems,
+      };
+    })
+    .filter(week => week.items.length > 0);
+
+  return changed
+    ? {
+        weeks: sortWeeklyFocusWeeks(nextWeeks),
+      }
+    : weeklyFocus;
+}
+
+function upsertWeeklyReviewEntry(
+  weeklyReview: AppState['weeklyReview'],
+  weekStart: string,
+  updateEntry: (entry: WeeklyReviewEntry) => WeeklyReviewEntry,
+): AppState['weeklyReview'] {
+  const existingEntry =
+    weeklyReview.entries.find(entry => entry.weekStart === weekStart) ?? createWeeklyReviewEntry(weekStart);
+  const nextEntry = updateEntry(existingEntry);
+  const nextEntries = weeklyReview.entries.filter(entry => entry.weekStart !== weekStart);
+  nextEntries.push(nextEntry);
+
+  return {
+    entries: sortWeeklyReviewEntries(nextEntries),
+  };
+}
+
+function upsertDailyPlanningEntry(
+  dailyPlanning: AppState['dailyPlanning'],
+  date: string,
+  updateEntry: (entry: DailyPlanningEntry) => DailyPlanningEntry,
+): AppState['dailyPlanning'] {
+  const existingEntry =
+    dailyPlanning.entries.find(entry => entry.date === date) ?? createDailyPlanningEntry(date);
+  const nextEntry = updateEntry(existingEntry);
+  const nextEntries = dailyPlanning.entries.filter(entry => entry.date !== date);
+  nextEntries.push(nextEntry);
+
+  return {
+    entries: sortDailyPlanningEntries(nextEntries),
+  };
+}
+
 export function appReducer(state: AppState, action: AppAction): AppState {
   switch (action.type) {
     case 'INITIALIZE':
@@ -66,6 +226,16 @@ export function appReducer(state: AppState, action: AppAction): AppState {
           ...state.advisors,
           [advisorId]: newAdvisorState,
         },
+        taskPlanning: pruneTaskPlanningForAdvisor(
+          state.taskPlanning,
+          advisorId,
+          newAdvisorState.tasks,
+        ),
+        weeklyFocus: pruneWeeklyFocusForAdvisor(
+          state.weeklyFocus,
+          advisorId,
+          newAdvisorState.tasks,
+        ),
         sharedMetrics: {
           ...state.sharedMetrics,
           ...(sharedUpdates as SharedMetricsStore),
@@ -84,8 +254,122 @@ export function appReducer(state: AppState, action: AppAction): AppState {
           ...state.advisors,
           [advisorId]: updateTaskStatus(currentAdvisorState, taskId, status),
         },
+        taskPlanning:
+          status === 'open'
+            ? state.taskPlanning
+            : clearTaskPlanningAssignment(state.taskPlanning, advisorId, taskId),
       };
     }
+
+    case 'SET_TASK_PLAN_BUCKET': {
+      const { advisorId, taskId, bucket } = action.payload;
+      const key = getTaskPlanningKey(advisorId, taskId);
+
+      return {
+        ...state,
+        taskPlanning: {
+          ...state.taskPlanning,
+          [key]: {
+            advisorId,
+            taskId,
+            bucket,
+            updatedAt: new Date().toISOString(),
+          },
+        },
+      };
+    }
+
+    case 'CLEAR_TASK_PLAN_BUCKET': {
+      const { advisorId, taskId } = action.payload;
+      return {
+        ...state,
+        taskPlanning: clearTaskPlanningAssignment(state.taskPlanning, advisorId, taskId),
+      };
+    }
+
+    case 'SET_DAILY_PLANNING_FIELD': {
+      const { date, field, value } = action.payload;
+
+      return {
+        ...state,
+        dailyPlanning: upsertDailyPlanningEntry(state.dailyPlanning, date, entry => ({
+          ...entry,
+          [field]: value,
+        })),
+      };
+    }
+
+    case 'COMPLETE_DAILY_PLAN':
+      return {
+        ...state,
+        dailyPlanning: upsertDailyPlanningEntry(state.dailyPlanning, action.payload.date, entry => ({
+          ...entry,
+          completedAt: new Date().toISOString(),
+        })),
+      };
+
+    case 'ADD_WEEKLY_FOCUS_TASK': {
+      const { advisorId, taskId, weekStart, carriedForwardFromWeekStart = null } = action.payload;
+
+      return {
+        ...state,
+        weeklyFocus: upsertWeeklyFocusWeek(state.weeklyFocus, weekStart, items => {
+          if (items.some(item => item.advisorId === advisorId && item.taskId === taskId)) {
+            return items;
+          }
+
+          if (items.length >= MAX_WEEKLY_FOCUS_ITEMS) {
+            return items;
+          }
+
+          return [
+            ...items,
+            {
+              advisorId,
+              taskId,
+              addedAt: new Date().toISOString(),
+              carriedForwardFromWeekStart,
+            },
+          ];
+        }),
+      };
+    }
+
+    case 'REMOVE_WEEKLY_FOCUS_TASK': {
+      const { advisorId, taskId, weekStart } = action.payload;
+
+      return {
+        ...state,
+        weeklyFocus: upsertWeeklyFocusWeek(state.weeklyFocus, weekStart, items =>
+          items.filter(item => !(item.advisorId === advisorId && item.taskId === taskId)),
+        ),
+      };
+    }
+
+    case 'SET_WEEKLY_REVIEW_FIELD': {
+      const { weekStart, field, value } = action.payload;
+
+      return {
+        ...state,
+        weeklyReview: upsertWeeklyReviewEntry(state.weeklyReview, weekStart, entry => ({
+          ...entry,
+          [field]: value,
+        })),
+      };
+    }
+
+    case 'COMPLETE_WEEKLY_REVIEW':
+      return {
+        ...state,
+        weeklyReview: upsertWeeklyReviewEntry(
+          state.weeklyReview,
+          action.payload.weekStart,
+          entry => ({
+            ...entry,
+            completedAt: new Date().toISOString(),
+          }),
+        ),
+      };
 
     case 'UPDATE_SHARED_METRICS':
       return {
@@ -118,6 +402,8 @@ export function appReducer(state: AppState, action: AppAction): AppState {
           ...state.advisors,
           [advisorId]: createDefaultAdvisorState(advisorId),
         },
+        taskPlanning: pruneTaskPlanningForAdvisor(state.taskPlanning, advisorId, []),
+        weeklyFocus: pruneWeeklyFocusForAdvisor(state.weeklyFocus, advisorId, []),
       };
     }
 

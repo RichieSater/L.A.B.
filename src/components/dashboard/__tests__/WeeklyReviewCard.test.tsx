@@ -1,0 +1,178 @@
+import { fireEvent, render, screen } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
+import { WeeklyReviewCard } from '../WeeklyReviewCard';
+import type { WeeklyReviewSummary } from '../../../state/selectors';
+
+function makeSummary(
+  overrides: Partial<WeeklyReviewSummary> = {},
+): WeeklyReviewSummary {
+  return {
+    weekStart: '2026-03-29',
+    weekEnd: '2026-04-04',
+    entry: {
+      weekStart: '2026-03-29',
+      completedAt: null,
+      biggestWin: '',
+      biggestLesson: '',
+      nextWeekNote: '',
+    },
+    previousEntry: {
+      weekStart: '2026-03-22',
+      completedAt: '2026-03-24T10:00:00.000Z',
+      biggestWin: 'Protected one meaningful block.',
+      biggestLesson: 'Too many urgent tasks stayed unplanned.',
+      nextWeekNote: 'Decide what really belongs in Today.',
+    },
+    completedThisWeek: false,
+    completedAt: null,
+    counts: {
+      today: 2,
+      thisWeek: 3,
+      later: 1,
+      unplanned: 2,
+      overdueOpen: 1,
+    },
+    momentum: {
+      completedTasks: 2,
+      completedFocusTasks: 1,
+      sessions: 1,
+      quickLogDays: 2,
+      activeAdvisors: 2,
+    },
+    staleToday: [],
+    overduePlanned: [
+      {
+        id: 'task-1',
+        task: 'Rebook therapist session',
+        dueDate: '2026-03-28',
+        priority: 'high',
+        status: 'open',
+        createdDate: '2026-03-27',
+        advisorId: 'therapist',
+        advisorIcon: 'T',
+        advisorName: 'Therapist',
+        advisorColor: '#38bdf8',
+        planningBucket: 'today',
+        planningUpdatedAt: '2026-03-28T12:00:00.000Z',
+      },
+    ],
+    highPriorityUnplanned: [],
+    actionGroups: [
+      {
+        id: 'overdue_planned',
+        title: 'Rebalance Due Work',
+        description: 'Queued tasks that are already past due and need a real decision now.',
+        items: [
+          {
+            id: 'task-1',
+            task: 'Rebook therapist session',
+            dueDate: '2026-03-28',
+            priority: 'high',
+            status: 'open',
+            createdDate: '2026-03-27',
+            advisorId: 'therapist',
+            advisorIcon: 'T',
+            advisorName: 'Therapist',
+            advisorColor: '#38bdf8',
+            planningBucket: 'today',
+            planningUpdatedAt: '2026-03-28T12:00:00.000Z',
+          },
+        ],
+        remainingCount: 0,
+      },
+    ],
+    recentWins: [
+      {
+        id: 'task-win',
+        task: 'Closed the therapist intake loop',
+        dueDate: '2026-03-29',
+        priority: 'high',
+        status: 'completed',
+        createdDate: '2026-03-26',
+        completedDate: '2026-03-30',
+        advisorId: 'therapist',
+        advisorIcon: 'T',
+        advisorName: 'Therapist',
+        advisorColor: '#38bdf8',
+        planningBucket: null,
+        planningUpdatedAt: null,
+      },
+    ],
+    advisorSnapshots: [
+      {
+        advisorId: 'therapist',
+        advisorIcon: 'T',
+        advisorName: 'Therapist',
+        advisorColor: '#38bdf8',
+        completedTasks: 1,
+        sessions: 1,
+        quickLogs: 1,
+        openTasks: 3,
+        plannedOpen: 2,
+        overdueOpen: 1,
+        status: 'attention',
+        note: '1 completed, 1 session, 1 quick log, but 1 overdue task still open.',
+      },
+      {
+        advisorId: 'fitness',
+        advisorIcon: 'F',
+        advisorName: 'Fitness',
+        advisorColor: '#22c55e',
+        completedTasks: 1,
+        sessions: 0,
+        quickLogs: 1,
+        openTasks: 2,
+        plannedOpen: 1,
+        overdueOpen: 0,
+        status: 'momentum',
+        note: '1 completed, 1 quick log',
+      },
+    ],
+    ...overrides,
+  };
+}
+
+describe('WeeklyReviewCard', () => {
+  it('shows review signals and lets the user mark the week as reviewed', () => {
+    const onCompleteReview = vi.fn();
+    const onSetPlanBucket = vi.fn();
+    const onSetReviewField = vi.fn();
+
+    render(
+      <WeeklyReviewCard
+        summary={makeSummary()}
+        onCompleteReview={onCompleteReview}
+        onSetReviewField={onSetReviewField}
+        onAddFocusTask={vi.fn()}
+        onRemoveFocusTask={vi.fn()}
+        focusTaskKeys={new Set()}
+        onSetPlanBucket={onSetPlanBucket}
+        onClearPlanBucket={vi.fn()}
+        onScheduleTask={vi.fn()}
+        schedulingEnabled={false}
+      />,
+    );
+
+    expect(screen.getByText('Weekly Review')).toBeInTheDocument();
+    expect(screen.getByText('1 planned task already overdue')).toBeInTheDocument();
+    expect(screen.getByText('Rebalance Due Work')).toBeInTheDocument();
+    expect(screen.getByText('Previous Review')).toBeInTheDocument();
+    expect(screen.getByText('Momentum Snapshot')).toBeInTheDocument();
+    expect(screen.getByText('Closed the therapist intake loop')).toBeInTheDocument();
+    expect(screen.getByText('Advisor Signals')).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText('Biggest win'), {
+      target: { value: 'Finally closed the lingering therapist loop.' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Mark review done' }));
+    fireEvent.click(screen.getAllByRole('button', { name: 'Today' })[0]);
+
+    expect(onSetReviewField).toHaveBeenCalledWith(
+      '2026-03-29',
+      'biggestWin',
+      'Finally closed the lingering therapist loop.',
+    );
+    expect(onCompleteReview).toHaveBeenCalledWith('2026-03-29');
+    expect(onSetPlanBucket).toHaveBeenCalledWith('therapist', 'task-1', 'today');
+  });
+});

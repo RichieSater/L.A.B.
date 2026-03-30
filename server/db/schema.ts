@@ -10,11 +10,15 @@ import {
   uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core';
-import type { AdvisorState } from '../../src/types/advisor.js';
-import { CURRENT_SCHEMA_VERSION } from '../../src/constants/schema.js';
-import type { SharedMetricsStore } from '../../src/types/metrics.js';
-import type { QuickLogEntry } from '../../src/types/quick-log.js';
-import type { CalendarSyncStatus, ScheduledSessionStatus } from '../../src/types/scheduled-session.js';
+import type { AdvisorState } from '../../src/types/advisor';
+import { CURRENT_SCHEMA_VERSION } from '../../src/constants/schema';
+import type { SharedMetricsStore } from '../../src/types/metrics';
+import type { QuickLogEntry } from '../../src/types/quick-log';
+import type { CalendarSyncStatus, ScheduledSessionStatus } from '../../src/types/scheduled-session';
+import type { TaskPlanningStore } from '../../src/types/task-planning';
+import type { DailyPlanningState } from '../../src/types/daily-planning';
+import type { WeeklyFocusState } from '../../src/types/weekly-focus';
+import type { WeeklyReviewState } from '../../src/types/weekly-review';
 
 export const scheduledSessionStatusEnum = pgEnum('scheduled_session_status', [
   'scheduled',
@@ -68,6 +72,12 @@ export const quickLogs = pgTable('quick_logs', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
+export const taskPlanningAssignments = pgTable('task_planning_assignments', {
+  userId: text('user_id').primaryKey().references(() => userProfiles.id, { onDelete: 'cascade' }),
+  assignments: jsonb('assignments').$type<TaskPlanningStore>().notNull().default(sql`'{}'::jsonb`),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const scheduledSessions = pgTable('scheduled_sessions', {
   id: uuid('id').defaultRandom().primaryKey(),
   userId: text('user_id').notNull().references(() => userProfiles.id, { onDelete: 'cascade' }),
@@ -85,6 +95,18 @@ export const scheduledSessions = pgTable('scheduled_sessions', {
 export const userAppMeta = pgTable('user_app_meta', {
   userId: text('user_id').primaryKey().references(() => userProfiles.id, { onDelete: 'cascade' }),
   schemaVersion: integer('schema_version').notNull().default(CURRENT_SCHEMA_VERSION),
+  dailyPlanning: jsonb('daily_planning')
+    .$type<DailyPlanningState>()
+    .notNull()
+    .default(sql`'{"entries":[]}'::jsonb`),
+  weeklyFocus: jsonb('weekly_focus')
+    .$type<WeeklyFocusState>()
+    .notNull()
+    .default(sql`'{"weeks":[]}'::jsonb`),
+  weeklyReview: jsonb('weekly_review')
+    .$type<WeeklyReviewState>()
+    .notNull()
+    .default(sql`'{"entries":[]}'::jsonb`),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -97,6 +119,10 @@ export const userProfileRelations = relations(userProfiles, ({ many, one }) => (
   quickLogs: one(quickLogs, {
     fields: [userProfiles.id],
     references: [quickLogs.userId],
+  }),
+  taskPlanningAssignments: one(taskPlanningAssignments, {
+    fields: [userProfiles.id],
+    references: [taskPlanningAssignments.userId],
   }),
   userAppMeta: one(userAppMeta, {
     fields: [userProfiles.id],
@@ -122,6 +148,13 @@ export const sharedMetricsRelations = relations(sharedMetrics, ({ one }) => ({
 export const quickLogsRelations = relations(quickLogs, ({ one }) => ({
   userProfile: one(userProfiles, {
     fields: [quickLogs.userId],
+    references: [userProfiles.id],
+  }),
+}));
+
+export const taskPlanningAssignmentsRelations = relations(taskPlanningAssignments, ({ one }) => ({
+  userProfile: one(userProfiles, {
+    fields: [taskPlanningAssignments.userId],
     references: [userProfiles.id],
   }),
 }));

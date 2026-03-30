@@ -1,0 +1,335 @@
+import { describe, expect, it } from 'vitest';
+import { createDefaultAppState } from '../init';
+import { appReducer } from '../app-reducer';
+import {
+  selectAdvisorAttentionSummary,
+  selectDailyPlanningSummary,
+  selectTaskPlanningSummary,
+  selectWeeklyFocusSummary,
+  selectWeeklyReviewSummary,
+} from '../selectors';
+
+describe('selectTaskPlanningSummary', () => {
+  it('groups open tasks into planning lanes and leaves the rest unplanned', () => {
+    const initialState = createDefaultAppState();
+    initialState.advisors.prioritization.activated = true;
+    const firstTaskId = initialState.advisors.prioritization.tasks[0]?.id;
+    const secondTaskId = initialState.advisors.prioritization.tasks[1]?.id;
+
+    if (!firstTaskId || !secondTaskId) {
+      throw new Error('Expected default prioritization tasks for selector test.');
+    }
+
+    const plannedToday = appReducer(initialState, {
+      type: 'SET_TASK_PLAN_BUCKET',
+      payload: { advisorId: 'prioritization', taskId: firstTaskId, bucket: 'today' },
+    });
+
+    const plannedWeek = appReducer(plannedToday, {
+      type: 'SET_TASK_PLAN_BUCKET',
+      payload: { advisorId: 'prioritization', taskId: secondTaskId, bucket: 'this_week' },
+    });
+
+    const summary = selectTaskPlanningSummary(plannedWeek);
+    const todayLane = summary.lanes.find(lane => lane.bucket === 'today');
+    const weekLane = summary.lanes.find(lane => lane.bucket === 'this_week');
+
+    expect(todayLane?.items.map(item => item.id)).toContain(firstTaskId);
+    expect(weekLane?.items.map(item => item.id)).toContain(secondTaskId);
+    expect(summary.totalPlanned).toBe(2);
+    expect(summary.unplanned.every(item => item.id !== firstTaskId && item.id !== secondTaskId)).toBe(true);
+  });
+});
+
+describe('selectWeeklyReviewSummary', () => {
+  it('summarizes queue health for the current week', () => {
+    const initialState = createDefaultAppState();
+    initialState.advisors.prioritization.activated = true;
+    initialState.advisors.therapist.activated = true;
+
+    const [firstTask, secondTask, thirdTask] = initialState.advisors.prioritization.tasks;
+    const therapistTask = initialState.advisors.therapist.tasks[0];
+
+    if (!firstTask || !secondTask || !thirdTask || !therapistTask) {
+      throw new Error('Expected default tasks for weekly review selector test.');
+    }
+
+    firstTask.dueDate = '2026-03-29';
+    secondTask.priority = 'high';
+    thirdTask.dueDate = '2026-03-28';
+    therapistTask.status = 'completed';
+    therapistTask.completedDate = '2026-03-30';
+
+    initialState.advisors.therapist.sessions.push({
+      id: 'sess-1',
+      advisorId: 'therapist',
+      date: '2026-03-30',
+      summary: 'Therapy reset',
+      mood: 'steady',
+      energy: 7,
+      sessionRating: 8,
+      tasksCreated: 0,
+      tasksCompleted: 1,
+      habitsCreated: 0,
+      narrativeUpdate: '',
+      rawImport: {
+        advisor: 'therapist',
+        date: '2026-03-30',
+        summary: 'Therapy reset',
+        task_ops: { create: [], update: [], complete: [], defer: [], close: [] },
+        habit_ops: { create: [], update: [], archive: [] },
+        metrics: {},
+        context_for_next_session: '',
+        mood: 'steady',
+        energy: 7,
+        session_rating: 8,
+        narrative_update: '',
+        card_preview: '',
+      },
+    });
+    initialState.quickLogs.push({
+      advisorId: 'therapist',
+      date: '2026-03-30',
+      timestamp: '2026-03-30T12:00:00.000Z',
+      logs: { mood_rating: 7 },
+    });
+    initialState.weeklyFocus = {
+      weeks: [
+        {
+          weekStart: '2026-03-29',
+          items: [
+            {
+              advisorId: 'therapist',
+              taskId: therapistTask.id,
+              addedAt: '2026-03-30T12:00:00.000Z',
+              carriedForwardFromWeekStart: null,
+            },
+          ],
+        },
+      ],
+    };
+
+    const stateWithPlan = appReducer(initialState, {
+      type: 'SET_TASK_PLAN_BUCKET',
+      payload: { advisorId: 'prioritization', taskId: firstTask.id, bucket: 'today' },
+    });
+
+    const fullyPlannedState = appReducer(stateWithPlan, {
+      type: 'SET_TASK_PLAN_BUCKET',
+      payload: { advisorId: 'prioritization', taskId: thirdTask.id, bucket: 'this_week' },
+    });
+
+    fullyPlannedState.taskPlanning[`prioritization:${firstTask.id}`] = {
+      advisorId: 'prioritization',
+      taskId: firstTask.id,
+      bucket: 'today',
+      updatedAt: '2026-03-30T12:00:00.000Z',
+    };
+    fullyPlannedState.taskPlanning[`prioritization:${thirdTask.id}`] = {
+      advisorId: 'prioritization',
+      taskId: thirdTask.id,
+      bucket: 'this_week',
+      updatedAt: '2026-03-31T12:00:00.000Z',
+    };
+    fullyPlannedState.weeklyReview = {
+      entries: [
+        {
+          weekStart: '2026-03-29',
+          completedAt: '2026-03-31T12:00:00.000Z',
+          biggestWin: 'Closed the biggest open loop.',
+          biggestLesson: 'Today lane needs a stricter cap.',
+          nextWeekNote: 'Schedule from the queue sooner.',
+        },
+        {
+          weekStart: '2026-03-22',
+          completedAt: '2026-03-24T09:00:00.000Z',
+          biggestWin: 'Protected the calendar once.',
+          biggestLesson: 'Unplanned tasks piled up.',
+          nextWeekNote: 'Carry forward the real priorities.',
+        },
+      ],
+    };
+
+    const summary = selectWeeklyReviewSummary(fullyPlannedState, '2026-03-31');
+
+    expect(summary.completedThisWeek).toBe(true);
+    expect(summary.entry.biggestWin).toBe('Closed the biggest open loop.');
+    expect(summary.previousEntry?.weekStart).toBe('2026-03-22');
+    expect(summary.counts.today).toBe(1);
+    expect(summary.counts.unplanned).toBeGreaterThan(0);
+    expect(summary.overduePlanned.map(item => item.id)).toContain(firstTask.id);
+    expect(summary.overduePlanned.map(item => item.id)).toContain(thirdTask.id);
+    expect(summary.staleToday.map(item => item.id)).toContain(firstTask.id);
+    expect(summary.highPriorityUnplanned.map(item => item.id)).toContain(secondTask.id);
+    expect(summary.actionGroups.map(group => group.id)).toEqual([
+      'stale_today',
+      'overdue_planned',
+      'high_priority_unplanned',
+    ]);
+    expect(summary.actionGroups[0]?.items.map(item => item.id)).toEqual([firstTask.id]);
+    expect(summary.actionGroups[1]?.items.map(item => item.id)).toEqual([thirdTask.id]);
+    expect(summary.actionGroups[2]?.items.map(item => item.id)).toContain(secondTask.id);
+    expect(summary.momentum).toEqual({
+      completedTasks: 1,
+      completedFocusTasks: 1,
+      sessions: 1,
+      quickLogDays: 1,
+      activeAdvisors: 1,
+    });
+    expect(summary.recentWins.map(item => item.id)).toEqual([therapistTask.id]);
+    expect(summary.advisorSnapshots.find(item => item.advisorId === 'therapist')?.status).toBe('momentum');
+    expect(summary.advisorSnapshots.find(item => item.advisorId === 'prioritization')?.status).toBe('attention');
+  });
+});
+
+describe('selectDailyPlanningSummary', () => {
+  it('surfaces carry-over, focus gaps, and strong pull-in candidates', () => {
+    const initialState = createDefaultAppState();
+    initialState.advisors.prioritization.activated = true;
+
+    const [firstTask, secondTask, thirdTask] = initialState.advisors.prioritization.tasks;
+
+    if (!firstTask || !secondTask || !thirdTask) {
+      throw new Error('Expected default prioritization tasks for daily planning selector test.');
+    }
+
+    secondTask.priority = 'high';
+    thirdTask.priority = 'high';
+
+    const withCarryOver = appReducer(initialState, {
+      type: 'SET_TASK_PLAN_BUCKET',
+      payload: { advisorId: 'prioritization', taskId: firstTask.id, bucket: 'today' },
+    });
+    withCarryOver.taskPlanning[`prioritization:${firstTask.id}`] = {
+      advisorId: 'prioritization',
+      taskId: firstTask.id,
+      bucket: 'today',
+      updatedAt: '2026-03-30T08:00:00.000Z',
+    };
+
+    const withFocus = appReducer(withCarryOver, {
+      type: 'ADD_WEEKLY_FOCUS_TASK',
+      payload: {
+        advisorId: 'prioritization',
+        taskId: secondTask.id,
+        weekStart: '2026-03-29',
+      },
+    });
+
+    const withThisWeekPlan = appReducer(withFocus, {
+      type: 'SET_TASK_PLAN_BUCKET',
+      payload: { advisorId: 'prioritization', taskId: secondTask.id, bucket: 'this_week' },
+    });
+
+    withThisWeekPlan.dailyPlanning = {
+      entries: [
+        {
+          date: '2026-03-31',
+          completedAt: null,
+          headline: 'Keep today tight.',
+          guardrail: '',
+        },
+        {
+          date: '2026-03-30',
+          completedAt: '2026-03-30T08:30:00.000Z',
+          headline: 'Do not turn setup into work avoidance.',
+          guardrail: 'Protect the real block.',
+        },
+      ],
+    };
+
+    const summary = selectDailyPlanningSummary(withThisWeekPlan, '2026-03-31');
+
+    expect(summary.previousEntry?.date).toBe('2026-03-30');
+    expect(summary.carryOverToday.map(item => item.id)).toEqual([firstTask.id]);
+    expect(summary.focusOutsideToday.map(item => item.id)).toEqual([secondTask.id]);
+    expect(summary.pullInCandidates.map(item => item.id)).toContain(thirdTask.id);
+    expect(summary.actionGroups.map(group => group.id)).toEqual([
+      'carry_over',
+      'focus_outside_today',
+      'pull_into_today',
+    ]);
+  });
+});
+
+describe('selectWeeklyFocusSummary', () => {
+  it('builds current focus, carry-forward candidates, and suggestions from task state', () => {
+    const initialState = createDefaultAppState();
+    initialState.advisors.prioritization.activated = true;
+
+    const [firstTask, secondTask, thirdTask] = initialState.advisors.prioritization.tasks;
+
+    if (!firstTask || !secondTask || !thirdTask) {
+      throw new Error('Expected default prioritization tasks for weekly focus selector test.');
+    }
+
+    secondTask.priority = 'high';
+    thirdTask.dueDate = '2026-03-30';
+
+    const previousWeekFocus = appReducer(initialState, {
+      type: 'ADD_WEEKLY_FOCUS_TASK',
+      payload: {
+        advisorId: 'prioritization',
+        taskId: firstTask.id,
+        weekStart: '2026-03-22',
+      },
+    });
+
+    const currentWeekFocus = appReducer(previousWeekFocus, {
+      type: 'ADD_WEEKLY_FOCUS_TASK',
+      payload: {
+        advisorId: 'prioritization',
+        taskId: thirdTask.id,
+        weekStart: '2026-03-29',
+      },
+    });
+
+    const summary = selectWeeklyFocusSummary(currentWeekFocus, '2026-03-31');
+
+    expect(summary.weekStart).toBe('2026-03-29');
+    expect(summary.items.map(item => item.id)).toEqual([thirdTask.id]);
+    expect(summary.previousWeekStart).toBe('2026-03-22');
+    expect(summary.carryForwardCandidates.map(item => item.id)).toContain(firstTask.id);
+    expect(summary.suggestedTasks.map(item => item.id)).toContain(secondTask.id);
+    expect(summary.remainingSlots).toBe(2);
+  });
+});
+
+describe('selectAdvisorAttentionSummary', () => {
+  it('ranks schedule, planning, and quick-log nudges into obvious next actions', () => {
+    const initialState = createDefaultAppState();
+    initialState.advisors.therapist.activated = true;
+    initialState.advisors.prioritization.activated = true;
+    initialState.advisors.fitness.activated = true;
+
+    initialState.advisors.therapist.lastSessionDate = '2026-03-15';
+    initialState.advisors.therapist.nextDueDate = '2026-03-20';
+
+    initialState.advisors.prioritization.lastSessionDate = '2026-03-28';
+    initialState.advisors.prioritization.nextDueDate = '2026-04-06';
+    const prioritizationTask = initialState.advisors.prioritization.tasks[0];
+
+    if (!prioritizationTask) {
+      throw new Error('Expected prioritization task for advisor attention selector test.');
+    }
+
+    prioritizationTask.priority = 'high';
+
+    initialState.advisors.fitness.lastSessionDate = '2026-03-29';
+    initialState.advisors.fitness.nextDueDate = '2026-04-06';
+    initialState.advisors.fitness.tasks.forEach(task => {
+      task.status = 'completed';
+      task.completedDate = '2026-03-29';
+    });
+
+    const summary = selectAdvisorAttentionSummary(initialState, '2026-03-30');
+
+    expect(summary.items[0]?.advisorId).toBe('therapist');
+    expect(summary.items.find(item => item.advisorId === 'therapist')?.primaryAction).toBe('schedule');
+    expect(summary.items.find(item => item.advisorId === 'prioritization')?.primaryAction).toBe('plan');
+    expect(summary.items.find(item => item.advisorId === 'fitness')?.primaryAction).toBe('quick_log');
+    expect(summary.scheduleCount).toBe(1);
+    expect(summary.planCount).toBe(1);
+    expect(summary.quickLogCount).toBe(1);
+  });
+});

@@ -17,6 +17,20 @@ function createMockStorage(overrides: Partial<AppPersistence> = {}): AppPersiste
     saveSharedMetrics: vi.fn().mockResolvedValue(undefined),
     loadQuickLogs: vi.fn().mockResolvedValue([]),
     saveQuickLogs: vi.fn().mockResolvedValue(undefined),
+    loadTaskPlanning: vi.fn().mockResolvedValue({}),
+    saveTaskPlanning: vi.fn().mockResolvedValue(undefined),
+    loadDailyPlanning: vi.fn().mockResolvedValue({
+      entries: [],
+    }),
+    saveDailyPlanning: vi.fn().mockResolvedValue(undefined),
+    loadWeeklyFocus: vi.fn().mockResolvedValue({
+      weeks: [],
+    }),
+    saveWeeklyFocus: vi.fn().mockResolvedValue(undefined),
+    loadWeeklyReview: vi.fn().mockResolvedValue({
+      entries: [],
+    }),
+    saveWeeklyReview: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   };
 }
@@ -37,6 +51,16 @@ describe('createDefaultAppState', () => {
   it('creates default state for all advisors', () => {
     const state = createDefaultAppState();
     expect(Object.keys(state.advisors)).toHaveLength(ALL_ADVISOR_IDS.length);
+    expect(state.taskPlanning).toEqual({});
+    expect(state.dailyPlanning).toEqual({
+      entries: [],
+    });
+    expect(state.weeklyFocus).toEqual({
+      weeks: [],
+    });
+    expect(state.weeklyReview).toEqual({
+      entries: [],
+    });
   });
 });
 
@@ -49,6 +73,16 @@ describe('loadAppStateFromStorage', () => {
       expect(Array.isArray(state.advisors[id].tasks)).toBe(true);
       expect(state.advisors[id].habits).toEqual([]);
     }
+    expect(state.taskPlanning).toEqual({});
+    expect(state.dailyPlanning).toEqual({
+      entries: [],
+    });
+    expect(state.weeklyFocus).toEqual({
+      weeks: [],
+    });
+    expect(state.weeklyReview).toEqual({
+      entries: [],
+    });
   });
 
   it('loads existing advisor state from storage', async () => {
@@ -72,7 +106,7 @@ describe('loadAppStateFromStorage', () => {
 });
 
 describe('saveAppStateToStorage', () => {
-  it('saves all advisor states, metrics, and logs', async () => {
+  it('saves all advisor states, metrics, logs, and task planning metadata', async () => {
     const mockStorage = createMockStorage();
     const state = createDefaultAppState();
 
@@ -81,5 +115,9 @@ describe('saveAppStateToStorage', () => {
     expect(mockStorage.saveAdvisorState).toHaveBeenCalledTimes(ALL_ADVISOR_IDS.length);
     expect(mockStorage.saveSharedMetrics).toHaveBeenCalledWith(state.sharedMetrics);
     expect(mockStorage.saveQuickLogs).toHaveBeenCalledWith(state.quickLogs);
+    expect(mockStorage.saveTaskPlanning).toHaveBeenCalledWith(state.taskPlanning);
+    expect(mockStorage.saveDailyPlanning).toHaveBeenCalledWith(state.dailyPlanning);
+    expect(mockStorage.saveWeeklyFocus).toHaveBeenCalledWith(state.weeklyFocus);
+    expect(mockStorage.saveWeeklyReview).toHaveBeenCalledWith(state.weeklyReview);
   });
 });

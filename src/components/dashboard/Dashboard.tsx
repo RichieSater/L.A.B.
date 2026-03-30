@@ -1,6 +1,8 @@
 import { useState } from 'react';
+import { useAuth } from '../../auth/auth-context';
 import { useAppState } from '../../state/app-context';
 import {
+  selectAdvisorAttentionSummary,
   selectAdvisorsWithPinnedOrder,
   selectAllOpenTasks,
   selectInactiveAdvisorIds,
@@ -8,6 +10,7 @@ import {
 import { ADVISOR_CONFIGS } from '../../advisors/registry';
 import type { AdvisorId } from '../../types/advisor';
 import { AdvisorCardGrid } from './AdvisorCardGrid';
+import { AdvisorAttentionPanel } from './AdvisorAttentionPanel';
 import { TaskDashboard } from './TaskDashboard';
 import { CalendarView } from './CalendarView';
 import { DailyLogButton } from './DailyLogButton';
@@ -15,11 +18,14 @@ import { DailyLogButton } from './DailyLogButton';
 type DashboardTab = 'advisors' | 'tasks' | 'calendar';
 
 export function Dashboard() {
+  const { profile } = useAuth();
   const { state, dispatch } = useAppState();
   const [activeTab, setActiveTab] = useState<DashboardTab>('advisors');
   const sortedAdvisors = selectAdvisorsWithPinnedOrder(state);
   const inactiveAdvisors = selectInactiveAdvisorIds(state);
   const allOpenItems = selectAllOpenTasks(state);
+  const attention = selectAdvisorAttentionSummary(state);
+  const schedulingEnabled = profile?.schedulingEnabled ?? false;
 
   return (
     <div>
@@ -54,6 +60,12 @@ export function Dashboard() {
       {/* Tab content */}
       {activeTab === 'advisors' && (
         <>
+          <AdvisorAttentionPanel
+            summary={attention}
+            onOpenTasks={() => setActiveTab('tasks')}
+            schedulingEnabled={schedulingEnabled}
+          />
+
           {sortedAdvisors.length > 0 ? (
             <AdvisorCardGrid advisorIds={sortedAdvisors} />
           ) : (

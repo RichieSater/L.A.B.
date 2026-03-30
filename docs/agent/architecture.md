@@ -20,8 +20,18 @@
 
 The app is no longer a plain Vite starter. The frontend lives in `src/` and renders a multi-page advisory workflow behind Clerk auth, while serverless handlers in `api/` own persistence and integration side effects.
 
-Persistence flows through `server/data.ts` into Neon Postgres via Drizzle. Client state can be optimistic and cached locally, but the server is the source of truth for user profile data, scheduled sessions, shared metrics, and Google Calendar connection state.
+Persistence flows through `server/data.ts` into Neon Postgres via Drizzle. Client state can be optimistic and cached locally, but the server is the source of truth for user profile data, scheduled sessions, shared metrics, planning-queue assignments, and Google Calendar connection state.
 
 Google Calendar is the only external integration currently in play. Any scheduling change that affects calendar sync should be treated as a persistence and integration boundary change and should keep regression coverage in `api/__tests__/` or `server/__tests__/`.
+
+The planning queue is intentionally layered on top of existing advisor tasks instead of introducing a second task system. Open tasks remain canonical, while `task_planning_assignments` stores optional `today`, `this_week`, or `later` metadata that can be cleared when work is scheduled or completed.
+
+Daily planning is also layered on top of canonical tasks instead of forking a separate "my day" task model. `user_app_meta.daily_planning` stores a small date-keyed note plus completion timestamp so the dashboard can track today's headline and guardrail, surface carry-over cleanup, and reuse the same queue/scheduling actions rather than drifting into duplicate state.
+
+Weekly focus follows the same rule: the app does not create separate objective records. Instead, `user_app_meta.weekly_focus` stores a small week-keyed list of task references so the dashboard can pin 1-3 current objectives and offer carry-forward from the prior week without duplicating task content.
+
+Weekly review state is persisted alongside the rest of app-owned metadata in `user_app_meta`. Treat it as part of the planning workflow contract: the review card derives stale `today`, overdue planned, and high-priority unplanned signals from current task/planning state, folds in weekly momentum data from completed tasks, sessions, and quick logs, and stores a week-keyed review entry with completion time plus short reflection fields (`biggestWin`, `biggestLesson`, `nextWeekNote`) so the weekly loop becomes a durable record instead of a one-bit flag.
+
+The advisors tab now has its own derived triage layer. `selectAdvisorAttentionSummary` combines cadence urgency, queue pressure, and quick-log recency so the UI can suggest the next obvious action for each advisor without adding another persisted model.
 
 Connecting Google Calendar is expected to backfill existing scheduled sessions, and disconnecting is expected to clear both remote event copies and local sync metadata. Treat that lifecycle as part of the durable scheduling contract, not optional UI glue.

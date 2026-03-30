@@ -6,10 +6,12 @@ import { formatDateKey, formatTimeInputValue, today } from '../../utils/date';
 
 interface ScheduleModalProps {
   advisorId: AdvisorId;
+  taskLabel?: string;
+  onScheduled?: () => void;
   onClose: () => void;
 }
 
-export function ScheduleModal({ advisorId, onClose }: ScheduleModalProps) {
+export function ScheduleModal({ advisorId, taskLabel, onScheduled, onClose }: ScheduleModalProps) {
   const config = ADVISOR_CONFIGS[advisorId];
   const { scheduleSession, getUpcomingSession } = useScheduling();
   const existingSession = getUpcomingSession(advisorId);
@@ -26,6 +28,7 @@ export function ScheduleModal({ advisorId, onClose }: ScheduleModalProps) {
     const scheduledAt = new Date(`${date}T${time}:00`).toISOString();
     await scheduleSession(advisorId, scheduledAt, durationMinutes, existingSession?.id);
     setSubmitting(false);
+    onScheduled?.();
     onClose();
   }
 
@@ -50,6 +53,13 @@ export function ScheduleModal({ advisorId, onClose }: ScheduleModalProps) {
         </div>
 
         <div className="space-y-4">
+          {taskLabel && (
+            <div className="rounded-lg border border-blue-800/40 bg-blue-950/30 px-3 py-2">
+              <p className="text-xs font-medium uppercase tracking-wide text-blue-300">Promoting planned work</p>
+              <p className="mt-1 text-sm text-blue-100">{taskLabel}</p>
+            </div>
+          )}
+
           <div>
             <label className="block text-sm font-medium text-gray-400 mb-1">Date</label>
             <input

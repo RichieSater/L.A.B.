@@ -3,6 +3,12 @@ import type { AppState } from '../types/app-state.js';
 import { ALL_ADVISOR_IDS, ADVISOR_CONFIGS } from '../advisors/registry.js';
 import { today } from '../utils/date.js';
 import { CURRENT_SCHEMA_VERSION } from '../constants/schema.js';
+import {
+  createDefaultDailyPlanningState,
+  normalizeDailyPlanningState,
+} from '../types/daily-planning.js';
+import { createDefaultWeeklyFocusState } from '../types/weekly-focus.js';
+import { createDefaultWeeklyReviewState, normalizeWeeklyReviewState } from '../types/weekly-review.js';
 
 export interface AppPersistence {
   loadAdvisorState(id: AdvisorId): Promise<AdvisorState | null>;
@@ -11,6 +17,14 @@ export interface AppPersistence {
   saveSharedMetrics(metrics: AppState['sharedMetrics']): Promise<void>;
   loadQuickLogs(): Promise<AppState['quickLogs']>;
   saveQuickLogs(logs: AppState['quickLogs']): Promise<void>;
+  loadTaskPlanning(): Promise<AppState['taskPlanning']>;
+  saveTaskPlanning(taskPlanning: AppState['taskPlanning']): Promise<void>;
+  loadDailyPlanning(): Promise<AppState['dailyPlanning']>;
+  saveDailyPlanning(dailyPlanning: AppState['dailyPlanning']): Promise<void>;
+  loadWeeklyFocus(): Promise<AppState['weeklyFocus']>;
+  saveWeeklyFocus(weeklyFocus: AppState['weeklyFocus']): Promise<void>;
+  loadWeeklyReview(): Promise<AppState['weeklyReview']>;
+  saveWeeklyReview(weeklyReview: AppState['weeklyReview']): Promise<void>;
 }
 
 export function createDefaultAdvisorState(advisorId: AdvisorId): AdvisorState {
@@ -54,6 +68,10 @@ export function createDefaultAppState(): AppState {
     advisors,
     sharedMetrics: {},
     quickLogs: [],
+    taskPlanning: {},
+    dailyPlanning: createDefaultDailyPlanningState(),
+    weeklyFocus: createDefaultWeeklyFocusState(),
+    weeklyReview: createDefaultWeeklyReviewState(),
     initialized: true,
     schemaVersion: CURRENT_SCHEMA_VERSION,
   };
@@ -75,15 +93,23 @@ export async function loadAppStateFromStorage(
     advisors[id] = saved ?? createDefaultAdvisorState(id);
   }
 
-  const [sharedMetrics, quickLogs] = await Promise.all([
+  const [sharedMetrics, quickLogs, taskPlanning, dailyPlanning, weeklyFocus, weeklyReview] = await Promise.all([
     storage.loadSharedMetrics(),
     storage.loadQuickLogs(),
+    storage.loadTaskPlanning(),
+    storage.loadDailyPlanning(),
+    storage.loadWeeklyFocus(),
+    storage.loadWeeklyReview(),
   ]);
 
   return {
     advisors,
     sharedMetrics,
     quickLogs,
+    taskPlanning,
+    dailyPlanning: normalizeDailyPlanningState(dailyPlanning ?? createDefaultDailyPlanningState()),
+    weeklyFocus: weeklyFocus ?? createDefaultWeeklyFocusState(),
+    weeklyReview: normalizeWeeklyReviewState(weeklyReview ?? createDefaultWeeklyReviewState()),
     initialized: true,
     schemaVersion: CURRENT_SCHEMA_VERSION,
   };
@@ -98,6 +124,10 @@ export async function saveAppStateToStorage(
   );
   saves.push(storage.saveSharedMetrics(state.sharedMetrics));
   saves.push(storage.saveQuickLogs(state.quickLogs));
+  saves.push(storage.saveTaskPlanning(state.taskPlanning));
+  saves.push(storage.saveDailyPlanning(state.dailyPlanning));
+  saves.push(storage.saveWeeklyFocus(state.weeklyFocus));
+  saves.push(storage.saveWeeklyReview(state.weeklyReview));
 
   await Promise.all(saves);
 }

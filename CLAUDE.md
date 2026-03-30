@@ -8,7 +8,7 @@ This file mirrors the repo harness. The canonical source of truth lives in `docs
 
 - Project: `the-lab`
 - Stack: Vite + React + TypeScript app
-- Summary: The L.A.B. is a personal "Life Advisory Board" app. It gives the user a set of domain-specific advisors, tracks shared metrics across them, captures quick daily logs, and suppor...
+- Summary: The L.A.B. is a personal "Life Advisory Board" app. It gives the user a set of domain-specific advisors, tracks shared metrics across them, captures quick daily logs, adds an ad...
 
 ## Start Here
 

@@ -4,6 +4,10 @@ import type { AdvisorId } from '../src/types/advisor.js';
 import { ALL_ADVISOR_IDS } from '../src/advisors/registry.js';
 import { CURRENT_SCHEMA_VERSION } from '../src/constants/schema.js';
 import { env } from './env.js';
+import {
+  createDefaultDailyPlanningState,
+  normalizeDailyPlanningState,
+} from '../src/types/daily-planning.js';
 import type {
   BootstrapResponse,
   CreateScheduledSessionInput,
@@ -12,6 +16,8 @@ import type {
 } from '../src/types/api.js';
 import type { ScheduledSession } from '../src/types/scheduled-session.js';
 import { createDefaultAppState, createDefaultAdvisorState } from '../src/state/init.js';
+import { createDefaultWeeklyFocusState } from '../src/types/weekly-focus.js';
+import { createDefaultWeeklyReviewState, normalizeWeeklyReviewState } from '../src/types/weekly-review.js';
 import { clerkClient } from './auth.js';
 import { db } from './db/client.js';
 import {
@@ -25,6 +31,7 @@ import {
   quickLogs,
   scheduledSessions,
   sharedMetrics,
+  taskPlanningAssignments,
   userAppMeta,
   userProfiles,
 } from './db/schema.js';
@@ -125,10 +132,20 @@ export async function ensureUserRecords(userId: string): Promise<void> {
       })
       .onConflictDoNothing(),
     db
+      .insert(taskPlanningAssignments)
+      .values({
+        userId,
+        assignments: {},
+      })
+      .onConflictDoNothing(),
+    db
       .insert(userAppMeta)
       .values({
         userId,
         schemaVersion: CURRENT_SCHEMA_VERSION,
+        dailyPlanning: createDefaultDailyPlanningState(),
+        weeklyFocus: createDefaultWeeklyFocusState(),
+        weeklyReview: createDefaultWeeklyReviewState(),
       })
       .onConflictDoNothing(),
   ]);
@@ -167,8 +184,18 @@ async function resetLegacyUserState(userId: string): Promise<void> {
       .set({ logs: [], updatedAt: new Date() })
       .where(eq(quickLogs.userId, userId)),
     db
+      .update(taskPlanningAssignments)
+      .set({ assignments: {}, updatedAt: new Date() })
+      .where(eq(taskPlanningAssignments.userId, userId)),
+    db
       .update(userAppMeta)
-      .set({ schemaVersion: CURRENT_SCHEMA_VERSION, updatedAt: new Date() })
+      .set({
+        schemaVersion: CURRENT_SCHEMA_VERSION,
+        dailyPlanning: createDefaultDailyPlanningState(),
+        weeklyFocus: createDefaultWeeklyFocusState(),
+        weeklyReview: createDefaultWeeklyReviewState(),
+        updatedAt: new Date(),
+      })
       .where(eq(userAppMeta.userId, userId)),
     db
       .update(scheduledSessions)
@@ -239,8 +266,18 @@ export async function resetUserData(userId: string): Promise<void> {
       .set({ logs: [], updatedAt: new Date() })
       .where(eq(quickLogs.userId, userId)),
     db
+      .update(taskPlanningAssignments)
+      .set({ assignments: {}, updatedAt: new Date() })
+      .where(eq(taskPlanningAssignments.userId, userId)),
+    db
       .update(userAppMeta)
-      .set({ schemaVersion: CURRENT_SCHEMA_VERSION, updatedAt: new Date() })
+      .set({
+        schemaVersion: CURRENT_SCHEMA_VERSION,
+        dailyPlanning: createDefaultDailyPlanningState(),
+        weeklyFocus: createDefaultWeeklyFocusState(),
+        weeklyReview: createDefaultWeeklyReviewState(),
+        updatedAt: new Date(),
+      })
       .where(eq(userAppMeta.userId, userId)),
   ]);
 }
@@ -267,10 +304,11 @@ async function markExpiredScheduledSessions(userId: string): Promise<void> {
 async function loadAppState(userId: string): Promise<AppState> {
   const baseState = createDefaultAppState();
 
-  const [advisorRows, sharedMetricsRow, quickLogsRow, metaRow] = await Promise.all([
+  const [advisorRows, sharedMetricsRow, quickLogsRow, taskPlanningRow, metaRow] = await Promise.all([
     db.select().from(advisorStates).where(eq(advisorStates.userId, userId)),
     db.query.sharedMetrics.findFirst({ where: eq(sharedMetrics.userId, userId) }),
     db.query.quickLogs.findFirst({ where: eq(quickLogs.userId, userId) }),
+    db.query.taskPlanningAssignments.findFirst({ where: eq(taskPlanningAssignments.userId, userId) }),
     db.query.userAppMeta.findFirst({ where: eq(userAppMeta.userId, userId) }),
   ]);
 
@@ -284,6 +322,14 @@ async function loadAppState(userId: string): Promise<AppState> {
 
   baseState.sharedMetrics = sharedMetricsRow?.metrics ?? {};
   baseState.quickLogs = quickLogsRow?.logs ?? [];
+  baseState.taskPlanning = taskPlanningRow?.assignments ?? {};
+  baseState.dailyPlanning = normalizeDailyPlanningState(
+    metaRow?.dailyPlanning ?? createDefaultDailyPlanningState(),
+  );
+  baseState.weeklyFocus = metaRow?.weeklyFocus ?? createDefaultWeeklyFocusState();
+  baseState.weeklyReview = normalizeWeeklyReviewState(
+    metaRow?.weeklyReview ?? createDefaultWeeklyReviewState(),
+  );
   baseState.schemaVersion = metaRow?.schemaVersion ?? CURRENT_SCHEMA_VERSION;
   baseState.initialized = true;
 
@@ -548,16 +594,36 @@ export async function saveAppState(userId: string, appState: AppState): Promise<
         },
       }),
     db
+      .insert(taskPlanningAssignments)
+      .values({
+        userId,
+        assignments: appState.taskPlanning,
+        updatedAt: new Date(),
+      })
+      .onConflictDoUpdate({
+        target: taskPlanningAssignments.userId,
+        set: {
+          assignments: appState.taskPlanning,
+          updatedAt: new Date(),
+        },
+      }),
+    db
       .insert(userAppMeta)
       .values({
         userId,
         schemaVersion: appState.schemaVersion,
+        dailyPlanning: appState.dailyPlanning,
+        weeklyFocus: appState.weeklyFocus,
+        weeklyReview: appState.weeklyReview,
         updatedAt: new Date(),
       })
       .onConflictDoUpdate({
         target: userAppMeta.userId,
         set: {
           schemaVersion: appState.schemaVersion,
+          dailyPlanning: appState.dailyPlanning,
+          weeklyFocus: appState.weeklyFocus,
+          weeklyReview: appState.weeklyReview,
           updatedAt: new Date(),
         },
       }),

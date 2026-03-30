@@ -1,0 +1,1 @@
+ALTER TABLE "user_app_meta" ADD COLUMN "daily_planning" jsonb DEFAULT '{"entries":[]}'::jsonb NOT NULL;

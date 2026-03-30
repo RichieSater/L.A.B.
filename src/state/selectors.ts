@@ -3,12 +3,37 @@ import type { AdvisorId } from '../types/advisor';
 import type { HabitItem, TaskItem } from '../types/action-item';
 import type { ScheduleEntry } from '../types/schedule';
 import type { QuickLogEntry } from '../types/quick-log';
+import {
+  TASK_PLANNING_BUCKETS,
+  getTaskPlanningKey,
+  type TaskPlanningAssignment,
+  type TaskPlanningBucket,
+} from '../types/task-planning';
+import {
+  createDailyPlanningEntry,
+  type DailyPlanningEntry,
+} from '../types/daily-planning';
+import {
+  MAX_WEEKLY_FOCUS_ITEMS,
+  type WeeklyFocusTaskRef,
+} from '../types/weekly-focus';
+import type { WeeklyReviewEntry } from '../types/weekly-review';
 import { ADVISOR_CONFIGS, ACTIVE_ADVISOR_IDS } from '../advisors/registry';
-import { daysAgo, daysBetween, today } from '../utils/date';
+import { addDays, daysAgo, daysBetween, endOfWeek, formatDateKey, startOfWeek, today } from '../utils/date';
 
 export type DomainHealth = 'healthy' | 'attention' | 'critical';
 
 const PINNED_ADVISOR_ORDER: AdvisorId[] = ['performance', 'prioritization'];
+const PRIORITY_ORDER = { high: 0, medium: 1, low: 2 } as const;
+
+function compareTaskItems(a: TaskItem, b: TaskItem): number {
+  const pa = PRIORITY_ORDER[a.priority];
+  const pb = PRIORITY_ORDER[b.priority];
+  if (pa !== pb) return pa - pb;
+  if (a.dueDate === 'ongoing') return 1;
+  if (b.dueDate === 'ongoing') return -1;
+  return a.dueDate.localeCompare(b.dueDate);
+}
 
 /**
  * Returns advisor IDs that are both in ACTIVE_ADVISOR_IDS (phase-gated)
@@ -81,6 +106,8 @@ export interface EnrichedTaskItem extends TaskItem {
   advisorIcon: string;
   advisorName: string;
   advisorColor: string;
+  planningBucket: TaskPlanningBucket | null;
+  planningUpdatedAt: string | null;
 }
 
 export function selectAllTaskItems(state: AppState): EnrichedTaskItem[] {
@@ -91,25 +118,20 @@ export function selectAllTaskItems(state: AppState): EnrichedTaskItem[] {
     const advisor = state.advisors[id];
     const config = ADVISOR_CONFIGS[id];
     for (const item of advisor.tasks) {
+      const assignment = state.taskPlanning[getTaskPlanningKey(id, item.id)];
       items.push({
         ...item,
         advisorId: id,
         advisorIcon: config.icon,
         advisorName: config.shortName,
         advisorColor: config.domainColor,
+        planningBucket: assignment?.bucket ?? null,
+        planningUpdatedAt: assignment?.updatedAt ?? null,
       });
     }
   }
 
-  const priorityOrder = { high: 0, medium: 1, low: 2 };
-  return items.sort((a, b) => {
-    const pa = priorityOrder[a.priority];
-    const pb = priorityOrder[b.priority];
-    if (pa !== pb) return pa - pb;
-    if (a.dueDate === 'ongoing') return 1;
-    if (b.dueDate === 'ongoing') return -1;
-    return a.dueDate.localeCompare(b.dueDate);
-  });
+  return items.sort(compareTaskItems);
 }
 
 export interface EnrichedHabitItem extends HabitItem {
@@ -247,16 +269,820 @@ export function selectAllOpenTasks(
     }
   }
 
-  // Sort by priority (high first) then by due date
-  const priorityOrder = { high: 0, medium: 1, low: 2 };
-  return items.sort((a, b) => {
-    const pa = priorityOrder[a.priority];
-    const pb = priorityOrder[b.priority];
-    if (pa !== pb) return pa - pb;
-    if (a.dueDate === 'ongoing') return 1;
-    if (b.dueDate === 'ongoing') return -1;
-    return a.dueDate.localeCompare(b.dueDate);
+  return items.sort(compareTaskItems);
+}
+
+export interface TaskPlanningLane {
+  bucket: TaskPlanningBucket;
+  label: string;
+  description: string;
+  items: EnrichedTaskItem[];
+}
+
+export interface TaskPlanningSummary {
+  lanes: TaskPlanningLane[];
+  unplanned: EnrichedTaskItem[];
+  totalPlanned: number;
+}
+
+export interface WeeklyFocusTask extends EnrichedTaskItem {
+  focusAddedAt: string;
+  carriedForwardFromWeekStart: string | null;
+}
+
+export interface WeeklyFocusSummary {
+  weekStart: string;
+  items: WeeklyFocusTask[];
+  completedCount: number;
+  openCount: number;
+  remainingSlots: number;
+  previousWeekStart: string | null;
+  carryForwardCandidates: WeeklyFocusTask[];
+  suggestedTasks: EnrichedTaskItem[];
+}
+
+export interface DailyPlanningSummary {
+  date: string;
+  entry: DailyPlanningEntry;
+  previousEntry: DailyPlanningEntry | null;
+  completedToday: boolean;
+  completedAt: string | null;
+  counts: {
+    today: number;
+    carryOver: number;
+    focusOutsideToday: number;
+    overdueOpen: number;
+    pullInCandidates: number;
+  };
+  carryOverToday: EnrichedTaskItem[];
+  focusOutsideToday: WeeklyFocusTask[];
+  pullInCandidates: EnrichedTaskItem[];
+  actionGroups: DailyPlanningActionGroup[];
+}
+
+export interface DailyPlanningActionGroup {
+  id: 'carry_over' | 'focus_outside_today' | 'pull_into_today';
+  title: string;
+  description: string;
+  items: EnrichedTaskItem[];
+  remainingCount: number;
+}
+
+export interface WeeklyReviewSummary {
+  weekStart: string;
+  weekEnd: string;
+  entry: WeeklyReviewEntry;
+  previousEntry: WeeklyReviewEntry | null;
+  completedThisWeek: boolean;
+  completedAt: string | null;
+  counts: {
+    today: number;
+    thisWeek: number;
+    later: number;
+    unplanned: number;
+    overdueOpen: number;
+  };
+  momentum: {
+    completedTasks: number;
+    completedFocusTasks: number;
+    sessions: number;
+    quickLogDays: number;
+    activeAdvisors: number;
+  };
+  staleToday: EnrichedTaskItem[];
+  overduePlanned: EnrichedTaskItem[];
+  highPriorityUnplanned: EnrichedTaskItem[];
+  recentWins: WeeklyReviewWin[];
+  advisorSnapshots: WeeklyReviewAdvisorSnapshot[];
+  actionGroups: WeeklyReviewActionGroup[];
+}
+
+export interface WeeklyReviewActionGroup {
+  id: 'stale_today' | 'overdue_planned' | 'high_priority_unplanned';
+  title: string;
+  description: string;
+  items: EnrichedTaskItem[];
+  remainingCount: number;
+}
+
+export interface WeeklyReviewWin extends EnrichedTaskItem {
+  completedDate: string;
+}
+
+export interface WeeklyReviewAdvisorSnapshot {
+  advisorId: AdvisorId;
+  advisorIcon: string;
+  advisorName: string;
+  advisorColor: string;
+  completedTasks: number;
+  sessions: number;
+  quickLogs: number;
+  openTasks: number;
+  plannedOpen: number;
+  overdueOpen: number;
+  status: 'attention' | 'momentum' | 'quiet';
+  note: string;
+}
+
+export interface AdvisorAttentionItem {
+  advisorId: AdvisorId;
+  advisorIcon: string;
+  advisorName: string;
+  advisorColor: string;
+  status: 'urgent' | 'attention' | 'steady';
+  primaryAction: 'schedule' | 'plan' | 'quick_log' | 'review';
+  headline: string;
+  reason: string;
+  lastSessionDate: string | null;
+  nextDueDate: string | null;
+  lastQuickLogDate: string | null;
+  openTasks: number;
+  plannedOpen: number;
+  unplannedOpen: number;
+  overdueOpen: number;
+  highPriorityUnplanned: number;
+  completedTasksThisWeek: number;
+  sessionsThisWeek: number;
+  quickLogsThisWeek: number;
+}
+
+export interface AdvisorAttentionSummary {
+  items: AdvisorAttentionItem[];
+  needsAttentionCount: number;
+  scheduleCount: number;
+  planCount: number;
+  quickLogCount: number;
+  quietCount: number;
+}
+
+const TASK_PLANNING_LABELS: Record<TaskPlanningBucket, { label: string; description: string }> = {
+  today: {
+    label: 'Today',
+    description: 'Needs attention in the current workday.',
+  },
+  this_week: {
+    label: 'This Week',
+    description: 'Important soon, but not committed to a specific slot yet.',
+  },
+  later: {
+    label: 'Later',
+    description: 'Keep visible without crowding the near-term queue.',
+  },
+};
+
+function getTaskIdentity(advisorId: AdvisorId, taskId: string): string {
+  return `${advisorId}:${taskId}`;
+}
+
+function buildEnrichedTaskLookup(state: AppState): Map<string, EnrichedTaskItem> {
+  return new Map(
+    selectAllTaskItems(state).map(item => [getTaskIdentity(item.advisorId, item.id), item]),
+  );
+}
+
+function enrichWeeklyFocusTask(
+  ref: WeeklyFocusTaskRef,
+  taskLookup: Map<string, EnrichedTaskItem>,
+): WeeklyFocusTask | null {
+  const item = taskLookup.get(getTaskIdentity(ref.advisorId, ref.taskId));
+  if (!item) {
+    return null;
+  }
+
+  return {
+    ...item,
+    focusAddedAt: ref.addedAt,
+    carriedForwardFromWeekStart: ref.carriedForwardFromWeekStart,
+  };
+}
+
+export function selectTaskPlanningSummary(state: AppState): TaskPlanningSummary {
+  const openItems = selectAllTaskItems(state).filter(item => item.status === 'open');
+  const laneItems = Object.fromEntries(
+    TASK_PLANNING_BUCKETS.map(bucket => [bucket, [] as EnrichedTaskItem[]]),
+  ) as Record<TaskPlanningBucket, EnrichedTaskItem[]>;
+  const unplanned: EnrichedTaskItem[] = [];
+
+  for (const item of openItems) {
+    if (!item.planningBucket) {
+      unplanned.push(item);
+      continue;
+    }
+
+    laneItems[item.planningBucket].push(item);
+  }
+
+  const lanes = TASK_PLANNING_BUCKETS.map(bucket => ({
+    bucket,
+    label: TASK_PLANNING_LABELS[bucket].label,
+    description: TASK_PLANNING_LABELS[bucket].description,
+    items: [...laneItems[bucket]].sort(compareTaskItems),
+  }));
+
+  return {
+    lanes,
+    unplanned: [...unplanned].sort(compareTaskItems),
+    totalPlanned: lanes.reduce((sum, lane) => sum + lane.items.length, 0),
+  };
+}
+
+export function selectTaskPlanningAssignments(state: AppState): TaskPlanningAssignment[] {
+  return [...Object.values(state.taskPlanning)].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+}
+
+export function selectDailyPlanningSummary(
+  state: AppState,
+  todayDate: string = today(),
+): DailyPlanningSummary {
+  const planning = selectTaskPlanningSummary(state);
+  const focus = selectWeeklyFocusSummary(state, todayDate);
+  const openItems = selectAllTaskItems(state).filter(item => item.status === 'open');
+  const todayLane = planning.lanes.find(lane => lane.bucket === 'today');
+  const entry =
+    state.dailyPlanning.entries.find(dailyEntry => dailyEntry.date === todayDate)
+    ?? createDailyPlanningEntry(todayDate);
+  const previousEntry =
+    state.dailyPlanning.entries.find(
+      dailyEntry =>
+        dailyEntry.date < todayDate
+        && (
+          dailyEntry.completedAt !== null
+          || dailyEntry.headline.trim().length > 0
+          || dailyEntry.guardrail.trim().length > 0
+        ),
+    ) ?? null;
+  const carryOverToday =
+    todayLane?.items
+      .filter(item => {
+        if (!item.planningUpdatedAt) {
+          return false;
+        }
+
+        return formatDateKey(new Date(item.planningUpdatedAt)) < todayDate;
+      })
+      .sort((a, b) => (a.planningUpdatedAt ?? '').localeCompare(b.planningUpdatedAt ?? '')) ?? [];
+  const focusOutsideToday = focus.items
+    .filter(item => item.status === 'open' && item.planningBucket !== 'today')
+    .sort(compareTaskItems);
+  const takenKeys = new Set<string>([
+    ...carryOverToday.map(item => getTaskIdentity(item.advisorId, item.id)),
+    ...focusOutsideToday.map(item => getTaskIdentity(item.advisorId, item.id)),
+    ...(todayLane?.items ?? []).map(item => getTaskIdentity(item.advisorId, item.id)),
+  ]);
+  const thisWeekItems = planning.lanes.find(lane => lane.bucket === 'this_week')?.items ?? [];
+  const pullInPool = [
+    ...thisWeekItems,
+    ...planning.unplanned.filter(item => item.priority === 'high'),
+    ...openItems.filter(
+      item =>
+        item.planningBucket === 'later'
+        && item.dueDate !== 'ongoing'
+        && item.dueDate <= addDays(todayDate, 2),
+    ),
+  ];
+  const seenPullIns = new Set<string>();
+  const pullInCandidates = pullInPool
+    .filter(item => item.status === 'open')
+    .filter(item => {
+      const key = getTaskIdentity(item.advisorId, item.id);
+      if (takenKeys.has(key) || seenPullIns.has(key)) {
+        return false;
+      }
+
+      seenPullIns.add(key);
+      return true;
+    })
+    .sort(compareTaskItems)
+    .slice(0, 6);
+  const seen = new Set<string>();
+  const buildActionGroup = (
+    id: DailyPlanningActionGroup['id'],
+    title: string,
+    description: string,
+    items: EnrichedTaskItem[],
+  ): DailyPlanningActionGroup | null => {
+    const deduped = items.filter(item => {
+      const key = getTaskIdentity(item.advisorId, item.id);
+      if (seen.has(key)) {
+        return false;
+      }
+
+      seen.add(key);
+      return true;
+    });
+
+    if (deduped.length === 0) {
+      return null;
+    }
+
+    const visible = deduped.slice(0, 3);
+    return {
+      id,
+      title,
+      description,
+      items: visible,
+      remainingCount: Math.max(deduped.length - visible.length, 0),
+    };
+  };
+  const actionGroups = [
+    buildActionGroup(
+      'carry_over',
+      'Carry Over Cleanup',
+      'These tasks are still sitting in Today from an earlier sweep.',
+      carryOverToday,
+    ),
+    buildActionGroup(
+      'focus_outside_today',
+      'Focus Needs a Today Decision',
+      'Weekly focus only works if the important tasks actually land in Today or get consciously deferred.',
+      focusOutsideToday,
+    ),
+    buildActionGroup(
+      'pull_into_today',
+      'Pull Into Today',
+      'High-signal work that deserves a same-day decision before the day gets reactive.',
+      pullInCandidates,
+    ),
+  ].filter((group): group is DailyPlanningActionGroup => group !== null);
+
+  return {
+    date: todayDate,
+    entry,
+    previousEntry,
+    completedToday: entry.completedAt !== null,
+    completedAt: entry.completedAt,
+    counts: {
+      today: todayLane?.items.length ?? 0,
+      carryOver: carryOverToday.length,
+      focusOutsideToday: focusOutsideToday.length,
+      overdueOpen: openItems.filter(item => item.dueDate !== 'ongoing' && item.dueDate < todayDate).length,
+      pullInCandidates: pullInCandidates.length,
+    },
+    carryOverToday,
+    focusOutsideToday,
+    pullInCandidates,
+    actionGroups,
+  };
+}
+
+export function selectWeeklyFocusSummary(
+  state: AppState,
+  todayDate: string = today(),
+): WeeklyFocusSummary {
+  const weekStart = startOfWeek(todayDate);
+  const taskLookup = buildEnrichedTaskLookup(state);
+  const currentWeek = state.weeklyFocus.weeks.find(week => week.weekStart === weekStart);
+  const previousWeek = state.weeklyFocus.weeks.find(week => week.weekStart < weekStart)
+    ?? state.weeklyFocus.weeks.find(week => week.weekStart === addDays(weekStart, -7));
+  const currentItems = (currentWeek?.items ?? [])
+    .map(ref => enrichWeeklyFocusTask(ref, taskLookup))
+    .filter((item): item is WeeklyFocusTask => item !== null)
+    .sort(compareTaskItems);
+  const currentKeys = new Set(
+    currentItems.map(item => getTaskIdentity(item.advisorId, item.id)),
+  );
+  const carryForwardCandidates = (previousWeek?.items ?? [])
+    .map(ref => enrichWeeklyFocusTask(ref, taskLookup))
+    .filter(
+      (item): item is WeeklyFocusTask =>
+        item !== null &&
+        item.status === 'open' &&
+        !currentKeys.has(getTaskIdentity(item.advisorId, item.id)),
+    )
+    .sort(compareTaskItems);
+  const planning = selectTaskPlanningSummary(state);
+  const review = selectWeeklyReviewSummary(state, todayDate);
+  const suggestionPool = [
+    ...review.overduePlanned,
+    ...(planning.lanes.find(lane => lane.bucket === 'this_week')?.items ?? []),
+    ...review.highPriorityUnplanned,
+    ...(planning.lanes.find(lane => lane.bucket === 'today')?.items ?? []),
+    ...planning.unplanned,
+  ];
+  const seenSuggestions = new Set<string>();
+  const suggestedTasks = suggestionPool
+    .filter(item => item.status === 'open')
+    .filter(item => {
+      const key = getTaskIdentity(item.advisorId, item.id);
+      if (currentKeys.has(key) || seenSuggestions.has(key)) {
+        return false;
+      }
+
+      seenSuggestions.add(key);
+      return true;
+    })
+    .sort(compareTaskItems)
+    .slice(0, 6);
+
+  return {
+    weekStart,
+    items: currentItems,
+    completedCount: currentItems.filter(item => item.status === 'completed').length,
+    openCount: currentItems.filter(item => item.status === 'open').length,
+    remainingSlots: Math.max(MAX_WEEKLY_FOCUS_ITEMS - currentItems.length, 0),
+    previousWeekStart: previousWeek?.weekStart ?? null,
+    carryForwardCandidates,
+    suggestedTasks,
+  };
+}
+
+export function selectWeeklyReviewSummary(
+  state: AppState,
+  todayDate: string = today(),
+): WeeklyReviewSummary {
+  const planning = selectTaskPlanningSummary(state);
+  const taskLookup = buildEnrichedTaskLookup(state);
+  const openItems = selectAllTaskItems(state).filter(item => item.status === 'open');
+  const completedItems = selectAllTaskItems(state).filter(
+    item =>
+      item.status === 'completed'
+      && !!item.completedDate
+      && item.completedDate >= startOfWeek(todayDate)
+      && item.completedDate <= endOfWeek(todayDate),
+  );
+  const weekStart = startOfWeek(todayDate);
+  const weekEnd = endOfWeek(todayDate);
+  const quickLogsThisWeek = state.quickLogs.filter(
+    log => log.date >= weekStart && log.date <= weekEnd,
+  );
+  const todayLane = planning.lanes.find(lane => lane.bucket === 'today');
+  const entry = state.weeklyReview.entries.find(reviewEntry => reviewEntry.weekStart === weekStart) ?? {
+    weekStart,
+    completedAt: null,
+    biggestWin: '',
+    biggestLesson: '',
+    nextWeekNote: '',
+  };
+  const previousEntry =
+    state.weeklyReview.entries.find(
+      reviewEntry =>
+        reviewEntry.weekStart < weekStart
+        && (
+          reviewEntry.completedAt !== null
+          || reviewEntry.biggestWin.trim().length > 0
+          || reviewEntry.biggestLesson.trim().length > 0
+          || reviewEntry.nextWeekNote.trim().length > 0
+        ),
+    ) ?? null;
+  const completedThisWeek = entry.completedAt !== null;
+  const staleToday =
+    todayLane?.items
+      .filter(item => {
+        if (!item.planningUpdatedAt) {
+          return false;
+        }
+
+        return formatDateKey(new Date(item.planningUpdatedAt)) < todayDate;
+      })
+      .sort((a, b) => (a.planningUpdatedAt ?? '').localeCompare(b.planningUpdatedAt ?? '')) ?? [];
+  const overduePlanned = openItems
+    .filter(
+      item =>
+        !!item.planningBucket &&
+        item.dueDate !== 'ongoing' &&
+        item.dueDate < todayDate,
+    )
+    .sort(compareTaskItems);
+  const highPriorityUnplanned = planning.unplanned
+    .filter(item => item.priority === 'high')
+    .sort(compareTaskItems);
+  const focusTaskRefs =
+    state.weeklyFocus.weeks.find(week => week.weekStart === weekStart)?.items ?? [];
+  const completedFocusTasks = focusTaskRefs
+    .map(ref => taskLookup.get(getTaskIdentity(ref.advisorId, ref.taskId)))
+    .filter(
+      (item): item is EnrichedTaskItem =>
+        !!item &&
+        item.status === 'completed' &&
+        !!item.completedDate &&
+        item.completedDate >= weekStart &&
+        item.completedDate <= weekEnd,
+    );
+  const recentWins = [...completedItems]
+    .sort((a, b) => {
+      const completedCompare = (b.completedDate ?? '').localeCompare(a.completedDate ?? '');
+      if (completedCompare !== 0) {
+        return completedCompare;
+      }
+
+      return compareTaskItems(a, b);
+    })
+    .map(item => ({
+      ...item,
+      completedDate: item.completedDate as string,
+    }))
+    .slice(0, 4);
+  const advisorQuickLogCounts = quickLogsThisWeek.reduce<Record<AdvisorId, number>>((acc, log) => {
+    acc[log.advisorId] = (acc[log.advisorId] ?? 0) + 1;
+    return acc;
+  }, {} as Record<AdvisorId, number>);
+  const advisorSnapshots = selectActivatedAdvisorIds(state)
+    .map<WeeklyReviewAdvisorSnapshot>(advisorId => {
+      const config = ADVISOR_CONFIGS[advisorId];
+      const advisorState = state.advisors[advisorId];
+      const completedTasks = completedItems.filter(item => item.advisorId === advisorId).length;
+      const sessions = advisorState.sessions.filter(
+        session => session.date >= weekStart && session.date <= weekEnd,
+      ).length;
+      const quickLogs = advisorQuickLogCounts[advisorId] ?? 0;
+      const advisorOpenItems = openItems.filter(item => item.advisorId === advisorId);
+      const openTasks = advisorOpenItems.length;
+      const plannedOpen = advisorOpenItems.filter(item => !!item.planningBucket).length;
+      const overdueOpen = advisorOpenItems.filter(
+        item => item.dueDate !== 'ongoing' && item.dueDate < todayDate,
+      ).length;
+      const activityScore = completedTasks * 3 + sessions * 2 + quickLogs;
+      const status: WeeklyReviewAdvisorSnapshot['status'] =
+        overdueOpen > 0 ? 'attention' : activityScore > 0 ? 'momentum' : 'quiet';
+      const activityParts = [
+        completedTasks > 0 ? `${completedTasks} completed` : null,
+        sessions > 0 ? `${sessions} session${sessions === 1 ? '' : 's'}` : null,
+        quickLogs > 0 ? `${quickLogs} quick log${quickLogs === 1 ? '' : 's'}` : null,
+      ].filter(Boolean) as string[];
+
+      let note = 'No new momentum captured this week yet.';
+      if (status === 'attention') {
+        note =
+          activityParts.length > 0
+            ? `${activityParts.join(', ')}, but ${overdueOpen} overdue task${overdueOpen === 1 ? '' : 's'} still open.`
+            : `${overdueOpen} overdue open task${overdueOpen === 1 ? '' : 's'} still need attention.`;
+      } else if (status === 'momentum') {
+        note = activityParts.join(', ');
+      } else if (openTasks > 0) {
+        note = `${openTasks} open task${openTasks === 1 ? '' : 's'} remain, but this advisor had no sessions, wins, or quick logs this week.`;
+      }
+
+      return {
+        advisorId,
+        advisorIcon: config.icon,
+        advisorName: config.shortName,
+        advisorColor: config.domainColor,
+        completedTasks,
+        sessions,
+        quickLogs,
+        openTasks,
+        plannedOpen,
+        overdueOpen,
+        status,
+        note,
+      };
+    })
+    .sort((a, b) => {
+      const statusRank = { attention: 0, momentum: 1, quiet: 2 } as const;
+      if (statusRank[a.status] !== statusRank[b.status]) {
+        return statusRank[a.status] - statusRank[b.status];
+      }
+
+      if (a.overdueOpen !== b.overdueOpen) {
+        return b.overdueOpen - a.overdueOpen;
+      }
+
+      const activityA = a.completedTasks * 3 + a.sessions * 2 + a.quickLogs;
+      const activityB = b.completedTasks * 3 + b.sessions * 2 + b.quickLogs;
+      if (activityA !== activityB) {
+        return activityB - activityA;
+      }
+
+      return a.advisorName.localeCompare(b.advisorName);
+    });
+  const seen = new Set<string>();
+  const buildActionGroup = (
+    id: WeeklyReviewActionGroup['id'],
+    title: string,
+    description: string,
+    items: EnrichedTaskItem[],
+  ): WeeklyReviewActionGroup | null => {
+    const deduped = items.filter(item => {
+      const key = `${item.advisorId}:${item.id}`;
+      if (seen.has(key)) {
+        return false;
+      }
+
+      seen.add(key);
+      return true;
+    });
+
+    if (deduped.length === 0) {
+      return null;
+    }
+
+    const visible = deduped.slice(0, 3);
+    return {
+      id,
+      title,
+      description,
+      items: visible,
+      remainingCount: Math.max(deduped.length - visible.length, 0),
+    };
+  };
+  const actionGroups = [
+    buildActionGroup(
+      'stale_today',
+      'Rescue Today',
+      'These tasks have been sitting in Today since an earlier sweep.',
+      staleToday,
+    ),
+    buildActionGroup(
+      'overdue_planned',
+      'Rebalance Due Work',
+      'Queued tasks that are already past due and need a real decision now.',
+      overduePlanned,
+    ),
+    buildActionGroup(
+      'high_priority_unplanned',
+      'Promote Important Backlog',
+      'High-priority tasks still need a queue bucket before the week gets away from you.',
+      highPriorityUnplanned,
+    ),
+  ].filter((group): group is WeeklyReviewActionGroup => group !== null);
+
+  return {
+    weekStart,
+    weekEnd,
+    entry,
+    previousEntry,
+    completedThisWeek,
+    completedAt: entry.completedAt,
+    counts: {
+      today: todayLane?.items.length ?? 0,
+      thisWeek: planning.lanes.find(lane => lane.bucket === 'this_week')?.items.length ?? 0,
+      later: planning.lanes.find(lane => lane.bucket === 'later')?.items.length ?? 0,
+      unplanned: planning.unplanned.length,
+      overdueOpen: openItems.filter(item => item.dueDate !== 'ongoing' && item.dueDate < todayDate).length,
+    },
+    momentum: {
+      completedTasks: completedItems.length,
+      completedFocusTasks: completedFocusTasks.length,
+      sessions: advisorSnapshots.reduce((sum, snapshot) => sum + snapshot.sessions, 0),
+      quickLogDays: new Set(quickLogsThisWeek.map(log => log.date)).size,
+      activeAdvisors: advisorSnapshots.filter(
+        snapshot => snapshot.completedTasks + snapshot.sessions + snapshot.quickLogs > 0,
+      ).length,
+    },
+    staleToday,
+    overduePlanned,
+    highPriorityUnplanned,
+    recentWins,
+    advisorSnapshots,
+    actionGroups,
+  };
+}
+
+export function selectAdvisorAttentionSummary(
+  state: AppState,
+  todayDate: string = today(),
+): AdvisorAttentionSummary {
+  const weekStart = startOfWeek(todayDate);
+  const weekEnd = endOfWeek(todayDate);
+  const quickLogDatesByAdvisor = state.quickLogs.reduce<Record<AdvisorId, string[]>>((acc, log) => {
+    const dates = acc[log.advisorId] ?? [];
+    dates.push(log.date);
+    acc[log.advisorId] = dates;
+    return acc;
+  }, {} as Record<AdvisorId, string[]>);
+
+  const rankedItems = selectActivatedAdvisorIds(state).map(advisorId => {
+    const config = ADVISOR_CONFIGS[advisorId];
+    const advisorState = state.advisors[advisorId];
+    const openTasks = advisorState.tasks.filter(task => task.status === 'open');
+    const plannedOpen = openTasks.filter(task => !!state.taskPlanning[getTaskPlanningKey(advisorId, task.id)]).length;
+    const unplannedOpen = openTasks.length - plannedOpen;
+    const overdueOpen = openTasks.filter(
+      task => task.dueDate !== 'ongoing' && task.dueDate < todayDate,
+    ).length;
+    const highPriorityUnplanned = openTasks.filter(
+      task => task.priority === 'high' && !state.taskPlanning[getTaskPlanningKey(advisorId, task.id)],
+    ).length;
+    const completedTasksThisWeek = advisorState.tasks.filter(
+      task =>
+        task.status === 'completed'
+        && !!task.completedDate
+        && task.completedDate >= weekStart
+        && task.completedDate <= weekEnd,
+    ).length;
+    const sessionsThisWeek = advisorState.sessions.filter(
+      session => session.date >= weekStart && session.date <= weekEnd,
+    ).length;
+    const quickLogDates = [...(quickLogDatesByAdvisor[advisorId] ?? [])].sort((a, b) => a.localeCompare(b));
+    const lastQuickLogDate = quickLogDates.at(-1) ?? null;
+    const quickLogsThisWeek = quickLogDates.filter(date => date >= weekStart && date <= weekEnd).length;
+    const sessionStatus = selectAdvisorStatus(state, advisorId);
+    const supportsQuickLog = selectSupportsQuickLog(advisorId);
+    const needsSchedule =
+      !advisorState.lastSessionDate || sessionStatus === 'overdue' || sessionStatus === 'due';
+    const needsPlan = overdueOpen > 0 || highPriorityUnplanned > 0 || unplannedOpen >= 2;
+    const needsQuickLog =
+      supportsQuickLog
+      && quickLogsThisWeek === 0
+      && (openTasks.length > 0 || sessionsThisWeek > 0 || completedTasksThisWeek > 0);
+    const primaryAction: AdvisorAttentionItem['primaryAction'] = needsSchedule
+      ? 'schedule'
+      : needsPlan
+        ? 'plan'
+        : needsQuickLog
+          ? 'quick_log'
+          : 'review';
+    const status: AdvisorAttentionItem['status'] =
+      primaryAction === 'review'
+        ? 'steady'
+        : needsSchedule || overdueOpen > 0 || highPriorityUnplanned > 0
+          ? 'urgent'
+          : 'attention';
+
+    let headline = 'Nothing urgent here';
+    let reason = 'Sessions, quick logs, and queue pressure all look stable right now.';
+
+    if (primaryAction === 'schedule') {
+      if (!advisorState.lastSessionDate) {
+        headline = 'No session captured yet';
+        reason =
+          openTasks.length > 0
+            ? `${openTasks.length} open task${openTasks.length === 1 ? '' : 's'} are waiting for this domain to get real attention.`
+            : 'Start the cadence here before this advisor turns into a placeholder.';
+      } else if (sessionStatus === 'overdue') {
+        headline = 'Session cadence slipped';
+        reason =
+          overdueOpen > 0
+            ? `${overdueOpen} overdue task${overdueOpen === 1 ? '' : 's'} are still open on top of the missed cadence.`
+            : `${daysBetween(advisorState.lastSessionDate, todayDate)} days have passed since the last session.`;
+      } else {
+        headline = 'Next session is due';
+        reason =
+          openTasks.length > 0
+            ? `${openTasks.length} open task${openTasks.length === 1 ? '' : 's'} would benefit from a concrete session slot.`
+            : 'Book the next touchpoint before this advisor goes quiet.';
+      }
+    } else if (primaryAction === 'plan') {
+      headline = overdueOpen > 0 ? 'Task pressure is building' : 'Queue needs a decision';
+      const planSignals = [
+        overdueOpen > 0 ? `${overdueOpen} overdue` : null,
+        highPriorityUnplanned > 0 ? `${highPriorityUnplanned} high-priority unplanned` : null,
+        unplannedOpen > 0 ? `${unplannedOpen} unplanned total` : null,
+      ].filter(Boolean) as string[];
+      reason = `${planSignals.join(' • ')}. Move this work into a real bucket before it turns into background guilt.`;
+    } else if (primaryAction === 'quick_log') {
+      headline = lastQuickLogDate ? 'Quick pulse missing this week' : 'No quick log captured yet';
+      reason =
+        sessionsThisWeek + completedTasksThisWeek > 0
+          ? 'You already moved this domain this week. Capture the signal while it is still fresh.'
+          : 'A lightweight check-in keeps this domain visible without forcing a full session.';
+    } else if (completedTasksThisWeek + sessionsThisWeek + quickLogsThisWeek > 0) {
+      headline = 'Momentum is steady';
+      reason = 'This advisor already has recent signal, so you can leave it alone unless priorities change.';
+    }
+
+    const attentionScore =
+      (status === 'urgent' ? 100 : status === 'attention' ? 50 : 0)
+      + (primaryAction === 'schedule' ? 20 : primaryAction === 'plan' ? 15 : primaryAction === 'quick_log' ? 10 : 0)
+      + overdueOpen * 5
+      + highPriorityUnplanned * 4
+      + unplannedOpen * 2
+      + (sessionStatus === 'overdue' ? 8 : sessionStatus === 'due' ? 4 : 0);
+
+    return {
+      attentionScore,
+      item: {
+        advisorId,
+        advisorIcon: config.icon,
+        advisorName: config.shortName,
+        advisorColor: config.domainColor,
+        status,
+        primaryAction,
+        headline,
+        reason,
+        lastSessionDate: advisorState.lastSessionDate,
+        nextDueDate: advisorState.nextDueDate,
+        lastQuickLogDate,
+        openTasks: openTasks.length,
+        plannedOpen,
+        unplannedOpen,
+        overdueOpen,
+        highPriorityUnplanned,
+        completedTasksThisWeek,
+        sessionsThisWeek,
+        quickLogsThisWeek,
+      } satisfies AdvisorAttentionItem,
+    };
   });
+
+  const items = rankedItems
+    .sort((a, b) => {
+      if (a.attentionScore !== b.attentionScore) {
+        return b.attentionScore - a.attentionScore;
+      }
+
+      return a.item.advisorName.localeCompare(b.item.advisorName);
+    })
+    .map(({ item }) => item);
+
+  return {
+    items,
+    needsAttentionCount: items.filter(item => item.status !== 'steady').length,
+    scheduleCount: items.filter(item => item.primaryAction === 'schedule').length,
+    planCount: items.filter(item => item.primaryAction === 'plan').length,
+    quickLogCount: items.filter(item => item.primaryAction === 'quick_log').length,
+    quietCount: items.filter(item => item.status === 'steady').length,
+  };
 }
 
 export function selectAdvisorStatus(

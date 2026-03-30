@@ -22,6 +22,8 @@
 
 ## Repo Notes
 
-Use `npm run lint`, `npm run test`, and `npm run build` as the standard local verification sequence. Tests currently cover API handlers, auth flow guards, parser logic, reducer behavior, and server-side data bootstrap/reset logic.
+Use `npm run test:dev-api`, `npm run lint`, `npm run test`, and `npm run build` as the standard local verification sequence when work touches startup, auth, or the Vite dev/API boundary. The focused dev-api suite covers local handler execution plus env hydration; the broader test suite covers API handlers, auth flow guards, parser logic, reducer behavior, and server-side data bootstrap/reset logic.
 
 When changing auth or persistence behavior, inspect both `api/` and `server/` because handler files are intentionally thin wrappers around shared server utilities.
+
+For blog-post screenshot backfills, the canonical capture surface is the authenticated `/settings` route in the signed-in local browser session, because that is where auth bootstrap, scheduling state, and Google Calendar integration are visible together.

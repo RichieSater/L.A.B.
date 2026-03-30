@@ -15,6 +15,41 @@
       "when": 1773280800000,
       "tag": "0001_v3_state_refresh",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1774876352541,
+      "tag": "0002_wild_smasher",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1774883411739,
+      "tag": "0003_modern_lethal_legion",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1774890907768,
+      "tag": "0004_flat_shockwave",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1774896274356,
+      "tag": "0005_sticky_human_cannonball",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1774901518404,
+      "tag": "0006_absurd_karen_page",
+      "breakpoints": true
     }
   ]
 }

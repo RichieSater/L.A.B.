@@ -144,4 +144,130 @@ describe('appReducer', () => {
     const item = result.advisors.prioritization.tasks.find(i => i.id === itemId);
     expect(item?.status).toBe('completed');
   });
+
+  it('stores a planning bucket for an open task', () => {
+    const itemId = defaultState.advisors.prioritization.tasks[0]?.id;
+    if (!itemId) return;
+
+    const result = appReducer(defaultState, {
+      type: 'SET_TASK_PLAN_BUCKET',
+      payload: { advisorId: 'prioritization', taskId: itemId, bucket: 'today' },
+    });
+
+    expect(Object.values(result.taskPlanning)).toEqual([
+      expect.objectContaining({
+        advisorId: 'prioritization',
+        taskId: itemId,
+        bucket: 'today',
+      }),
+    ]);
+  });
+
+  it('clears planning metadata when a task is completed', () => {
+    const itemId = defaultState.advisors.prioritization.tasks[0]?.id;
+    if (!itemId) return;
+
+    const plannedState = appReducer(defaultState, {
+      type: 'SET_TASK_PLAN_BUCKET',
+      payload: { advisorId: 'prioritization', taskId: itemId, bucket: 'today' },
+    });
+
+    const result = appReducer(plannedState, {
+      type: 'UPDATE_TASK',
+      payload: { advisorId: 'prioritization', taskId: itemId, status: 'completed' },
+    });
+
+    expect(result.taskPlanning).toEqual({});
+  });
+
+  it('stores daily planning notes and completion for the current date', () => {
+    const drafted = appReducer(defaultState, {
+      type: 'SET_DAILY_PLANNING_FIELD',
+      payload: {
+        date: '2026-03-31',
+        field: 'headline',
+        value: 'Protect the top two priorities before noon.',
+      },
+    });
+
+    const result = appReducer(drafted, {
+      type: 'COMPLETE_DAILY_PLAN',
+      payload: { date: '2026-03-31' },
+    });
+
+    expect(result.dailyPlanning.entries).toHaveLength(1);
+    expect(result.dailyPlanning.entries[0]).toEqual(
+      expect.objectContaining({
+        date: '2026-03-31',
+        headline: 'Protect the top two priorities before noon.',
+      }),
+    );
+    expect(result.dailyPlanning.entries[0]?.completedAt).toMatch(/T/);
+  });
+
+  it('stores weekly review reflections and completion on the current week entry', () => {
+    const drafted = appReducer(defaultState, {
+      type: 'SET_WEEKLY_REVIEW_FIELD',
+      payload: {
+        weekStart: '2026-03-29',
+        field: 'biggestWin',
+        value: 'Booked the therapist follow-up before Friday.',
+      },
+    });
+
+    const result = appReducer(drafted, {
+      type: 'COMPLETE_WEEKLY_REVIEW',
+      payload: { weekStart: '2026-03-29' },
+    });
+
+    expect(result.weeklyReview.entries).toHaveLength(1);
+    expect(result.weeklyReview.entries[0]).toEqual(
+      expect.objectContaining({
+        weekStart: '2026-03-29',
+        biggestWin: 'Booked the therapist follow-up before Friday.',
+      }),
+    );
+    expect(result.weeklyReview.entries[0]?.completedAt).toMatch(/T/);
+  });
+
+  it('stores weekly focus tasks for the given week and prevents duplicates', () => {
+    const itemId = defaultState.advisors.prioritization.tasks[0]?.id;
+    if (!itemId) return;
+
+    const focusedState = appReducer(defaultState, {
+      type: 'ADD_WEEKLY_FOCUS_TASK',
+      payload: { advisorId: 'prioritization', taskId: itemId, weekStart: '2026-03-29' },
+    });
+
+    const duplicateState = appReducer(focusedState, {
+      type: 'ADD_WEEKLY_FOCUS_TASK',
+      payload: { advisorId: 'prioritization', taskId: itemId, weekStart: '2026-03-29' },
+    });
+
+    expect(duplicateState.weeklyFocus.weeks).toHaveLength(1);
+    expect(duplicateState.weeklyFocus.weeks[0]?.items).toHaveLength(1);
+    expect(duplicateState.weeklyFocus.weeks[0]?.items[0]).toEqual(
+      expect.objectContaining({
+        advisorId: 'prioritization',
+        taskId: itemId,
+      }),
+    );
+  });
+
+  it('prunes weekly focus items when an advisor is reset', () => {
+    const itemId = defaultState.advisors.prioritization.tasks[0]?.id;
+    if (!itemId) return;
+
+    const focusedState = appReducer(defaultState, {
+      type: 'ADD_WEEKLY_FOCUS_TASK',
+      payload: { advisorId: 'prioritization', taskId: itemId, weekStart: '2026-03-29' },
+    });
+
+    const result = appReducer(focusedState, {
+      type: 'RESET_ADVISOR',
+      payload: { advisorId: 'prioritization' },
+    });
+
+    expect(result.weeklyFocus.weeks).toEqual([]);
+  });
 });

@@ -1,0 +1,1 @@
+ALTER TABLE "user_app_meta" ADD COLUMN "weekly_focus" jsonb DEFAULT '{"weeks":[]}'::jsonb NOT NULL;

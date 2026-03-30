@@ -45,6 +45,16 @@ export function addDays(dateStr: string, days: number): string {
   return formatDateKey(date);
 }
 
+export function startOfWeek(dateStr: string): string {
+  const date = new Date(dateStr + 'T00:00:00');
+  date.setDate(date.getDate() - date.getDay());
+  return formatDateKey(date);
+}
+
+export function endOfWeek(dateStr: string): string {
+  return addDays(startOfWeek(dateStr), 6);
+}
+
 export function daysBetween(dateA: string, dateB: string): number {
   const a = new Date(dateA + 'T00:00:00');
   const b = new Date(dateB + 'T00:00:00');

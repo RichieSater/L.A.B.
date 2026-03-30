@@ -8,7 +8,7 @@
 - Name: `the-lab`
 - Root: `/Users/richiesater/dev/L.A.B/L.A.B.`
 - Stack: Vite + React + TypeScript app
-- Summary: The L.A.B. is a personal "Life Advisory Board" app. It gives the user a set of domain-specific advisors, tracks shared metrics across them, captures quick daily logs, and suppor...
+- Summary: The L.A.B. is a personal "Life Advisory Board" app. It gives the user a set of domain-specific advisors, tracks shared metrics across them, captures quick daily logs, adds an ad...
 
 ## Startup Checklist
 
@@ -36,6 +36,6 @@
 
 ## Repo Notes
 
-This repo is a personal "Life Advisory Board" application rather than a starter template. The critical paths are advisor state management in `src/state/`, server-owned persistence in `api/` plus `server/`, and scheduling/calendar sync.
+This repo is a personal "Life Advisory Board" application rather than a starter template. The critical paths are advisor state management in `src/state/`, server-owned persistence in `api/` plus `server/`, and the dashboard workflow that now spans advisor-attention triage, planning buckets, a daily planning loop, weekly focus, weekly review, weekly momentum digests, and scheduling/calendar sync.
 
 The generated harness summary is still generic, so use these repo notes plus `docs/agent/architecture.md` as the reliable startup context until the harness tool gains better project inference for this layout.

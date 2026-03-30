@@ -12,6 +12,7 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "test": "vitest run",
+    "test:dev-api": "vitest run scripts/__tests__/vite-dev-api.test.ts scripts/__tests__/vite-dev-api-server.test.ts scripts/__tests__/vite-env.test.ts",
     "test:watch": "vitest"
   },
   "dependencies": {
