@@ -15,8 +15,9 @@
 
 ## Harness Maintenance
 
-- Run `harness refresh .` after changing repo structure, paths, or commands.
+- Run `harness refresh .` only after changing repo structure, paths, commands, or architecture.
 - Run `harness validate .` before calling the harness current.
+- If `harness validate .` is green and `docs/agent/current-state.md` says maintenance is closed, do not select harness-only work as the next slice.
 - Store complex-task plans in `docs/exec-plans/active/` and archive completed ones in `docs/exec-plans/completed/`.
 <!-- harness:end generated -->
 

@@ -10,7 +10,7 @@
 ## Verified baseline
 
 - The repo harness pack is present under `docs/agent/` and `docs/exec-plans/`.
-- Active non-maintenance plans on disk: [`Advisor Attention Radar`](../exec-plans/active/2026-03-30-advisor-attention-radar.md), [`Compass And Strategy Foundation`](../exec-plans/active/2026-03-30-compass-and-strategy-foundation.md), [`Daily Planning Loop`](../exec-plans/active/2026-03-30-daily-planning-loop.md).
+- Active non-maintenance plans on disk: [`Advisor Attention Radar`](../exec-plans/active/2026-03-30-advisor-attention-radar.md), [`Daily Planning Loop`](../exec-plans/active/2026-03-30-daily-planning-loop.md), [`Researched Follow-Up Opportunities`](../exec-plans/active/2026-03-30-follow-up-opportunities.md).
 
 ## Open regressions
 
@@ -23,7 +23,7 @@
 
 ## Next approved slices
 
-- Advance one approved non-maintenance slice from [`Advisor Attention Radar`](../exec-plans/active/2026-03-30-advisor-attention-radar.md), [`Compass And Strategy Foundation`](../exec-plans/active/2026-03-30-compass-and-strategy-foundation.md), [`Daily Planning Loop`](../exec-plans/active/2026-03-30-daily-planning-loop.md).
+- Advance one approved non-maintenance slice from [`Advisor Attention Radar`](../exec-plans/active/2026-03-30-advisor-attention-radar.md), [`Daily Planning Loop`](../exec-plans/active/2026-03-30-daily-planning-loop.md), [`Researched Follow-Up Opportunities`](../exec-plans/active/2026-03-30-follow-up-opportunities.md).
 
 ## Proof commands
 
