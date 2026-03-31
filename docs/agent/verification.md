@@ -14,6 +14,8 @@
 
 ## Harness-Specific Checks
 
+- `docs/agent/current-state.md` and `docs/agent/roadmap.md` both exist and stay current enough to drive the next slice.
+- `docs/agent/current-state.md` includes `- Harness/status-doc maintenance open: yes|no`, and maintenance plans only stay active while that gate is `yes`.
 - `AGENTS.md` stays short and points at `docs/agent/` instead of duplicating long instructions.
 - `CLAUDE.md` remains a mirror, not a second instruction source.
 - The generated harness files stay in sync with `harness refresh`.

@@ -10,12 +10,13 @@
 
 ## Start Here
 
-- [docs/agent/index.md](docs/agent/index.md) — repo snapshot and startup guidance
+- [docs/agent/current-state.md](docs/agent/current-state.md) — verified repo state and maintenance gate
+- [docs/agent/roadmap.md](docs/agent/roadmap.md) — approved slices and anti-repeat rules
 - [docs/agent/project-map.md](docs/agent/project-map.md) — inspect-first paths and top-level map
-- [docs/agent/architecture.md](docs/agent/architecture.md) — current architecture notes
+- [docs/exec-plans/active/README.md](docs/exec-plans/active/README.md) — where active non-trivial plans belong
 - [docs/agent/workflows.md](docs/agent/workflows.md) — real commands and maintenance flow
 - [docs/agent/verification.md](docs/agent/verification.md) — validation and verification checklist
-- [docs/exec-plans/active/README.md](docs/exec-plans/active/README.md) — where complex-task plans belong
+- [docs/agent/architecture.md](docs/agent/architecture.md) — current architecture notes
 
 ## Inspect-First Paths
 
@@ -29,14 +30,15 @@
 
 ## Default Workflow
 
-1. Research the relevant code and docs before editing.
-2. For non-trivial work, write or update a plan in `docs/exec-plans/active/`.
+1. Read `docs/agent/current-state.md`, `docs/agent/roadmap.md`, and the relevant code/docs before editing.
+2. For non-trivial work, write or update a non-maintenance plan in `docs/exec-plans/active/` unless `current-state.md` explicitly opens maintenance work.
 3. Implement with the repo docs as the system of record.
 4. Verify with the commands and checklists in `docs/agent/workflows.md` and `docs/agent/verification.md`.
 
 ## Guardrails
 
 - Keep `docs/agent/` as the canonical repo harness; do not create parallel instruction packs.
-- Refresh the harness after command, path, or architecture changes with `harness refresh .`.
+- If harness files exist and `harness validate .` is green, do not choose harness-only work unless the user asked for it or `docs/agent/current-state.md` says `Harness/status-doc maintenance open: yes`.
+- Refresh the harness only after command, path, or architecture changes with `harness refresh .`.
 - Validate the harness with `harness validate .` before calling it current.
 - Global workspace behavior lives in `~/.codex/AGENTS.md`; this file should stay repo-specific.

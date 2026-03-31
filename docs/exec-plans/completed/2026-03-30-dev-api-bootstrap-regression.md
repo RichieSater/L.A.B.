@@ -24,3 +24,8 @@
 - `npm run lint`
 - `npm run test`
 - `npm run build`
+
+## Outcome
+
+- The dev API bridge, env-loading guardrails, runtime-import checks, and deploy guardrails are now part of the repo baseline.
+- The active maintenance blocker was stale plan placement rather than an unresolved bootstrap failure, so this plan now belongs in `completed/`.
