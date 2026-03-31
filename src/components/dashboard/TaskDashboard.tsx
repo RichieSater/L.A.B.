@@ -35,7 +35,6 @@ type TaskListPresetMeta = {
   key: TaskListPreset;
   label: string;
   count: number;
-  description: string;
 };
 
 interface TaskDashboardProps {
@@ -72,6 +71,18 @@ export function TaskDashboard({ navigationRequest = null }: TaskDashboardProps) 
   const recentActivity = selectRecentActivitySummary(state, activityWindow);
   const now = today();
   const staleTodayKeys = new Set(review.staleToday.map(item => `${item.advisorId}:${item.id}`));
+  const scopedItems = advisorFilter === 'all'
+    ? allItems
+    : allItems.filter(item => item.advisorId === advisorFilter);
+  const scopedUnplannedCount = planning.unplanned.filter(item => (
+    advisorFilter === 'all' || item.advisorId === advisorFilter
+  )).length;
+  const scopedCarryOverCount = review.staleToday.filter(item => (
+    advisorFilter === 'all' || item.advisorId === advisorFilter
+  )).length;
+  const scopedWeeklyFocusOpenCount = focus.items.filter(item => (
+    item.status === 'open' && (advisorFilter === 'all' || item.advisorId === advisorFilter)
+  )).length;
 
   const filtered = allItems.filter(item => {
     if (statusFilter === 'open' && item.status !== 'open') return false;
@@ -92,42 +103,39 @@ export function TaskDashboard({ navigationRequest = null }: TaskDashboardProps) 
   const openCount = allItems.filter(i => i.status === 'open').length;
   const plannedCount = planning.totalPlanned;
   const focusCount = focus.items.length;
+  const scopedOpenCount = scopedItems.filter(item => item.status === 'open').length;
+  const scopedOverdueCount = scopedItems.filter(
+    item => item.status === 'open' && item.dueDate !== 'ongoing' && item.dueDate < now,
+  ).length;
   const taskListPresets: TaskListPresetMeta[] = [
     {
       key: 'all_open',
       label: 'All Open',
-      count: openCount,
-      description: 'Every open canonical task across the LAB.',
+      count: scopedOpenCount,
     },
     {
       key: 'needs_triage',
       label: 'Needs Triage',
-      count: planning.unplanned.length,
-      description: 'Open tasks that still need a real queue bucket.',
+      count: scopedUnplannedCount,
     },
     {
       key: 'carry_over',
       label: 'Carry Over',
-      count: review.staleToday.length,
-      description: 'Tasks still sitting in Today from an earlier sweep.',
+      count: scopedCarryOverCount,
     },
     {
       key: 'overdue',
       label: 'Overdue',
-      count: overdueCount,
-      description: 'Open work whose due date already slipped.',
+      count: scopedOverdueCount,
     },
     {
       key: 'weekly_focus',
       label: 'Weekly Focus',
-      count: focus.openCount,
-      description: 'Committed focus tasks that still need movement.',
+      count: scopedWeeklyFocusOpenCount,
     },
   ];
 
-  const selectedPreset =
-    taskListPresets.find(preset => preset.key === taskListPreset)
-    ?? taskListPresets[0];
+  const selectedPresetDescription = getTaskListPresetDescription(taskListPreset, advisorFilter);
   const recommendedPreset = getRecommendedTaskListPreset(taskListPresets);
   const recommendedPresetReason = recommendedPreset
     ? getRecommendedPresetReason(recommendedPreset.key)
@@ -135,7 +143,7 @@ export function TaskDashboard({ navigationRequest = null }: TaskDashboardProps) 
 
   const applyTaskListPreset = (
     preset: TaskListPreset,
-    advisorScope: AdvisorId | 'all' = 'all',
+    advisorScope: AdvisorId | 'all' = advisorFilter,
   ) => {
     setTaskListPreset(preset);
     setStatusFilter('open');
@@ -379,7 +387,7 @@ export function TaskDashboard({ navigationRequest = null }: TaskDashboardProps) 
           <div>
             <h3 className="text-sm font-semibold uppercase tracking-wide text-gray-300">Task List</h3>
             <p className="mt-1 max-w-2xl text-sm text-gray-500">
-              {selectedPreset.description}
+              {selectedPresetDescription}
             </p>
             {advisorFilter !== 'all' && (
               <p className="mt-2 text-xs uppercase tracking-wide text-gray-500">
@@ -580,5 +588,27 @@ function getRecommendedPresetReason(preset: TaskListPreset): string {
       return 'Committed weekly-focus work is still open, so the highest-leverage move is advancing those promises.';
     case 'all_open':
       return 'All open work is available.';
+  }
+}
+
+function getTaskListPresetDescription(
+  preset: TaskListPreset,
+  advisorFilter: AdvisorId | 'all',
+): string {
+  const scopeLabel = advisorFilter === 'all'
+    ? 'across the LAB'
+    : `for ${ADVISOR_CONFIGS[advisorFilter].shortName}`;
+
+  switch (preset) {
+    case 'all_open':
+      return `Every open canonical task ${scopeLabel}.`;
+    case 'needs_triage':
+      return `Open tasks ${scopeLabel} that still need a real queue bucket.`;
+    case 'carry_over':
+      return `Tasks ${scopeLabel} still sitting in Today from an earlier sweep.`;
+    case 'overdue':
+      return `Open work ${scopeLabel} whose due date already slipped.`;
+    case 'weekly_focus':
+      return `Committed focus tasks ${scopeLabel} that still need movement.`;
   }
 }

@@ -227,4 +227,132 @@ describe('TaskDashboard', () => {
     expect(within(taskList).queryByText('Give therapy a queue home')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Viewing Needs Triage' })).toBeInTheDocument();
   });
+
+  it('keeps advisor scope when switching planner presets from a routed advisor view', () => {
+    const state = createDefaultAppState();
+    const currentDate = today();
+
+    state.advisors.prioritization.activated = true;
+    state.advisors.therapist.activated = true;
+    state.advisors.prioritization.tasks = [
+      {
+        id: 'prio-triage',
+        task: 'Give prioritization a queue home',
+        dueDate: addDays(currentDate, 1),
+        priority: 'high',
+        status: 'open',
+        createdDate: addDays(currentDate, -1),
+      },
+      {
+        id: 'prio-carry',
+        task: 'Rebucket the stale prioritization today task',
+        dueDate: addDays(currentDate, 2),
+        priority: 'medium',
+        status: 'open',
+        createdDate: addDays(currentDate, -3),
+      },
+    ];
+    state.advisors.therapist.tasks = [
+      {
+        id: 'therapy-carry',
+        task: 'Therapy carry-over should stay hidden',
+        dueDate: addDays(currentDate, 2),
+        priority: 'medium',
+        status: 'open',
+        createdDate: addDays(currentDate, -3),
+      },
+    ];
+    state.taskPlanning['prioritization:prio-carry'] = {
+      advisorId: 'prioritization',
+      taskId: 'prio-carry',
+      bucket: 'today',
+      updatedAt: `${addDays(currentDate, -1)}T09:00:00.000Z`,
+    };
+    state.taskPlanning['therapist:therapy-carry'] = {
+      advisorId: 'therapist',
+      taskId: 'therapy-carry',
+      bucket: 'today',
+      updatedAt: `${addDays(currentDate, -1)}T10:00:00.000Z`,
+    };
+
+    useAppState.mockReturnValue({
+      state,
+      dispatch: vi.fn(),
+    });
+
+    render(
+      <TaskDashboard
+        navigationRequest={{
+          requestKey: 'advisor-route-2',
+          advisorId: 'prioritization',
+          taskListPreset: 'needs_triage',
+        }}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /carry over/i }));
+
+    const taskList = screen.getByLabelText('Task list');
+    expect(screen.getByText('Scoped to Prioritization')).toBeInTheDocument();
+    expect(within(taskList).getByText('Rebucket the stale prioritization today task')).toBeInTheDocument();
+    expect(within(taskList).queryByText('Therapy carry-over should stay hidden')).not.toBeInTheDocument();
+  });
+
+  it('derives the recommended next move from the active advisor scope', () => {
+    const state = createDefaultAppState();
+    const currentDate = today();
+
+    state.advisors.prioritization.activated = true;
+    state.advisors.therapist.activated = true;
+    state.advisors.prioritization.tasks = [
+      {
+        id: 'prio-carry',
+        task: 'Rebucket the stale prioritization today task',
+        dueDate: addDays(currentDate, 2),
+        priority: 'medium',
+        status: 'open',
+        createdDate: addDays(currentDate, -3),
+      },
+    ];
+    state.advisors.therapist.tasks = [
+      {
+        id: 'therapy-triage',
+        task: 'Therapy triage should not drive the scoped recommendation',
+        dueDate: addDays(currentDate, 1),
+        priority: 'high',
+        status: 'open',
+        createdDate: addDays(currentDate, -1),
+      },
+    ];
+    state.taskPlanning['prioritization:prio-carry'] = {
+      advisorId: 'prioritization',
+      taskId: 'prio-carry',
+      bucket: 'today',
+      updatedAt: `${addDays(currentDate, -1)}T09:00:00.000Z`,
+    };
+
+    useAppState.mockReturnValue({
+      state,
+      dispatch: vi.fn(),
+    });
+
+    render(
+      <TaskDashboard
+        navigationRequest={{
+          requestKey: 'advisor-route-3',
+          advisorId: 'prioritization',
+        }}
+      />,
+    );
+
+    expect(screen.getByText('Carry Over deserves the next sweep')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Jump to Carry Over' }));
+
+    const taskList = screen.getByLabelText('Task list');
+    expect(screen.getByText('Scoped to Prioritization')).toBeInTheDocument();
+    expect(screen.getByText('Tasks for Prioritization still sitting in Today from an earlier sweep.')).toBeInTheDocument();
+    expect(within(taskList).getByText('Rebucket the stale prioritization today task')).toBeInTheDocument();
+    expect(within(taskList).queryByText('Therapy triage should not drive the scoped recommendation')).not.toBeInTheDocument();
+  });
 });
