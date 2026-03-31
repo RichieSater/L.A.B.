@@ -42,6 +42,7 @@ The durable product baseline is a planning-first "Life Advisory Board" app:
 - a weekly-first home that combines strategic planning, task triage, and weekly focus in one primary view
 - advisors tab with an advisor-attention radar that suggests the next meaningful action per advisor
 - advisor detail pages that now share the same canonical planner actions for queue buckets, weekly focus, and scheduling without a second task model
+- advisor detail planning context can now jump straight into the recommended weekly-LAB lane for that advisor, with adjacent scoped lane shortcuts that reuse the same canonical planner state
 - canonical advisor tasks with a persisted planning queue layered on top of them (`today`, `this week`, `later`, `unplanned`)
 - a daily-planning loop, weekly focus layer, and weekly review flow with stored reflection notes
 - an in-app Golden Compass flow with autosaved sessions, derived strategy insights, and a server-owned strategic dashboard for year / quarter / month planning

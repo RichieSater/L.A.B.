@@ -1,0 +1,184 @@
+import { fireEvent, render, screen, within } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { ADVISOR_CONFIGS } from '../../../advisors/registry';
+import { createDefaultAppState } from '../../../state/init';
+import { createStrategicDashboardYear } from '../../../types/strategic-dashboard';
+import { startOfWeek, today } from '../../../utils/date';
+
+const { useAdvisor, useAuth } = vi.hoisted(() => ({
+  useAdvisor: vi.fn(),
+  useAuth: vi.fn(),
+}));
+
+const { useNavigate } = vi.hoisted(() => ({
+  useNavigate: vi.fn(),
+}));
+
+vi.mock('../../../hooks/use-advisor', () => ({
+  useAdvisor,
+}));
+
+vi.mock('../../../auth/auth-context', () => ({
+  useAuth,
+}));
+
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
+  return {
+    ...actual,
+    useNavigate,
+  };
+});
+
+vi.mock('../../scheduling/ScheduleModal', () => ({
+  ScheduleModal: ({
+    taskLabel,
+    onClose,
+  }: {
+    taskLabel?: string;
+    onClose: () => void;
+  }) => (
+    <div>
+      <p>Schedule modal for {taskLabel}</p>
+      <button onClick={onClose}>Close schedule</button>
+    </div>
+  ),
+}));
+
+import { AdvisorDetail } from '../AdvisorDetail';
+
+describe('AdvisorDetail', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('shows planner context and routes task actions into the canonical planner state', () => {
+    const dispatch = vi.fn();
+    const navigate = vi.fn();
+    const appState = createDefaultAppState();
+    const currentYear = new Date().getFullYear();
+    const weekStart = startOfWeek(today());
+    const advisorState = appState.advisors.prioritization;
+
+    advisorState.activated = true;
+    advisorState.tasks = [
+      {
+        id: 'task-1',
+        task: 'Lock the quarterly priorities',
+        dueDate: '2026-03-31',
+        priority: 'high',
+        status: 'open',
+        createdDate: '2026-03-29',
+      },
+      {
+        id: 'task-2',
+        task: 'Draft the weekly review narrative',
+        dueDate: 'ongoing',
+        priority: 'medium',
+        status: 'open',
+        createdDate: '2026-03-30',
+      },
+    ];
+    appState.taskPlanning['prioritization:task-1'] = {
+      advisorId: 'prioritization',
+      taskId: 'task-1',
+      bucket: 'today',
+      updatedAt: '2026-03-30T09:00:00.000Z',
+    };
+    appState.weeklyFocus.weeks = [
+      {
+        weekStart,
+        items: [
+          {
+            advisorId: 'prioritization',
+            taskId: 'task-1',
+            addedAt: '2026-03-30T10:00:00.000Z',
+            carriedForwardFromWeekStart: null,
+          },
+        ],
+      },
+    ];
+    appState.strategicDashboard.years = [createStrategicDashboardYear(currentYear)];
+    appState.strategicDashboard.years[0].sections.yearGoals.goals[0].text = 'Ship the unified LAB';
+    useNavigate.mockReturnValue(navigate);
+
+    useAdvisor.mockReturnValue({
+      config: ADVISOR_CONFIGS.prioritization,
+      state: advisorState,
+      status: 'attention',
+      dispatch,
+      appState,
+    });
+    useAuth.mockReturnValue({
+      profile: {
+        schedulingEnabled: true,
+      },
+    });
+
+    const { container } = render(
+      <MemoryRouter>
+        <AdvisorDetail advisorId="prioritization" />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText('Planning Context')).toBeInTheDocument();
+    expect(screen.getByText('Needs Triage deserves the next sweep')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Open Needs Triage in Weekly LAB' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Carry Over (1)' })).toBeInTheDocument();
+    expect(
+      screen.getByText('2 open tasks in this domain. 1 still needs a queue home.'),
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open Needs Triage in Weekly LAB' }));
+    expect(navigate).toHaveBeenCalledWith('/', {
+      state: {
+        dashboard: {
+          tab: 'week',
+          taskList: {
+            advisorId: 'prioritization',
+            taskListPreset: 'needs_triage',
+          },
+        },
+      },
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open advisor task list' }));
+    expect(navigate).toHaveBeenCalledWith('/', {
+      state: {
+        dashboard: {
+          tab: 'week',
+          taskList: {
+            advisorId: 'prioritization',
+          },
+        },
+      },
+    });
+
+    const taskRow = container.querySelector('[data-task-id="task-2"]');
+    expect(taskRow).not.toBeNull();
+
+    fireEvent.click(within(taskRow as HTMLElement).getByRole('button', { name: 'This Week' }));
+    expect(dispatch).toHaveBeenCalledWith({
+      type: 'SET_TASK_PLAN_BUCKET',
+      payload: {
+        advisorId: 'prioritization',
+        taskId: 'task-2',
+        bucket: 'this_week',
+      },
+    });
+
+    fireEvent.click(within(taskRow as HTMLElement).getByRole('button', { name: 'Focus' }));
+    expect(dispatch).toHaveBeenCalledWith({
+      type: 'ADD_WEEKLY_FOCUS_TASK',
+      payload: {
+        advisorId: 'prioritization',
+        taskId: 'task-2',
+        weekStart,
+      },
+    });
+
+    fireEvent.click(within(taskRow as HTMLElement).getByRole('button', { name: 'Schedule' }));
+    expect(screen.getByText('Schedule modal for Draft the weekly review narrative')).toBeInTheDocument();
+  });
+});

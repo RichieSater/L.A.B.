@@ -50,6 +50,7 @@ For recent-activity timeline changes, verify the derivation boundary instead of 
 For advisor-attention changes, verify the action routing as well as the ranking: cadence pressure should beat purely presentational “quiet” states, task-triage nudges should open the task board, quick-log nudges should open the quick-log modal, and schedule nudges should still degrade cleanly when scheduling is disabled.
 
 For advisor-to-planner routing changes, verify the handoff rather than adding new planner state: advisor-attention task nudges should open the weekly LAB on the expected preset and keep the advisor scope applied until the user intentionally clears it.
+For advisor-detail planner-routing changes, verify the planning-context CTA opens the weekly LAB on the recommended advisor-scoped preset and that any adjacent lane shortcuts keep the same advisor scope instead of falling back to the generic task list.
 
 Date-only values in the UI are local calendar dates. Do not derive a `YYYY-MM-DD` value with `toISOString().split('T')[0]` when the user-facing intent is "today" or a local date input, because that silently shifts dates across timezones.
 
