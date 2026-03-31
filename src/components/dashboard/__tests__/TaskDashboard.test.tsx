@@ -503,4 +503,52 @@ describe('TaskDashboard', () => {
     expect(within(taskList).queryByText('Give prioritization a queue home')).not.toBeInTheDocument();
     expect(within(taskList).queryByText('Therapy carry-over should stay hidden from the routed pivot')).not.toBeInTheDocument();
   });
+
+  it('shows scoped advisor context and opens a quick log when that is the next advisor action', () => {
+    const state = createDefaultAppState();
+    const currentDate = today();
+
+    state.advisors.fitness.activated = true;
+    state.advisors.fitness.lastSessionDate = addDays(currentDate, -2);
+    state.advisors.fitness.nextDueDate = addDays(currentDate, 5);
+    state.advisors.fitness.tasks = [
+      {
+        id: 'fitness-check-in',
+        task: 'Capture the current training signal',
+        dueDate: addDays(currentDate, 3),
+        priority: 'medium',
+        status: 'open',
+        createdDate: addDays(currentDate, -2),
+      },
+    ];
+    state.taskPlanning['fitness:fitness-check-in'] = {
+      advisorId: 'fitness',
+      taskId: 'fitness-check-in',
+      bucket: 'later',
+      updatedAt: `${currentDate}T09:00:00.000Z`,
+    };
+
+    useAppState.mockReturnValue({
+      state,
+      dispatch: vi.fn(),
+    });
+
+    render(
+      <TaskDashboard
+        navigationRequest={{
+          requestKey: 'advisor-route-6',
+          advisorId: 'fitness',
+        }}
+      />,
+    );
+
+    expect(screen.getByText('Advisor Context')).toBeInTheDocument();
+    expect(screen.getByText('Fitness: No quick log captured yet')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Quick log' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Quick log' }));
+
+    expect(screen.getByText('Quick Log')).toBeInTheDocument();
+    expect(screen.getByText('Fitness')).toBeInTheDocument();
+  });
 });

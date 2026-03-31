@@ -56,6 +56,7 @@ The durable product baseline is a planning-first "Life Advisory Board" app:
 - advisor-scoped planner lanes now keep their advisor scope while switching presets, and the recommended next move stays inside that scoped task set until the user clears it
 - attention-radar planner handoffs now keep their ranked headline and reason visible inside the scoped weekly lane until the user expands back to all advisors
 - routed attention handoffs now expose other non-empty scoped planner lanes directly in the banner so the user can keep sweeping that advisor without losing context
+- advisor-scoped weekly LAB views now reuse the live advisor-attention prompt so the scoped task list can still launch the next advisor-level action, including quick log or session scheduling, without leaving the weekly planner
 - scheduled advisory sessions with optional one-way Google Calendar sync and an explicit manual sync-health repair action
 
 ## Durable Boundaries
@@ -73,6 +74,7 @@ The durable product baseline is a planning-first "Life Advisory Board" app:
 - That March 31 planner-polish pass specifically verified advisor-scoped weekly-LAB preset routing plus scoped next-move recommendations without reopening the global task list.
 - The latest planner-routing pass also verified that advisor-attention task nudges preserve their handoff context inside the routed lane and can expand back to the full LAB without losing the current preset.
 - The latest planner-routing polish also verifies that routed attention handoffs can pivot into another non-empty scoped planner lane directly from the banner while keeping the advisor scope intact.
+- The latest scoped-advisor polish also verifies that a single-advisor weekly task view can still surface the live advisor prompt and open the next advisor-level action directly from the weekly planner.
 - The current repo also contains additional in-flight dirty worktree changes across Compass, calendar, server, and dashboard files. Those changes are not evidence that the documented product is missing; they are simply not yet re-recorded as a new verified baseline.
 - Legacy `weekly` and `GoldenCompass` repos remain reference apps outside this repo; LAB is the active product surface and source of truth.
 

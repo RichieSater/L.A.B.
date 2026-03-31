@@ -8,8 +8,10 @@ import type {
 } from '../../types/dashboard-navigation';
 import { useAppState } from '../../state/app-context';
 import { ScheduleModal } from '../scheduling/ScheduleModal';
+import { QuickLogModal } from '../quick-log/QuickLogModal';
 import type { TaskPlanningBucket } from '../../types/task-planning';
 import {
+  selectAdvisorAttentionSummary,
   selectRecentActivitySummary,
   selectAllHabits,
   selectAllTaskItems,
@@ -69,7 +71,10 @@ export function TaskDashboard({ navigationRequest = null }: TaskDashboardProps) 
   const [taskListPreset, setTaskListPreset] = useState<TaskListPreset>(initialTaskListPreset);
   const [activityWindow, setActivityWindow] = useState<RecentActivityWindow>('last_7_days');
   const [scheduleItem, setScheduleItem] = useState<EnrichedTaskItem | null>(null);
+  const [scheduleAdvisorId, setScheduleAdvisorId] = useState<AdvisorId | null>(null);
+  const [quickLogAdvisorId, setQuickLogAdvisorId] = useState<AdvisorId | null>(null);
   const schedulingEnabled = profile?.schedulingEnabled ?? false;
+  const attention = selectAdvisorAttentionSummary(state);
   const recentActivity = selectRecentActivitySummary(state, activityWindow);
   const now = today();
   const staleTodayKeys = new Set(review.staleToday.map(item => `${item.advisorId}:${item.id}`));
@@ -147,9 +152,22 @@ export function TaskDashboard({ navigationRequest = null }: TaskDashboardProps) 
     initialAdvisorFilter,
     advisorFilter,
   });
+  const scopedAdvisorAttentionItem = advisorFilter === 'all'
+    ? null
+    : attention.items.find(item => item.advisorId === advisorFilter) ?? null;
   const handoffAlternativePresets = showAttentionHandoff
     ? taskListPresets.filter(preset => preset.count > 0 && preset.key !== taskListPreset)
     : [];
+  const scopedAdvisorActionLabel = getScopedAdvisorActionLabel({
+    item: scopedAdvisorAttentionItem,
+    taskListPreset,
+    schedulingEnabled,
+  });
+  const showScopedAdvisorContext = advisorFilter !== 'all'
+    && scopedAdvisorAttentionItem !== null
+    && scopedAdvisorAttentionItem.status !== 'steady'
+    && !showAttentionHandoff
+    && scopedAdvisorActionLabel !== null;
 
   const applyTaskListPreset = (
     preset: TaskListPreset,
@@ -168,6 +186,30 @@ export function TaskDashboard({ navigationRequest = null }: TaskDashboardProps) 
 
   const expandTaskListScope = () => {
     setAdvisorFilter('all');
+  };
+
+  const handleScopedAdvisorAction = () => {
+    if (!scopedAdvisorAttentionItem) {
+      return;
+    }
+
+    if (scopedAdvisorAttentionItem.primaryAction === 'schedule') {
+      if (!schedulingEnabled) {
+        return;
+      }
+
+      setScheduleAdvisorId(scopedAdvisorAttentionItem.advisorId);
+      return;
+    }
+
+    if (scopedAdvisorAttentionItem.primaryAction === 'quick_log') {
+      setQuickLogAdvisorId(scopedAdvisorAttentionItem.advisorId);
+      return;
+    }
+
+    if (scopedAdvisorAttentionItem.primaryAction === 'plan' && scopedAdvisorAttentionItem.planningPreset) {
+      applyTaskListPreset(scopedAdvisorAttentionItem.planningPreset, scopedAdvisorAttentionItem.advisorId);
+    }
   };
 
   const handleToggle = (advisorId: string, taskId: string) => {
@@ -403,13 +445,52 @@ export function TaskDashboard({ navigationRequest = null }: TaskDashboardProps) 
                   </div>
                 )}
               </div>
-              <button
-                type="button"
-                onClick={expandTaskListScope}
-                className="rounded-lg border border-amber-300/30 bg-gray-950/60 px-3 py-2 text-sm font-medium text-amber-100 transition-colors hover:border-amber-200/50 hover:text-white"
-              >
-                Expand to all advisors
-              </button>
+              <div className="flex flex-wrap gap-2">
+                {scopedAdvisorActionLabel && (
+                  <button
+                    type="button"
+                    onClick={handleScopedAdvisorAction}
+                    className="rounded-lg border border-amber-300/30 bg-gray-950/60 px-3 py-2 text-sm font-medium text-amber-100 transition-colors hover:border-amber-200/50 hover:text-white"
+                  >
+                    {scopedAdvisorActionLabel}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={expandTaskListScope}
+                  className="rounded-lg border border-amber-300/30 bg-gray-950/60 px-3 py-2 text-sm font-medium text-amber-100 transition-colors hover:border-amber-200/50 hover:text-white"
+                >
+                  Expand to all advisors
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {showScopedAdvisorContext && scopedAdvisorAttentionItem && (
+          <div className="mb-4 rounded-xl border border-blue-500/20 bg-blue-500/10 p-4">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-blue-300">Advisor Context</p>
+                <h3 className="mt-1 text-sm font-semibold text-gray-100">
+                  {scopedAdvisorAttentionItem.advisorName}: {scopedAdvisorAttentionItem.headline}
+                </h3>
+                <p className="mt-1 max-w-2xl text-sm text-gray-300">
+                  {scopedAdvisorAttentionItem.reason}
+                </p>
+                <p className="mt-2 text-xs text-blue-100/80">
+                  {formatScopedAdvisorStatusLine(scopedAdvisorAttentionItem)}
+                </p>
+              </div>
+              {scopedAdvisorActionLabel && (
+                <button
+                  type="button"
+                  onClick={handleScopedAdvisorAction}
+                  className="rounded-lg border border-blue-300/30 bg-gray-950/60 px-3 py-2 text-sm font-medium text-blue-100 transition-colors hover:border-blue-200/50 hover:text-white"
+                >
+                  {scopedAdvisorActionLabel}
+                </button>
+              )}
             </div>
           </div>
         )}
@@ -619,6 +700,20 @@ export function TaskDashboard({ navigationRequest = null }: TaskDashboardProps) 
           onClose={() => setScheduleItem(null)}
         />
       )}
+
+      {scheduleAdvisorId && (
+        <ScheduleModal
+          advisorId={scheduleAdvisorId}
+          onClose={() => setScheduleAdvisorId(null)}
+        />
+      )}
+
+      {quickLogAdvisorId && (
+        <QuickLogModal
+          advisorId={quickLogAdvisorId}
+          onClose={() => setQuickLogAdvisorId(null)}
+        />
+      )}
     </div>
   );
 }
@@ -697,4 +792,47 @@ function formatAttentionPlanningCount(attentionContext: TaskDashboardAttentionCo
   }
 
   return 'This routed view is scoped to the advisor that triggered the attention handoff.';
+}
+
+function getScopedAdvisorActionLabel({
+  item,
+  taskListPreset,
+  schedulingEnabled,
+}: {
+  item: ReturnType<typeof selectAdvisorAttentionSummary>['items'][number] | null;
+  taskListPreset: TaskListPreset;
+  schedulingEnabled: boolean;
+}): string | null {
+  if (!item || item.status === 'steady') {
+    return null;
+  }
+
+  if (item.primaryAction === 'schedule') {
+    return schedulingEnabled ? 'Schedule session' : null;
+  }
+
+  if (item.primaryAction === 'quick_log') {
+    return 'Quick log';
+  }
+
+  if (item.primaryAction === 'plan' && item.planningLabel && item.planningPreset && item.planningPreset !== taskListPreset) {
+    return `Jump to ${item.planningLabel}`;
+  }
+
+  return null;
+}
+
+function formatScopedAdvisorStatusLine(
+  item: ReturnType<typeof selectAdvisorAttentionSummary>['items'][number],
+): string {
+  const parts = [
+    `${item.openTasks} open`,
+    item.unplannedOpen > 0 ? `${item.unplannedOpen} unplanned` : null,
+    item.overdueOpen > 0 ? `${item.overdueOpen} overdue` : null,
+    item.lastQuickLogDate
+      ? `last quick log ${item.lastQuickLogDate}`
+      : 'no quick log yet',
+  ].filter((part): part is string => part !== null);
+
+  return parts.join(' • ');
 }
