@@ -635,4 +635,47 @@ describe('TaskDashboard', () => {
     expect(within(taskList).queryByText('Capture the current training signal')).not.toBeInTheDocument();
     expect(within(taskList).queryByText('Therapy carry-over should stay hidden from the scoped advisor pivot')).not.toBeInTheDocument();
   });
+
+  it('scopes recent activity to the active advisor view', () => {
+    const state = createDefaultAppState();
+    const currentDate = today();
+
+    state.advisors.fitness.activated = true;
+    state.advisors.therapist.activated = true;
+    state.advisors.fitness.tasks[0] = {
+      ...state.advisors.fitness.tasks[0]!,
+      status: 'completed',
+      completedDate: currentDate,
+    };
+    state.advisors.therapist.tasks[0] = {
+      ...state.advisors.therapist.tasks[0]!,
+      status: 'completed',
+      completedDate: addDays(currentDate, -1),
+    };
+
+    useAppState.mockReturnValue({
+      state,
+      dispatch: vi.fn(),
+    });
+
+    render(
+      <TaskDashboard
+        navigationRequest={{
+          requestKey: 'advisor-route-8',
+          advisorId: 'fitness',
+        }}
+      />,
+    );
+
+    expect(
+      screen.getByText(
+        'A compact timeline of actual movement for Fitness so this advisor sweep reflects recent momentum, not unrelated activity.',
+      ),
+    ).toBeInTheDocument();
+    const timeline = screen.getByText('Recent Activity').closest('section');
+
+    expect(timeline).not.toBeNull();
+    expect(within(timeline as HTMLElement).getByText(state.advisors.fitness.tasks[0]!.task)).toBeInTheDocument();
+    expect(within(timeline as HTMLElement).queryByText(state.advisors.therapist.tasks[0]!.task)).not.toBeInTheDocument();
+  });
 });

@@ -11,6 +11,8 @@ function makeSummary(
     windowLabel: 'Last 7 Days',
     rangeStart: '2026-03-25',
     rangeEnd: '2026-03-31',
+    scopeAdvisorId: null,
+    scopeAdvisorName: null,
     total: 3,
     remainingCount: 0,
     counts: {
@@ -105,5 +107,45 @@ describe('RecentActivityTimeline', () => {
     );
 
     expect(screen.getByText('No activity captured in today yet.')).toBeInTheDocument();
+  });
+
+  it('updates the copy when the timeline is scoped to one advisor', () => {
+    render(
+      <RecentActivityTimeline
+        summary={makeSummary({
+          scopeAdvisorId: 'fitness',
+          scopeAdvisorName: 'Fitness',
+          counts: {
+            completedTasks: 0,
+            sessions: 0,
+            quickLogs: 1,
+            rituals: 0,
+          },
+          items: [
+            {
+              id: 'quick-log:fitness:2026-03-30T09:00:00.000Z',
+              type: 'quick_log',
+              title: 'Fitness quick log',
+              detail: 'energy: 7',
+              occurredAt: '2026-03-30T09:00:00.000Z',
+              occurredDate: '2026-03-30',
+              advisorId: 'fitness',
+              advisorIcon: 'F',
+              advisorName: 'Fitness',
+              advisorColor: '#22c55e',
+            },
+          ],
+          total: 1,
+        })}
+        selectedWindow="last_7_days"
+        onSelectWindow={vi.fn()}
+      />,
+    );
+
+    expect(
+      screen.getByText(
+        'A compact timeline of actual movement for Fitness so this advisor sweep reflects recent momentum, not unrelated activity.',
+      ),
+    ).toBeInTheDocument();
   });
 });

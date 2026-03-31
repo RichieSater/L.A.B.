@@ -415,6 +415,8 @@ export interface RecentActivitySummary {
   windowLabel: string;
   rangeStart: string;
   rangeEnd: string;
+  scopeAdvisorId: AdvisorId | null;
+  scopeAdvisorName: string | null;
   total: number;
   remainingCount: number;
   counts: {
@@ -1142,10 +1144,13 @@ export function selectRecentActivitySummary(
   state: AppState,
   window: RecentActivityWindow = 'last_7_days',
   todayDate: string = today(),
+  advisorScope: AdvisorId | null = null,
 ): RecentActivitySummary {
   const { start, end } = getRecentActivityRange(window, todayDate);
   const entries: Array<RecentActivityItem & { sortTimestamp: number }> = [];
-  const activatedIds = selectActivatedAdvisorIds(state);
+  const activatedIds = advisorScope
+    ? selectActivatedAdvisorIds(state).filter(advisorId => advisorId === advisorScope)
+    : selectActivatedAdvisorIds(state);
 
   for (const advisorId of activatedIds) {
     const config = ADVISOR_CONFIGS[advisorId];
@@ -1197,6 +1202,10 @@ export function selectRecentActivitySummary(
   }
 
   for (const log of state.quickLogs) {
+    if (advisorScope && log.advisorId !== advisorScope) {
+      continue;
+    }
+
     if (!isActivityWithinRange(log.timestamp, start, end)) {
       continue;
     }
@@ -1222,6 +1231,10 @@ export function selectRecentActivitySummary(
   }
 
   for (const entry of state.dailyPlanning.entries) {
+    if (advisorScope) {
+      continue;
+    }
+
     if (!entry.completedAt || !isActivityWithinRange(entry.completedAt, start, end)) {
       continue;
     }
@@ -1245,6 +1258,10 @@ export function selectRecentActivitySummary(
   }
 
   for (const entry of state.weeklyReview.entries) {
+    if (advisorScope) {
+      continue;
+    }
+
     if (!entry.completedAt || !isActivityWithinRange(entry.completedAt, start, end)) {
       continue;
     }
@@ -1287,6 +1304,8 @@ export function selectRecentActivitySummary(
     windowLabel: RECENT_ACTIVITY_WINDOW_LABELS[window],
     rangeStart: start,
     rangeEnd: end,
+    scopeAdvisorId: advisorScope,
+    scopeAdvisorName: advisorScope ? ADVISOR_CONFIGS[advisorScope].shortName : null,
     total: sorted.length,
     remainingCount: Math.max(sorted.length - visible.length, 0),
     counts: {

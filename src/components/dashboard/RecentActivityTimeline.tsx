@@ -32,7 +32,7 @@ export function RecentActivityTimeline({
         <div>
           <h3 className="text-sm font-semibold uppercase tracking-wide text-gray-300">Recent Activity</h3>
           <p className="mt-1 max-w-2xl text-sm text-gray-500">
-            A compact timeline of actual movement so the dashboard reflects what happened, not just what is still open.
+            {getTimelineDescription(summary)}
           </p>
         </div>
 
@@ -63,9 +63,11 @@ export function RecentActivityTimeline({
       <div className="mt-4 rounded-lg border border-gray-800 bg-gray-950/80 p-4">
         {summary.items.length === 0 ? (
           <div className="rounded-lg border border-dashed border-gray-800 px-3 py-8 text-center">
-            <p className="text-sm text-gray-400">No activity captured in {summary.windowLabel.toLowerCase()} yet.</p>
+            <p className="text-sm text-gray-400">{getEmptyStateLabel(summary)}</p>
             <p className="mt-1 text-xs text-gray-600">
-              Completed tasks, sessions, quick logs, and planning rituals will appear here.
+              {summary.scopeAdvisorName
+                ? 'Completed tasks, sessions, and quick logs for this advisor will appear here.'
+                : 'Completed tasks, sessions, quick logs, and planning rituals will appear here.'}
             </p>
           </div>
         ) : (
@@ -152,4 +154,20 @@ function formatOccurredAt(item: RecentActivityItem): string {
     hour: 'numeric',
     minute: '2-digit',
   });
+}
+
+function getTimelineDescription(summary: RecentActivitySummary): string {
+  if (summary.scopeAdvisorName) {
+    return `A compact timeline of actual movement for ${summary.scopeAdvisorName} so this advisor sweep reflects recent momentum, not unrelated activity.`;
+  }
+
+  return 'A compact timeline of actual movement so the dashboard reflects what happened, not just what is still open.';
+}
+
+function getEmptyStateLabel(summary: RecentActivitySummary): string {
+  if (summary.scopeAdvisorName) {
+    return `No activity captured for ${summary.scopeAdvisorName} in ${summary.windowLabel.toLowerCase()} yet.`;
+  }
+
+  return `No activity captured in ${summary.windowLabel.toLowerCase()} yet.`;
 }

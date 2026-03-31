@@ -285,6 +285,70 @@ describe('selectRecentActivitySummary', () => {
     expect(todaySummary.total).toBe(2);
     expect(todaySummary.items.map(item => item.type)).toEqual(['task_complete', 'daily_plan']);
   });
+
+  it('can scope recent activity to one advisor without mixing in other advisors or global rituals', () => {
+    const initialState = createDefaultAppState();
+    initialState.advisors.therapist.activated = true;
+    initialState.advisors.fitness.activated = true;
+
+    initialState.advisors.therapist.tasks[0]!.status = 'completed';
+    initialState.advisors.therapist.tasks[0]!.completedDate = '2026-03-31';
+    initialState.advisors.fitness.tasks[0]!.status = 'completed';
+    initialState.advisors.fitness.tasks[0]!.completedDate = '2026-03-30';
+
+    initialState.advisors.therapist.sessions.push({
+      id: 'therapy-session',
+      advisorId: 'therapist',
+      date: '2026-03-30',
+      summary: 'Therapy check-in',
+      mood: 'steady',
+      energy: 7,
+      sessionRating: 8,
+      tasksCreated: 0,
+      tasksCompleted: 0,
+      habitsCreated: 0,
+      narrativeUpdate: '',
+      rawImport: {
+        advisor: 'therapist',
+        date: '2026-03-30',
+        summary: 'Therapy check-in',
+        task_ops: { create: [], update: [], complete: [], defer: [], close: [] },
+        habit_ops: { create: [], update: [], archive: [] },
+        metrics: {},
+        context_for_next_session: '',
+        mood: 'steady',
+        energy: 7,
+        session_rating: 8,
+        narrative_update: '',
+        card_preview: '',
+      },
+    });
+    initialState.quickLogs.push({
+      advisorId: 'fitness',
+      date: '2026-03-30',
+      timestamp: '2026-03-30T08:00:00.000Z',
+      logs: { energy: 7 },
+    });
+    initialState.dailyPlanning.entries.push({
+      date: '2026-03-31',
+      completedAt: '2026-03-31T08:00:00.000Z',
+      headline: 'Protect the real block.',
+      guardrail: '',
+    });
+
+    const summary = selectRecentActivitySummary(initialState, 'last_7_days', '2026-03-31', 'therapist');
+
+    expect(summary.scopeAdvisorId).toBe('therapist');
+    expect(summary.scopeAdvisorName).toBe('Therapist');
+    expect(summary.counts).toEqual({
+      completedTasks: 1,
+      sessions: 1,
+      quickLogs: 0,
+      rituals: 0,
+    });
+    expect(summary.items.every(item => item.advisorId === 'therapist')).toBe(true);
+    expect(summary.items.map(item => item.type)).toEqual(['task_complete', 'session']);
+  });
 });
 
 describe('selectDailyPlanningSummary', () => {

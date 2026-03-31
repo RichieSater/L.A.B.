@@ -75,8 +75,13 @@ export function TaskDashboard({ navigationRequest = null }: TaskDashboardProps) 
   const [quickLogAdvisorId, setQuickLogAdvisorId] = useState<AdvisorId | null>(null);
   const schedulingEnabled = profile?.schedulingEnabled ?? false;
   const attention = selectAdvisorAttentionSummary(state);
-  const recentActivity = selectRecentActivitySummary(state, activityWindow);
   const now = today();
+  const recentActivity = selectRecentActivitySummary(
+    state,
+    activityWindow,
+    now,
+    advisorFilter === 'all' ? null : advisorFilter,
+  );
   const staleTodayKeys = new Set(review.staleToday.map(item => `${item.advisorId}:${item.id}`));
   const scopedItems = advisorFilter === 'all'
     ? allItems

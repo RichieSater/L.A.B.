@@ -46,6 +46,7 @@ For advisor-attention handoff context, verify the routed planner lane keeps the 
 For routed advisor handoff pivots, verify the banner only offers other non-empty scoped lanes and that using those shortcuts changes the preset without dropping the routed advisor scope.
 For scoped advisor weekly-context prompts, verify a single-advisor weekly view can still surface the live advisor-attention prompt and launch the next advisor-level action directly from Weekly LAB instead of forcing a return trip to the advisor tab.
 For scoped advisor context lane pivots, verify the standalone advisor-context card only offers other non-empty scoped lanes and that using those shortcuts preserves the advisor scope without requiring an Attention Radar handoff.
+For advisor-scoped recent-activity changes, verify the timeline follows the active advisor scope, excludes unrelated advisors and global rituals, and restores the global mixed feed when the user expands back to the full LAB.
 
 For recent-activity timeline changes, verify the derivation boundary instead of inventing a new record source: completed tasks, recorded sessions, quick logs, and completed daily/weekly rituals should all appear in the correct window, the `today`, `last 7 days`, and `this week` filters should change the feed deterministically, and empty windows should degrade to a clear zero-state instead of stale activity.
 
