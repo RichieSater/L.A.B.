@@ -1,3 +1,5 @@
+import type { AdvisorId } from '../../types/advisor';
+import type { TaskListPreset } from '../../types/dashboard-navigation';
 import type { RecentActivityItem, RecentActivitySummary, RecentActivityWindow } from '../../state/selectors';
 import { formatDate } from '../../utils/date';
 
@@ -19,12 +21,14 @@ interface RecentActivityTimelineProps {
   summary: RecentActivitySummary;
   selectedWindow: RecentActivityWindow;
   onSelectWindow: (window: RecentActivityWindow) => void;
+  onOpenAdvisorLane?: (advisorId: AdvisorId, preset: TaskListPreset) => void;
 }
 
 export function RecentActivityTimeline({
   summary,
   selectedWindow,
   onSelectWindow,
+  onOpenAdvisorLane,
 }: RecentActivityTimelineProps) {
   return (
     <section className="mb-6 rounded-xl border border-gray-800 bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 p-5">
@@ -72,40 +76,54 @@ export function RecentActivityTimeline({
           </div>
         ) : (
           <div className="space-y-4">
-            {summary.items.map(item => (
-              <article key={item.id} className="relative pl-5">
-                <span
-                  className="absolute left-0 top-2 h-2.5 w-2.5 rounded-full"
-                  style={{ backgroundColor: item.advisorColor ?? '#94a3b8' }}
-                />
-                <div className="absolute left-[4px] top-5 bottom-[-18px] w-px bg-gray-800 last:hidden" />
+            {summary.items.map(item => {
+              const advisorId = item.advisorId;
+              const plannerShortcut = item.plannerShortcut;
 
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <p className="text-sm text-gray-100">{item.title}</p>
-                      <span
-                        className="rounded-full px-2 py-0.5 text-[11px]"
-                        style={{
-                          backgroundColor: item.advisorColor ? `${item.advisorColor}20` : 'rgba(148, 163, 184, 0.15)',
-                          color: item.advisorColor ?? '#cbd5e1',
-                        }}
-                      >
-                        {item.advisorIcon && item.advisorName ? `${item.advisorIcon} ${item.advisorName}` : 'Planning'}
-                      </span>
+              return (
+                <article key={item.id} className="relative pl-5">
+                  <span
+                    className="absolute left-0 top-2 h-2.5 w-2.5 rounded-full"
+                    style={{ backgroundColor: item.advisorColor ?? '#94a3b8' }}
+                  />
+                  <div className="absolute left-[4px] top-5 bottom-[-18px] w-px bg-gray-800 last:hidden" />
+
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="text-sm text-gray-100">{item.title}</p>
+                        <span
+                          className="rounded-full px-2 py-0.5 text-[11px]"
+                          style={{
+                            backgroundColor: item.advisorColor ? `${item.advisorColor}20` : 'rgba(148, 163, 184, 0.15)',
+                            color: item.advisorColor ?? '#cbd5e1',
+                          }}
+                        >
+                          {item.advisorIcon && item.advisorName ? `${item.advisorIcon} ${item.advisorName}` : 'Planning'}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-sm text-gray-500">{item.detail}</p>
+                      {advisorId && plannerShortcut && onOpenAdvisorLane && (
+                        <button
+                          type="button"
+                          onClick={() => onOpenAdvisorLane(advisorId as AdvisorId, plannerShortcut.preset)}
+                          className="mt-2 rounded-full border border-sky-300/20 bg-sky-500/10 px-2.5 py-1 text-xs text-sky-100 transition-colors hover:border-sky-200/40 hover:text-white"
+                        >
+                          {`Open ${plannerShortcut.label} (${plannerShortcut.count})`}
+                        </button>
+                      )}
                     </div>
-                    <p className="mt-1 text-sm text-gray-500">{item.detail}</p>
-                  </div>
 
-                  <div className="text-right">
-                    <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
-                      {ACTIVITY_LABELS[item.type]}
-                    </p>
-                    <p className="mt-1 text-xs text-gray-400">{formatOccurredAt(item)}</p>
+                    <div className="text-right">
+                      <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                        {ACTIVITY_LABELS[item.type]}
+                      </p>
+                      <p className="mt-1 text-xs text-gray-400">{formatOccurredAt(item)}</p>
+                    </div>
                   </div>
-                </div>
-              </article>
-            ))}
+                </article>
+              );
+            })}
 
             {summary.remainingCount > 0 ? (
               <p className="border-t border-gray-800 pt-3 text-xs text-gray-500">

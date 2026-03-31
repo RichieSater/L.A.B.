@@ -33,6 +33,11 @@ function makeSummary(
         advisorIcon: 'T',
         advisorName: 'Therapist',
         advisorColor: '#38bdf8',
+        plannerShortcut: {
+          preset: 'carry_over',
+          label: 'Carry Over',
+          count: 1,
+        },
       },
       {
         id: 'quick-log:fitness:2026-03-30T09:00:00.000Z',
@@ -45,6 +50,11 @@ function makeSummary(
         advisorIcon: 'F',
         advisorName: 'Fitness',
         advisorColor: '#22c55e',
+        plannerShortcut: {
+          preset: 'needs_triage',
+          label: 'Needs Triage',
+          count: 2,
+        },
       },
       {
         id: 'daily-plan:2026-03-31:2026-03-31T08:00:00.000Z',
@@ -57,6 +67,7 @@ function makeSummary(
         advisorIcon: null,
         advisorName: null,
         advisorColor: null,
+        plannerShortcut: null,
       },
     ],
     ...overrides,
@@ -72,6 +83,7 @@ describe('RecentActivityTimeline', () => {
         summary={makeSummary()}
         selectedWindow="last_7_days"
         onSelectWindow={onSelectWindow}
+        onOpenAdvisorLane={vi.fn()}
       />,
     );
 
@@ -103,6 +115,7 @@ describe('RecentActivityTimeline', () => {
         })}
         selectedWindow="today"
         onSelectWindow={vi.fn()}
+        onOpenAdvisorLane={vi.fn()}
       />,
     );
 
@@ -133,12 +146,18 @@ describe('RecentActivityTimeline', () => {
               advisorIcon: 'F',
               advisorName: 'Fitness',
               advisorColor: '#22c55e',
+              plannerShortcut: {
+                preset: 'needs_triage',
+                label: 'Needs Triage',
+                count: 1,
+              },
             },
           ],
           total: 1,
         })}
         selectedWindow="last_7_days"
         onSelectWindow={vi.fn()}
+        onOpenAdvisorLane={vi.fn()}
       />,
     );
 
@@ -147,5 +166,22 @@ describe('RecentActivityTimeline', () => {
         'A compact timeline of actual movement for Fitness so this advisor sweep reflects recent momentum, not unrelated activity.',
       ),
     ).toBeInTheDocument();
+  });
+
+  it('routes advisor-linked activity items into the current Weekly LAB lane', () => {
+    const onOpenAdvisorLane = vi.fn();
+
+    render(
+      <RecentActivityTimeline
+        summary={makeSummary()}
+        selectedWindow="last_7_days"
+        onSelectWindow={vi.fn()}
+        onOpenAdvisorLane={onOpenAdvisorLane}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open Carry Over (1)' }));
+
+    expect(onOpenAdvisorLane).toHaveBeenCalledWith('therapist', 'carry_over');
   });
 });

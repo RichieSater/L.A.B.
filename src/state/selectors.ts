@@ -419,6 +419,7 @@ export interface RecentActivityItem {
   advisorIcon: string | null;
   advisorName: string | null;
   advisorColor: string | null;
+  plannerShortcut: AdvisorPlanningShortcut | null;
 }
 
 export interface RecentActivitySummary {
@@ -1301,10 +1302,61 @@ export function selectRecentActivitySummary(
   const activatedIds = advisorScope
     ? selectActivatedAdvisorIds(state).filter(advisorId => advisorId === advisorScope)
     : selectActivatedAdvisorIds(state);
+  const currentWeekFocusRefs =
+    state.weeklyFocus.weeks.find(week => week.weekStart === startOfWeek(todayDate))?.items ?? [];
+  const plannerShortcutByAdvisor = new Map<AdvisorId, AdvisorPlanningShortcut | null>();
+
+  for (const advisorId of activatedIds) {
+    const openTasks = state.advisors[advisorId].tasks.filter(task => task.status === 'open');
+    const plannedOpen = openTasks.filter(
+      task => !!state.taskPlanning[getTaskPlanningKey(advisorId, task.id)],
+    ).length;
+    const unplannedOpen = openTasks.length - plannedOpen;
+    const staleTodayOpen = openTasks.filter(task => {
+      const assignment = state.taskPlanning[getTaskPlanningKey(advisorId, task.id)];
+      if (!assignment || assignment.bucket !== 'today') {
+        return false;
+      }
+
+      return formatDateKey(new Date(assignment.updatedAt)) < todayDate;
+    }).length;
+    const overdueOpen = openTasks.filter(
+      task => task.dueDate !== 'ongoing' && task.dueDate < todayDate,
+    ).length;
+    const highPriorityUnplanned = openTasks.filter(
+      task => !state.taskPlanning[getTaskPlanningKey(advisorId, task.id)] && task.priority === 'high',
+    ).length;
+    const weeklyFocusOpen = currentWeekFocusRefs.filter(ref => {
+      if (ref.advisorId !== advisorId) {
+        return false;
+      }
+
+      return openTasks.some(task => task.id === ref.taskId);
+    }).length;
+    const planningTarget = getAdvisorPlanningCandidates({
+      unplannedOpen,
+      highPriorityUnplanned,
+      staleTodayOpen,
+      overdueOpen,
+      weeklyFocusOpen,
+    }).find(candidate => candidate.count > 0) ?? null;
+
+    plannerShortcutByAdvisor.set(
+      advisorId,
+      planningTarget
+        ? {
+            preset: planningTarget.preset,
+            label: ADVISOR_PLANNING_PRESET_LABELS[planningTarget.preset],
+            count: planningTarget.count,
+          }
+        : null,
+    );
+  }
 
   for (const advisorId of activatedIds) {
     const config = ADVISOR_CONFIGS[advisorId];
     const advisorState = state.advisors[advisorId];
+    const plannerShortcut = plannerShortcutByAdvisor.get(advisorId) ?? null;
 
     for (const task of advisorState.tasks) {
       if (
@@ -1326,6 +1378,7 @@ export function selectRecentActivitySummary(
         advisorIcon: config.icon,
         advisorName: config.shortName,
         advisorColor: config.domainColor,
+        plannerShortcut,
         sortTimestamp: getActivitySortTimestamp(task.completedDate),
       });
     }
@@ -1346,6 +1399,7 @@ export function selectRecentActivitySummary(
         advisorIcon: config.icon,
         advisorName: config.shortName,
         advisorColor: config.domainColor,
+        plannerShortcut,
         sortTimestamp: getActivitySortTimestamp(session.date),
       });
     }
@@ -1376,6 +1430,7 @@ export function selectRecentActivitySummary(
       advisorIcon: config.icon,
       advisorName: config.shortName,
       advisorColor: config.domainColor,
+      plannerShortcut: plannerShortcutByAdvisor.get(log.advisorId) ?? null,
       sortTimestamp: getActivitySortTimestamp(log.timestamp),
     });
   }
@@ -1403,6 +1458,7 @@ export function selectRecentActivitySummary(
       advisorIcon: null,
       advisorName: null,
       advisorColor: null,
+      plannerShortcut: null,
       sortTimestamp: getActivitySortTimestamp(entry.completedAt),
     });
   }
@@ -1431,6 +1487,7 @@ export function selectRecentActivitySummary(
       advisorIcon: null,
       advisorName: null,
       advisorColor: null,
+      plannerShortcut: null,
       sortTimestamp: getActivitySortTimestamp(entry.completedAt),
     });
   }
@@ -1447,6 +1504,7 @@ export function selectRecentActivitySummary(
     advisorIcon: item.advisorIcon,
     advisorName: item.advisorName,
     advisorColor: item.advisorColor,
+    plannerShortcut: item.plannerShortcut,
   }));
 
   return {

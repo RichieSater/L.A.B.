@@ -400,6 +400,55 @@ describe('selectWeeklyReviewSummary', () => {
 });
 
 describe('selectRecentActivitySummary', () => {
+  it('adds the current advisor planner shortcut to advisor-linked activity items', () => {
+    const state = createDefaultAppState();
+    state.advisors.prioritization.activated = true;
+    state.advisors.prioritization.tasks = [
+      {
+        id: 'done-task',
+        task: 'Close the previous loop',
+        dueDate: '2026-03-30',
+        priority: 'medium',
+        status: 'completed',
+        createdDate: '2026-03-28',
+        completedDate: '2026-03-31',
+      },
+      {
+        id: 'triage-task',
+        task: 'Give the next backlog item a bucket',
+        dueDate: '2026-04-02',
+        priority: 'high',
+        status: 'open',
+        createdDate: '2026-03-29',
+      },
+      {
+        id: 'carry-task',
+        task: 'Stop carrying this in Today',
+        dueDate: '2026-04-01',
+        priority: 'medium',
+        status: 'open',
+        createdDate: '2026-03-27',
+      },
+    ];
+    state.taskPlanning['prioritization:carry-task'] = {
+      advisorId: 'prioritization',
+      taskId: 'carry-task',
+      bucket: 'today',
+      updatedAt: '2026-03-30T09:00:00.000Z',
+    };
+
+    const summary = selectRecentActivitySummary(state, 'last_7_days', '2026-03-31');
+    const completedTask = summary.items.find(item => item.id === 'task:prioritization:done-task:2026-03-31');
+
+    expect(completedTask?.plannerShortcut).toEqual({
+      preset: 'needs_triage',
+      label: 'Needs Triage',
+      count: 1,
+    });
+  });
+});
+
+describe('selectRecentActivitySummary', () => {
   it('builds a mixed activity feed across tasks, sessions, quick logs, and planning rituals', () => {
     const initialState = createDefaultAppState();
     initialState.advisors.prioritization.activated = true;

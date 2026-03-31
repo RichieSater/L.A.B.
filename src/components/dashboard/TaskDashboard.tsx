@@ -395,6 +395,7 @@ export function TaskDashboard({ navigationRequest = null }: TaskDashboardProps) 
         summary={recentActivity}
         selectedWindow={activityWindow}
         onSelectWindow={setActivityWindow}
+        onOpenAdvisorLane={(advisorId, preset) => applyTaskListPreset(preset, advisorId)}
       />
 
       <WeeklyFocusCard

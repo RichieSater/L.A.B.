@@ -59,6 +59,7 @@ The durable product baseline is a planning-first "Life Advisory Board" app:
 - advisor-scoped weekly LAB views now reuse the live advisor-attention prompt so the scoped task list can still launch the next advisor-level action, including quick log or session scheduling, without leaving the weekly planner
 - advisor-scoped weekly LAB context now also exposes adjacent non-empty scoped planner lanes even without an Attention Radar handoff, so a user can keep sweeping that advisor from the same context card
 - advisor-scoped weekly LAB views now also scope the recent-activity timeline to that advisor so the review surface reflects domain-specific momentum instead of unrelated activity or global rituals
+- advisor-linked recent-activity entries can now jump straight into that advisor's current Weekly LAB lane, so a review item can reopen the live queue sweep without a separate browse step
 - planning-focused Attention Radar cards now expose adjacent non-empty scoped planner lanes directly on the card, so the user can jump into another live queue sweep before leaving the advisors tab
 - weekly review advisor signals now open the current advisor's most relevant Weekly LAB lane directly, falling back to that advisor's scoped open task list when no special planner lane is active
 - weekly review advisor signals now also expose adjacent non-empty scoped planner lanes, so the review surface can keep sweeping the same advisor without dropping back to generic browsing
@@ -83,6 +84,7 @@ The durable product baseline is a planning-first "Life Advisory Board" app:
 - The latest scoped-advisor polish also verifies that a single-advisor weekly task view can still surface the live advisor prompt and open the next advisor-level action directly from the weekly planner.
 - The latest scoped-advisor planner polish also verifies that the standalone advisor-context card can pivot into another non-empty scoped planner lane without relying on an Attention Radar handoff.
 - The latest advisor-scoped review polish also verifies that the recent-activity timeline follows the active advisor scope and excludes unrelated advisor activity plus global planning rituals while the weekly planner is narrowed.
+- The latest recent-activity planner polish also verifies that advisor-linked timeline entries expose the current recommended scoped planner lane and keep the weekly task list narrowed to that advisor when opened from the review feed.
 - The latest advisor-attention polish also verifies that planning-focused radar cards expose adjacent non-empty planner lanes with lane-specific handoff copy instead of forcing the user to discover those pivots only after opening the first lane.
 - The latest review-surface polish also verifies that Weekly Review advisor signals can open the current advisor's recommended scoped planner lane, and that the CTA falls back to the advisor's open task list when no special lane is active.
 - The latest weekly-review planner polish also verifies that advisor-signal cards expose adjacent non-empty scoped planner lanes, and that those shortcuts keep the active advisor scope while switching presets.

@@ -678,6 +678,69 @@ describe('TaskDashboard', () => {
     expect(within(timeline as HTMLElement).queryByText(state.advisors.therapist.tasks[0]!.task)).not.toBeInTheDocument();
   });
 
+  it('opens an advisor-scoped planner lane from advisor-linked recent activity', () => {
+    const state = createDefaultAppState();
+    const currentDate = today();
+
+    state.advisors.prioritization.activated = true;
+    state.advisors.therapist.activated = true;
+    state.advisors.prioritization.tasks = [
+      {
+        id: 'prio-done',
+        task: 'Close the previous prioritization loop',
+        dueDate: addDays(currentDate, -1),
+        priority: 'medium',
+        status: 'completed',
+        createdDate: addDays(currentDate, -4),
+        completedDate: currentDate,
+      },
+      {
+        id: 'prio-triage',
+        task: 'Give the next prioritization backlog item a bucket',
+        dueDate: addDays(currentDate, 2),
+        priority: 'high',
+        status: 'open',
+        createdDate: addDays(currentDate, -1),
+      },
+    ];
+    state.advisors.therapist.tasks = [
+      {
+        id: 'therapy-later',
+        task: 'Therapy task should stay hidden from the recent activity handoff',
+        dueDate: addDays(currentDate, 3),
+        priority: 'medium',
+        status: 'open',
+        createdDate: addDays(currentDate, -2),
+      },
+    ];
+    state.taskPlanning['therapist:therapy-later'] = {
+      advisorId: 'therapist',
+      taskId: 'therapy-later',
+      bucket: 'later',
+      updatedAt: `${currentDate}T10:00:00.000Z`,
+    };
+
+    useAppState.mockReturnValue({
+      state,
+      dispatch: vi.fn(),
+    });
+
+    render(<TaskDashboard />);
+
+    const timeline = screen.getByText('Recent Activity').closest('section');
+    if (!timeline) {
+      throw new Error('Expected recent activity section.');
+    }
+
+    fireEvent.click(within(timeline).getByRole('button', { name: 'Open Needs Triage (1)' }));
+
+    const taskList = screen.getByLabelText('Task list');
+    expect(screen.getByText('Scoped to Prioritization')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Viewing Needs Triage' })).toBeInTheDocument();
+    expect(within(taskList).getByText('Give the next prioritization backlog item a bucket')).toBeInTheDocument();
+    expect(within(taskList).queryByText('Therapy task should stay hidden from the recent activity handoff')).not.toBeInTheDocument();
+  });
+
   it('opens an advisor-scoped planner lane from weekly review advisor signals', () => {
     const state = createDefaultAppState();
     const currentDate = today();
