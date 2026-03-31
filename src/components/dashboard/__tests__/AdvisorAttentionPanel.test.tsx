@@ -16,6 +16,9 @@ function makeSummary(
         advisorColor: '#38bdf8',
         status: 'urgent',
         primaryAction: 'schedule',
+        planningPreset: null,
+        planningLabel: null,
+        planningCount: 0,
         headline: 'Session cadence slipped',
         reason: '1 overdue task is still open on top of the missed cadence.',
         lastSessionDate: '2026-03-15',
@@ -37,6 +40,9 @@ function makeSummary(
         advisorColor: '#60a5fa',
         status: 'urgent',
         primaryAction: 'plan',
+        planningPreset: 'needs_triage',
+        planningLabel: 'Needs Triage',
+        planningCount: 2,
         headline: 'Queue needs a decision',
         reason: '1 high-priority unplanned • 2 unplanned total. Move this work into a real bucket.',
         lastSessionDate: '2026-03-28',
@@ -58,6 +64,9 @@ function makeSummary(
         advisorColor: '#22c55e',
         status: 'steady',
         primaryAction: 'review',
+        planningPreset: null,
+        planningLabel: null,
+        planningCount: 0,
         headline: 'Momentum is steady',
         reason: 'This advisor already has recent signal, so you can leave it alone unless priorities change.',
         lastSessionDate: '2026-03-29',
@@ -101,7 +110,7 @@ describe('AdvisorAttentionPanel', () => {
     expect(screen.getByText('Queue needs a decision')).toBeInTheDocument();
     expect(screen.getByText('Stable Right Now')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Review tasks' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Open Needs Triage' }));
 
     expect(onOpenTasks).toHaveBeenCalledWith({
       advisorId: 'prioritization',
