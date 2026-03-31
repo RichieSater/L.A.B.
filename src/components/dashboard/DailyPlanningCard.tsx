@@ -3,8 +3,10 @@ import type {
   DailyPlanningSummary,
   EnrichedTaskItem,
 } from '../../state/selectors';
+import type { TaskListPreset } from '../../types/dashboard-navigation';
 import type { TaskPlanningBucket } from '../../types/task-planning';
 import { formatDate, formatDateKey, formatDaysAgo } from '../../utils/date';
+import { getTaskWeeklyLabRoute } from './weekly-lab-routing';
 
 interface DailyPlanningCardProps {
   summary: DailyPlanningSummary;
@@ -18,6 +20,7 @@ interface DailyPlanningCardProps {
   onSetPlanBucket: (advisorId: string, taskId: string, bucket: TaskPlanningBucket) => void;
   onClearPlanBucket: (advisorId: string, taskId: string) => void;
   onScheduleTask: (item: EnrichedTaskItem) => void;
+  onOpenAdvisorLane?: (advisorId: string, preset: TaskListPreset) => void;
   schedulingEnabled: boolean;
 }
 
@@ -29,6 +32,7 @@ export function DailyPlanningCard({
   onSetPlanBucket,
   onClearPlanBucket,
   onScheduleTask,
+  onOpenAdvisorLane,
   schedulingEnabled,
 }: DailyPlanningCardProps) {
   const insights = [
@@ -191,6 +195,8 @@ export function DailyPlanningCard({
                     onSetPlanBucket={onSetPlanBucket}
                     onClearPlanBucket={onClearPlanBucket}
                     onScheduleTask={onScheduleTask}
+                    onOpenAdvisorLane={onOpenAdvisorLane}
+                    currentDate={summary.date}
                     schedulingEnabled={schedulingEnabled}
                   />
                 ))}
@@ -283,6 +289,8 @@ function DailyPlanningActionCard({
   onSetPlanBucket,
   onClearPlanBucket,
   onScheduleTask,
+  onOpenAdvisorLane,
+  currentDate,
   schedulingEnabled,
 }: {
   group: DailyPlanningActionGroup;
@@ -291,8 +299,19 @@ function DailyPlanningActionCard({
   onSetPlanBucket: (advisorId: string, taskId: string, bucket: TaskPlanningBucket) => void;
   onClearPlanBucket: (advisorId: string, taskId: string) => void;
   onScheduleTask: (item: EnrichedTaskItem) => void;
+  onOpenAdvisorLane?: (advisorId: string, preset: TaskListPreset) => void;
+  currentDate: string;
   schedulingEnabled: boolean;
 }) {
+  const weeklyLabRoute = getTaskWeeklyLabRoute({
+    status: item.status,
+    planningBucket: item.planningBucket,
+    isCarryOver: group.id === 'carry_over',
+    isInWeeklyFocus,
+    dueDate: item.dueDate,
+    currentDate,
+  });
+
   return (
     <article className="rounded-lg border border-gray-800 bg-gray-900/70 p-3">
       <p className="text-sm text-gray-100">{item.task}</p>
@@ -352,6 +371,15 @@ function DailyPlanningActionCard({
             className="rounded-md px-2 py-1 text-xs text-gray-500 transition-colors hover:bg-gray-800 hover:text-gray-300"
           >
             Clear
+          </button>
+        )}
+        {weeklyLabRoute && onOpenAdvisorLane && (
+          <button
+            type="button"
+            onClick={() => onOpenAdvisorLane(item.advisorId, weeklyLabRoute.preset)}
+            className="rounded-md border border-sky-400/20 bg-sky-500/10 px-2 py-1 text-xs text-sky-200 transition-colors hover:border-sky-300/40 hover:text-sky-100"
+          >
+            {`Open ${weeklyLabRoute.label} in Weekly LAB`}
           </button>
         )}
         {schedulingEnabled && (

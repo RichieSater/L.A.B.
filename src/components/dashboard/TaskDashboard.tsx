@@ -374,6 +374,7 @@ export function TaskDashboard({ navigationRequest = null }: TaskDashboardProps) 
         onSetPlanBucket={handleSetPlanBucket}
         onClearPlanBucket={handleClearPlanBucket}
         onScheduleTask={setScheduleItem}
+        onOpenAdvisorLane={(advisorId, preset) => applyTaskListPreset(preset, advisorId as AdvisorId)}
         schedulingEnabled={schedulingEnabled}
       />
 
@@ -404,6 +405,8 @@ export function TaskDashboard({ navigationRequest = null }: TaskDashboardProps) 
         onRemoveFocusTask={handleRemoveWeeklyFocusTask}
         onSetPlanBucket={handleSetPlanBucket}
         onScheduleTask={setScheduleItem}
+        onOpenAdvisorLane={(advisorId, preset) => applyTaskListPreset(preset, advisorId as AdvisorId)}
+        currentDate={now}
         schedulingEnabled={schedulingEnabled}
       />
 

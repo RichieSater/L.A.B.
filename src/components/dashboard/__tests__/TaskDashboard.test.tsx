@@ -795,4 +795,138 @@ describe('TaskDashboard', () => {
     expect(within(taskList).getByText('Rebucket the stale prioritization today task')).toBeInTheDocument();
     expect(within(taskList).queryByText('Therapy task should stay hidden from the review handoff')).not.toBeInTheDocument();
   });
+
+  it('opens an advisor-scoped planner lane from a daily planning action card', () => {
+    const state = createDefaultAppState();
+    const currentDate = today();
+
+    state.advisors.prioritization.activated = true;
+    state.advisors.therapist.activated = true;
+    state.advisors.prioritization.tasks = [
+      {
+        id: 'prio-carry',
+        task: 'Rebucket the stale prioritization today task',
+        dueDate: addDays(currentDate, 1),
+        priority: 'medium',
+        status: 'open',
+        createdDate: addDays(currentDate, -3),
+      },
+    ];
+    state.advisors.therapist.tasks = [
+      {
+        id: 'therapy-later',
+        task: 'Therapy task should stay hidden from the daily planning handoff',
+        dueDate: addDays(currentDate, 3),
+        priority: 'medium',
+        status: 'open',
+        createdDate: addDays(currentDate, -2),
+      },
+    ];
+    state.taskPlanning['prioritization:prio-carry'] = {
+      advisorId: 'prioritization',
+      taskId: 'prio-carry',
+      bucket: 'today',
+      updatedAt: `${addDays(currentDate, -1)}T09:00:00.000Z`,
+    };
+    state.taskPlanning['therapist:therapy-later'] = {
+      advisorId: 'therapist',
+      taskId: 'therapy-later',
+      bucket: 'later',
+      updatedAt: `${currentDate}T10:00:00.000Z`,
+    };
+
+    useAppState.mockReturnValue({
+      state,
+      dispatch: vi.fn(),
+    });
+
+    render(<TaskDashboard />);
+
+    const dailyPlan = screen.getByText('Daily Plan').closest('section');
+    if (!dailyPlan) {
+      throw new Error('Expected daily planning section.');
+    }
+
+    fireEvent.click(within(dailyPlan).getByRole('button', { name: 'Open Carry Over in Weekly LAB' }));
+
+    const taskList = screen.getByLabelText('Task list');
+    expect(screen.getByText('Scoped to Prioritization')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Viewing Carry Over' })).toBeInTheDocument();
+    expect(within(taskList).getByText('Rebucket the stale prioritization today task')).toBeInTheDocument();
+    expect(within(taskList).queryByText('Therapy task should stay hidden from the daily planning handoff')).not.toBeInTheDocument();
+  });
+
+  it('opens an advisor-scoped planner lane from a weekly focus card', () => {
+    const state = createDefaultAppState();
+    const currentDate = today();
+    const weekStart = startOfWeek(currentDate);
+
+    state.advisors.prioritization.activated = true;
+    state.advisors.therapist.activated = true;
+    state.advisors.prioritization.tasks = [
+      {
+        id: 'prio-focus',
+        task: 'Move the prioritization focus task forward',
+        dueDate: addDays(currentDate, 2),
+        priority: 'high',
+        status: 'open',
+        createdDate: addDays(currentDate, -2),
+      },
+    ];
+    state.advisors.therapist.tasks = [
+      {
+        id: 'therapy-later',
+        task: 'Therapy task should stay hidden from the weekly focus handoff',
+        dueDate: addDays(currentDate, 3),
+        priority: 'medium',
+        status: 'open',
+        createdDate: addDays(currentDate, -2),
+      },
+    ];
+    state.taskPlanning['prioritization:prio-focus'] = {
+      advisorId: 'prioritization',
+      taskId: 'prio-focus',
+      bucket: 'this_week',
+      updatedAt: `${currentDate}T09:00:00.000Z`,
+    };
+    state.taskPlanning['therapist:therapy-later'] = {
+      advisorId: 'therapist',
+      taskId: 'therapy-later',
+      bucket: 'later',
+      updatedAt: `${currentDate}T10:00:00.000Z`,
+    };
+    state.weeklyFocus.weeks = [
+      {
+        weekStart,
+        items: [
+          {
+            advisorId: 'prioritization',
+            taskId: 'prio-focus',
+            addedAt: `${currentDate}T11:00:00.000Z`,
+            carriedForwardFromWeekStart: null,
+          },
+        ],
+      },
+    ];
+
+    useAppState.mockReturnValue({
+      state,
+      dispatch: vi.fn(),
+    });
+
+    render(<TaskDashboard />);
+
+    const weeklyFocus = screen.getByRole('heading', { name: 'Weekly Focus' }).closest('section');
+    if (!weeklyFocus) {
+      throw new Error('Expected weekly focus section.');
+    }
+
+    fireEvent.click(within(weeklyFocus).getByRole('button', { name: 'Open Weekly Focus in Weekly LAB' }));
+
+    const taskList = screen.getByLabelText('Task list');
+    expect(screen.getByText('Scoped to Prioritization')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Viewing Weekly Focus' })).toBeInTheDocument();
+    expect(within(taskList).getByText('Move the prioritization focus task forward')).toBeInTheDocument();
+    expect(within(taskList).queryByText('Therapy task should stay hidden from the weekly focus handoff')).not.toBeInTheDocument();
+  });
 });
