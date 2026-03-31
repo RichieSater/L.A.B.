@@ -3,6 +3,7 @@ import type { AdvisorId } from '../types/advisor';
 import type { HabitItem, TaskItem } from '../types/action-item';
 import type { ScheduleEntry } from '../types/schedule';
 import type { QuickLogEntry } from '../types/quick-log';
+import type { TaskListPreset } from '../types/dashboard-navigation';
 import {
   TASK_PLANNING_BUCKETS,
   getTaskPlanningKey,
@@ -435,6 +436,10 @@ export interface AdvisorAttentionItem {
   advisorColor: string;
   status: 'urgent' | 'attention' | 'steady';
   primaryAction: 'schedule' | 'plan' | 'quick_log' | 'review';
+  planningPreset: Exclude<TaskListPreset, 'all_open'> | null;
+  planningLabel: string | null;
+  planningCount: number;
+  alternatePlanningShortcuts: AdvisorAttentionPlanningShortcut[];
   headline: string;
   reason: string;
   lastSessionDate: string | null;
@@ -450,6 +455,14 @@ export interface AdvisorAttentionItem {
   quickLogsThisWeek: number;
 }
 
+export interface AdvisorAttentionPlanningShortcut {
+  preset: AdvisorPlanningPreset;
+  label: string;
+  count: number;
+  headline: string;
+  reason: string;
+}
+
 export interface AdvisorAttentionSummary {
   items: AdvisorAttentionItem[];
   needsAttentionCount: number;
@@ -458,6 +471,8 @@ export interface AdvisorAttentionSummary {
   quickLogCount: number;
   quietCount: number;
 }
+
+type AdvisorPlanningPreset = Exclude<TaskListPreset, 'all_open'>;
 
 const TASK_PLANNING_LABELS: Record<TaskPlanningBucket, { label: string; description: string }> = {
   today: {
@@ -479,6 +494,62 @@ const RECENT_ACTIVITY_WINDOW_LABELS: Record<RecentActivityWindow, string> = {
   last_7_days: 'Last 7 Days',
   this_week: 'This Week',
 };
+
+const ADVISOR_PLANNING_PRESET_LABELS: Record<AdvisorPlanningPreset, string> = {
+  needs_triage: 'Needs Triage',
+  carry_over: 'Carry Over',
+  overdue: 'Overdue',
+  weekly_focus: 'Weekly Focus',
+};
+
+function getAdvisorPlanningLaneCopy(input: {
+  preset: AdvisorPlanningPreset;
+  highPriorityUnplanned: number;
+  unplannedOpen: number;
+  staleTodayOpen: number;
+  overdueOpen: number;
+  weeklyFocusOpen: number;
+}): { headline: string; reason: string } {
+  const {
+    preset,
+    highPriorityUnplanned,
+    unplannedOpen,
+    staleTodayOpen,
+    overdueOpen,
+    weeklyFocusOpen,
+  } = input;
+
+  if (preset === 'needs_triage') {
+    const planSignals = [
+      highPriorityUnplanned > 0 ? `${highPriorityUnplanned} high-priority unplanned` : null,
+      unplannedOpen > 0 ? `${unplannedOpen} unplanned total` : null,
+    ].filter(Boolean) as string[];
+
+    return {
+      headline: 'Queue needs a decision',
+      reason: `${planSignals.join(' • ')}. Move this work into a real bucket before it turns into background guilt.`,
+    };
+  }
+
+  if (preset === 'carry_over') {
+    return {
+      headline: 'Today work is stalling',
+      reason: `${staleTodayOpen} task${staleTodayOpen === 1 ? ' is' : 's are'} still sitting in Today from an earlier sweep. Rebucket or schedule the real commitment before adding more.`,
+    };
+  }
+
+  if (preset === 'overdue') {
+    return {
+      headline: 'Task pressure is building',
+      reason: `${overdueOpen} overdue task${overdueOpen === 1 ? ' is' : 's are'} still open. Clear the slipped commitment before it becomes ambient stress.`,
+    };
+  }
+
+  return {
+    headline: 'Weekly focus is stuck',
+    reason: `${weeklyFocusOpen} weekly focus task${weeklyFocusOpen === 1 ? ' is' : 's are'} still open for this advisor. Move the current commitment before promoting fresh work.`,
+  };
+}
 
 function getTaskIdentity(advisorId: AdvisorId, taskId: string): string {
   return `${advisorId}:${taskId}`;
@@ -1326,6 +1397,8 @@ export function selectAdvisorAttentionSummary(
 ): AdvisorAttentionSummary {
   const weekStart = startOfWeek(todayDate);
   const weekEnd = endOfWeek(todayDate);
+  const currentWeekFocusRefs =
+    state.weeklyFocus.weeks.find(week => week.weekStart === weekStart)?.items ?? [];
   const quickLogDatesByAdvisor = state.quickLogs.reduce<Record<AdvisorId, string[]>>((acc, log) => {
     const dates = acc[log.advisorId] ?? [];
     dates.push(log.date);
@@ -1339,6 +1412,14 @@ export function selectAdvisorAttentionSummary(
     const openTasks = advisorState.tasks.filter(task => task.status === 'open');
     const plannedOpen = openTasks.filter(task => !!state.taskPlanning[getTaskPlanningKey(advisorId, task.id)]).length;
     const unplannedOpen = openTasks.length - plannedOpen;
+    const staleTodayOpen = openTasks.filter(task => {
+      const assignment = state.taskPlanning[getTaskPlanningKey(advisorId, task.id)];
+      if (!assignment || assignment.bucket !== 'today') {
+        return false;
+      }
+
+      return formatDateKey(new Date(assignment.updatedAt)) < todayDate;
+    }).length;
     const overdueOpen = openTasks.filter(
       task => task.dueDate !== 'ongoing' && task.dueDate < todayDate,
     ).length;
@@ -1358,11 +1439,61 @@ export function selectAdvisorAttentionSummary(
     const quickLogDates = [...(quickLogDatesByAdvisor[advisorId] ?? [])].sort((a, b) => a.localeCompare(b));
     const lastQuickLogDate = quickLogDates.at(-1) ?? null;
     const quickLogsThisWeek = quickLogDates.filter(date => date >= weekStart && date <= weekEnd).length;
+    const weeklyFocusOpen = currentWeekFocusRefs.filter(ref => {
+      if (ref.advisorId !== advisorId) {
+        return false;
+      }
+
+      return openTasks.some(task => task.id === ref.taskId);
+    }).length;
     const sessionStatus = selectAdvisorStatus(state, advisorId);
     const supportsQuickLog = selectSupportsQuickLog(advisorId);
     const needsSchedule =
       !advisorState.lastSessionDate || sessionStatus === 'overdue' || sessionStatus === 'due';
-    const needsPlan = overdueOpen > 0 || highPriorityUnplanned > 0 || unplannedOpen >= 2;
+    const planningCandidates = ([
+      {
+        preset: 'needs_triage',
+        count: highPriorityUnplanned > 0 || unplannedOpen >= 2 ? unplannedOpen : 0,
+      },
+      {
+        preset: 'carry_over',
+        count: staleTodayOpen,
+      },
+      {
+        preset: 'overdue',
+        count: overdueOpen,
+      },
+      {
+        preset: 'weekly_focus',
+        count: weeklyFocusOpen,
+      },
+    ] as const);
+    const planningTarget = planningCandidates.find(candidate => candidate.count > 0) ?? null;
+    const alternatePlanningShortcuts = planningCandidates
+      .filter(
+        candidate =>
+          candidate.count > 0
+          && candidate.preset !== planningTarget?.preset,
+      )
+      .map(candidate => {
+        const copy = getAdvisorPlanningLaneCopy({
+          preset: candidate.preset,
+          highPriorityUnplanned,
+          unplannedOpen,
+          staleTodayOpen,
+          overdueOpen,
+          weeklyFocusOpen,
+        });
+
+        return {
+          preset: candidate.preset,
+          label: ADVISOR_PLANNING_PRESET_LABELS[candidate.preset],
+          count: candidate.count,
+          headline: copy.headline,
+          reason: copy.reason,
+        };
+      });
+    const needsPlan = planningTarget !== null;
     const needsQuickLog =
       supportsQuickLog
       && quickLogsThisWeek === 0
@@ -1377,7 +1508,7 @@ export function selectAdvisorAttentionSummary(
     const status: AdvisorAttentionItem['status'] =
       primaryAction === 'review'
         ? 'steady'
-        : needsSchedule || overdueOpen > 0 || highPriorityUnplanned > 0
+        : needsSchedule || overdueOpen > 0 || highPriorityUnplanned > 0 || staleTodayOpen > 0
           ? 'urgent'
           : 'attention';
 
@@ -1404,14 +1535,17 @@ export function selectAdvisorAttentionSummary(
             ? `${openTasks.length} open task${openTasks.length === 1 ? '' : 's'} would benefit from a concrete session slot.`
             : 'Book the next touchpoint before this advisor goes quiet.';
       }
-    } else if (primaryAction === 'plan') {
-      headline = overdueOpen > 0 ? 'Task pressure is building' : 'Queue needs a decision';
-      const planSignals = [
-        overdueOpen > 0 ? `${overdueOpen} overdue` : null,
-        highPriorityUnplanned > 0 ? `${highPriorityUnplanned} high-priority unplanned` : null,
-        unplannedOpen > 0 ? `${unplannedOpen} unplanned total` : null,
-      ].filter(Boolean) as string[];
-      reason = `${planSignals.join(' • ')}. Move this work into a real bucket before it turns into background guilt.`;
+    } else if (primaryAction === 'plan' && planningTarget) {
+      const copy = getAdvisorPlanningLaneCopy({
+        preset: planningTarget.preset,
+        highPriorityUnplanned,
+        unplannedOpen,
+        staleTodayOpen,
+        overdueOpen,
+        weeklyFocusOpen,
+      });
+      headline = copy.headline;
+      reason = copy.reason;
     } else if (primaryAction === 'quick_log') {
       headline = lastQuickLogDate ? 'Quick pulse missing this week' : 'No quick log captured yet';
       reason =
@@ -1440,6 +1574,10 @@ export function selectAdvisorAttentionSummary(
         advisorColor: config.domainColor,
         status,
         primaryAction,
+        planningPreset: planningTarget?.preset ?? null,
+        planningLabel: planningTarget ? ADVISOR_PLANNING_PRESET_LABELS[planningTarget.preset] : null,
+        planningCount: planningTarget?.count ?? 0,
+        alternatePlanningShortcuts,
         headline,
         reason,
         lastSessionDate: advisorState.lastSessionDate,

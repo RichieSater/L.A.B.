@@ -42,6 +42,111 @@ describe('selectTaskPlanningSummary', () => {
   });
 });
 
+describe('selectAdvisorAttentionSummary', () => {
+  it('derives adjacent planner lanes for planning-focused advisor nudges', () => {
+    const state = createDefaultAppState();
+    state.advisors.prioritization.activated = true;
+
+    state.advisors.prioritization.tasks = [
+      {
+        id: 'triage-task',
+        task: 'Give this backlog item a bucket',
+        dueDate: '2026-04-02',
+        priority: 'high',
+        status: 'open',
+        createdDate: '2026-03-28',
+      },
+      {
+        id: 'carry-task',
+        task: 'Stop carrying this today task',
+        dueDate: '2026-04-01',
+        priority: 'medium',
+        status: 'open',
+        createdDate: '2026-03-26',
+      },
+      {
+        id: 'overdue-task',
+        task: 'Recover the slipped commitment',
+        dueDate: '2026-03-30',
+        priority: 'medium',
+        status: 'open',
+        createdDate: '2026-03-25',
+      },
+      {
+        id: 'focus-task',
+        task: 'Move the weekly focus item',
+        dueDate: '2026-04-03',
+        priority: 'medium',
+        status: 'open',
+        createdDate: '2026-03-27',
+      },
+    ];
+    state.advisors.prioritization.lastSessionDate = '2026-03-28';
+    state.advisors.prioritization.nextDueDate = '2026-04-08';
+
+    state.taskPlanning['prioritization:carry-task'] = {
+      advisorId: 'prioritization',
+      taskId: 'carry-task',
+      bucket: 'today',
+      updatedAt: '2026-03-30T09:00:00.000Z',
+    };
+    state.taskPlanning['prioritization:overdue-task'] = {
+      advisorId: 'prioritization',
+      taskId: 'overdue-task',
+      bucket: 'this_week',
+      updatedAt: '2026-03-31T09:00:00.000Z',
+    };
+    state.taskPlanning['prioritization:focus-task'] = {
+      advisorId: 'prioritization',
+      taskId: 'focus-task',
+      bucket: 'later',
+      updatedAt: '2026-03-31T10:00:00.000Z',
+    };
+    state.weeklyFocus.weeks = [
+      {
+        weekStart: '2026-03-29',
+        items: [
+          {
+            advisorId: 'prioritization',
+            taskId: 'focus-task',
+            addedAt: '2026-03-31T11:00:00.000Z',
+            carriedForwardFromWeekStart: null,
+          },
+        ],
+      },
+    ];
+
+    const summary = selectAdvisorAttentionSummary(state, '2026-03-31');
+    const prioritizationItem = summary.items.find(item => item.advisorId === 'prioritization');
+
+    expect(prioritizationItem?.primaryAction).toBe('plan');
+    expect(prioritizationItem?.planningPreset).toBe('needs_triage');
+    expect(prioritizationItem?.alternatePlanningShortcuts).toEqual([
+      {
+        preset: 'carry_over',
+        label: 'Carry Over',
+        count: 1,
+        headline: 'Today work is stalling',
+        reason: '1 task is still sitting in Today from an earlier sweep. Rebucket or schedule the real commitment before adding more.',
+      },
+      {
+        preset: 'overdue',
+        label: 'Overdue',
+        count: 1,
+        headline: 'Task pressure is building',
+        reason: '1 overdue task is still open. Clear the slipped commitment before it becomes ambient stress.',
+      },
+      {
+        preset: 'weekly_focus',
+        label: 'Weekly Focus',
+        count: 1,
+        headline: 'Weekly focus is stuck',
+        reason: '1 weekly focus task is still open for this advisor. Move the current commitment before promoting fresh work.',
+      },
+    ]);
+  });
+});
+
 describe('selectWeeklyReviewSummary', () => {
   it('summarizes queue health for the current week', () => {
     const initialState = createDefaultAppState();

@@ -2,7 +2,11 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { AdvisorId } from '../../types/advisor';
 import type { TaskDashboardNavigationRequest } from '../../types/dashboard-navigation';
-import type { AdvisorAttentionItem, AdvisorAttentionSummary } from '../../state/selectors';
+import type {
+  AdvisorAttentionItem,
+  AdvisorAttentionPlanningShortcut,
+  AdvisorAttentionSummary,
+} from '../../state/selectors';
 import { QuickLogModal } from '../quick-log/QuickLogModal';
 import { ScheduleModal } from '../scheduling/ScheduleModal';
 import { formatDate, formatDaysAgo } from '../../utils/date';
@@ -65,16 +69,19 @@ export function AdvisorAttentionPanel({
     navigate(`/advisor/${item.advisorId}`);
   };
 
-  const handleOpenPlannerLane = (item: AdvisorAttentionItem) => {
+  const handleOpenPlannerLane = (
+    item: AdvisorAttentionItem,
+    shortcut?: AdvisorAttentionPlanningShortcut,
+  ) => {
     onOpenTasks({
       advisorId: item.advisorId,
-      taskListPreset: getPlanningPreset(item),
+      taskListPreset: shortcut?.preset ?? getPlanningPreset(item),
       attentionContext: {
         advisorName: item.advisorName,
-        headline: item.headline,
-        reason: item.reason,
-        planningLabel: item.planningLabel,
-        planningCount: item.planningCount,
+        headline: shortcut?.headline ?? item.headline,
+        reason: shortcut?.reason ?? item.reason,
+        planningLabel: shortcut?.label ?? item.planningLabel,
+        planningCount: shortcut?.count ?? item.planningCount,
       },
     });
   };
@@ -112,6 +119,11 @@ export function AdvisorAttentionPanel({
               onOpenPlannerLane={
                 item.primaryAction !== 'plan' && item.planningPreset && item.planningCount > 0
                   ? () => handleOpenPlannerLane(item)
+                  : null
+              }
+              onOpenAlternatePlannerLane={
+                item.primaryAction === 'plan' && item.alternatePlanningShortcuts.length > 0
+                  ? shortcut => handleOpenPlannerLane(item, shortcut)
                   : null
               }
               onOpenAdvisor={() => navigate(`/advisor/${item.advisorId}`)}
@@ -193,12 +205,14 @@ function AttentionCard({
   schedulingEnabled,
   onPrimaryAction,
   onOpenPlannerLane,
+  onOpenAlternatePlannerLane,
   onOpenAdvisor,
 }: {
   item: AdvisorAttentionItem;
   schedulingEnabled: boolean;
   onPrimaryAction: () => void;
   onOpenPlannerLane: (() => void) | null;
+  onOpenAlternatePlannerLane: ((shortcut: AdvisorAttentionPlanningShortcut) => void) | null;
   onOpenAdvisor: () => void;
 }) {
   return (
@@ -249,6 +263,23 @@ function AttentionCard({
           Open
         </button>
       </div>
+
+      {item.primaryAction === 'plan' && onOpenAlternatePlannerLane && item.alternatePlanningShortcuts.length > 0 && (
+        <div className="mt-3">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">Also active</p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {item.alternatePlanningShortcuts.slice(0, 2).map(shortcut => (
+              <button
+                key={`${item.advisorId}:${shortcut.preset}`}
+                onClick={() => onOpenAlternatePlannerLane(shortcut)}
+                className="rounded-lg border border-gray-700 bg-gray-950/60 px-3 py-2 text-sm text-gray-300 transition-colors hover:border-gray-600 hover:text-gray-100"
+              >
+                {shortcut.label} ({shortcut.count})
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
     </article>
   );
 }
