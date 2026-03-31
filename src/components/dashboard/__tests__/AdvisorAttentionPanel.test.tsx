@@ -19,7 +19,22 @@ function makeSummary(
         planningPreset: 'carry_over',
         planningLabel: 'Carry Over',
         planningCount: 1,
-        alternatePlanningShortcuts: [],
+        alternatePlanningShortcuts: [
+          {
+            preset: 'needs_triage',
+            label: 'Needs Triage',
+            count: 2,
+            headline: 'Queue still needs decisions',
+            reason: '2 unplanned tasks are still waiting for a real bucket before this advisor is truly back under control.',
+          },
+          {
+            preset: 'overdue',
+            label: 'Overdue',
+            count: 1,
+            headline: 'A commitment is already late',
+            reason: '1 overdue task is still sitting open. Replan it before booking more ambitious follow-through.',
+          },
+        ],
         headline: 'Session cadence slipped',
         reason: '1 overdue task is still open on top of the missed cadence.',
         lastSessionDate: '2026-03-15',
@@ -167,6 +182,39 @@ describe('AdvisorAttentionPanel', () => {
         reason: '1 overdue task is still open on top of the missed cadence.',
         planningLabel: 'Carry Over',
         planningCount: 1,
+      },
+    });
+  });
+
+  it('surfaces alternate planner lanes on non-planning cards without losing lane-specific copy', () => {
+    const onOpenTasks = vi.fn();
+
+    render(
+      <MemoryRouter>
+        <AdvisorAttentionPanel
+          summary={makeSummary()}
+          onOpenTasks={onOpenTasks}
+          schedulingEnabled
+        />
+      </MemoryRouter>,
+    );
+
+    const therapistCard = screen.getByText('Session cadence slipped').closest('article');
+    if (!therapistCard) {
+      throw new Error('Expected therapist attention card.');
+    }
+
+    fireEvent.click(within(therapistCard).getByRole('button', { name: 'Needs Triage (2)' }));
+
+    expect(onOpenTasks).toHaveBeenCalledWith({
+      advisorId: 'therapist',
+      taskListPreset: 'needs_triage',
+      attentionContext: {
+        advisorName: 'Therapist',
+        headline: 'Queue still needs decisions',
+        reason: '2 unplanned tasks are still waiting for a real bucket before this advisor is truly back under control.',
+        planningLabel: 'Needs Triage',
+        planningCount: 2,
       },
     });
   });

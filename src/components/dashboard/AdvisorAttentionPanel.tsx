@@ -122,7 +122,7 @@ export function AdvisorAttentionPanel({
                   : null
               }
               onOpenAlternatePlannerLane={
-                item.primaryAction === 'plan' && item.alternatePlanningShortcuts.length > 0
+                item.alternatePlanningShortcuts.length > 0
                   ? shortcut => handleOpenPlannerLane(item, shortcut)
                   : null
               }
@@ -264,9 +264,9 @@ function AttentionCard({
         </button>
       </div>
 
-      {item.primaryAction === 'plan' && onOpenAlternatePlannerLane && item.alternatePlanningShortcuts.length > 0 && (
+      {onOpenAlternatePlannerLane && item.alternatePlanningShortcuts.length > 0 && (
         <div className="mt-3">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">Also active</p>
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">Other live lanes</p>
           <div className="mt-2 flex flex-wrap gap-2">
             {item.alternatePlanningShortcuts.slice(0, 2).map(shortcut => (
               <button
