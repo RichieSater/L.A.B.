@@ -115,6 +115,13 @@ describe('AdvisorAttentionPanel', () => {
     expect(onOpenTasks).toHaveBeenCalledWith({
       advisorId: 'prioritization',
       taskListPreset: 'needs_triage',
+      attentionContext: {
+        advisorName: 'Prioritization',
+        headline: 'Queue needs a decision',
+        reason: '1 high-priority unplanned • 2 unplanned total. Move this work into a real bucket.',
+        planningLabel: 'Needs Triage',
+        planningCount: 2,
+      },
     });
   });
 });

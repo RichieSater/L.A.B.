@@ -9,10 +9,19 @@ export type TaskListPreset =
   | 'overdue'
   | 'weekly_focus';
 
+export interface TaskDashboardAttentionContext {
+  advisorName: string;
+  headline: string;
+  reason: string;
+  planningLabel: string | null;
+  planningCount: number;
+}
+
 export interface TaskDashboardNavigationRequest {
   requestKey: string;
   taskListPreset?: TaskListPreset;
   advisorId?: AdvisorId | 'all';
+  attentionContext?: TaskDashboardAttentionContext | null;
 }
 
 export interface DashboardNavigationState {

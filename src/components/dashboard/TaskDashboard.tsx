@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useAuth } from '../../auth/auth-context';
 import type { AdvisorId } from '../../types/advisor';
 import type {
+  TaskDashboardAttentionContext,
   TaskDashboardNavigationRequest,
   TaskListPreset,
 } from '../../types/dashboard-navigation';
@@ -44,6 +45,7 @@ interface TaskDashboardProps {
 export function TaskDashboard({ navigationRequest = null }: TaskDashboardProps) {
   const initialTaskListPreset = navigationRequest?.taskListPreset ?? 'all_open';
   const initialAdvisorFilter = navigationRequest?.advisorId ?? 'all';
+  const attentionContext = navigationRequest?.attentionContext ?? null;
   const initialPlanningFilter: PlanningFilter =
     initialTaskListPreset === 'needs_triage'
       ? 'unplanned'
@@ -140,6 +142,11 @@ export function TaskDashboard({ navigationRequest = null }: TaskDashboardProps) 
   const recommendedPresetReason = recommendedPreset
     ? getRecommendedPresetReason(recommendedPreset.key)
     : null;
+  const showAttentionHandoff = shouldShowAttentionHandoff({
+    attentionContext,
+    initialAdvisorFilter,
+    advisorFilter,
+  });
 
   const applyTaskListPreset = (
     preset: TaskListPreset,
@@ -154,6 +161,10 @@ export function TaskDashboard({ navigationRequest = null }: TaskDashboardProps) 
 
   const clearTaskListPreset = () => {
     setTaskListPreset('all_open');
+  };
+
+  const expandTaskListScope = () => {
+    setAdvisorFilter('all');
   };
 
   const handleToggle = (advisorId: string, taskId: string) => {
@@ -354,6 +365,32 @@ export function TaskDashboard({ navigationRequest = null }: TaskDashboardProps) 
       />
 
       <section aria-label="Task list" className="mt-6">
+        {showAttentionHandoff && attentionContext && (
+          <div className="mb-4 rounded-xl border border-amber-500/20 bg-amber-500/10 p-4">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-amber-200">Attention Radar Handoff</p>
+                <h3 className="mt-1 text-sm font-semibold text-gray-100">
+                  {attentionContext.advisorName}: {attentionContext.headline}
+                </h3>
+                <p className="mt-1 max-w-2xl text-sm text-gray-300">
+                  {attentionContext.reason}
+                </p>
+                <p className="mt-2 text-xs text-amber-100/80">
+                  {formatAttentionPlanningCount(attentionContext)}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={expandTaskListScope}
+                className="rounded-lg border border-amber-300/30 bg-gray-950/60 px-3 py-2 text-sm font-medium text-amber-100 transition-colors hover:border-amber-200/50 hover:text-white"
+              >
+                Expand to all advisors
+              </button>
+            </div>
+          </div>
+        )}
+
         {recommendedPreset && recommendedPresetReason && (
           <div className="mb-4 rounded-xl border border-sky-500/20 bg-sky-500/10 p-4">
             <div className="flex flex-wrap items-start justify-between gap-3">
@@ -611,4 +648,30 @@ function getTaskListPresetDescription(
     case 'weekly_focus':
       return `Committed focus tasks ${scopeLabel} that still need movement.`;
   }
+}
+
+function shouldShowAttentionHandoff({
+  attentionContext,
+  initialAdvisorFilter,
+  advisorFilter,
+}: {
+  attentionContext: TaskDashboardAttentionContext | null;
+  initialAdvisorFilter: AdvisorId | 'all';
+  advisorFilter: AdvisorId | 'all';
+}): boolean {
+  return attentionContext !== null
+    && initialAdvisorFilter !== 'all'
+    && advisorFilter === initialAdvisorFilter;
+}
+
+function formatAttentionPlanningCount(attentionContext: TaskDashboardAttentionContext): string {
+  if (attentionContext.planningCount > 0 && attentionContext.planningLabel) {
+    return `${attentionContext.planningCount} scoped task${attentionContext.planningCount === 1 ? '' : 's'} ${attentionContext.planningCount === 1 ? 'currently matches' : 'currently match'} ${attentionContext.planningLabel}.`;
+  }
+
+  if (attentionContext.planningLabel) {
+    return `This routed view opened on ${attentionContext.planningLabel}.`;
+  }
+
+  return 'This routed view is scoped to the advisor that triggered the attention handoff.';
 }

@@ -51,6 +51,13 @@ export function AdvisorAttentionPanel({
       onOpenTasks({
         advisorId: item.advisorId,
         taskListPreset: getPlanningPreset(item),
+        attentionContext: {
+          advisorName: item.advisorName,
+          headline: item.headline,
+          reason: item.reason,
+          planningLabel: item.planningLabel,
+          planningCount: item.planningCount,
+        },
       });
       return;
     }
@@ -159,11 +166,7 @@ export function AdvisorAttentionPanel({
 }
 
 function getPlanningPreset(item: AdvisorAttentionItem): TaskDashboardNavigationRequest['taskListPreset'] {
-  if (item.overdueOpen > 0) {
-    return 'overdue';
-  }
-
-  return 'needs_triage';
+  return item.planningPreset ?? 'needs_triage';
 }
 
 function AttentionCard({
@@ -292,7 +295,7 @@ function getPrimaryActionLabel(
   }
 
   if (item.primaryAction === 'plan') {
-    return 'Review tasks';
+    return item.planningLabel ? `Open ${item.planningLabel}` : 'Review tasks';
   }
 
   if (item.primaryAction === 'quick_log') {

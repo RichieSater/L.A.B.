@@ -355,4 +355,69 @@ describe('TaskDashboard', () => {
     expect(within(taskList).getByText('Rebucket the stale prioritization today task')).toBeInTheDocument();
     expect(within(taskList).queryByText('Therapy triage should not drive the scoped recommendation')).not.toBeInTheDocument();
   });
+
+  it('shows routed attention context and can expand back to the full LAB lane', () => {
+    const state = createDefaultAppState();
+    const currentDate = today();
+
+    state.advisors.prioritization.activated = true;
+    state.advisors.therapist.activated = true;
+    state.advisors.prioritization.tasks = [
+      {
+        id: 'prio-triage',
+        task: 'Give prioritization a queue home',
+        dueDate: addDays(currentDate, 1),
+        priority: 'high',
+        status: 'open',
+        createdDate: addDays(currentDate, -1),
+      },
+    ];
+    state.advisors.therapist.tasks = [
+      {
+        id: 'therapy-triage',
+        task: 'Give therapy a queue home too',
+        dueDate: addDays(currentDate, 1),
+        priority: 'medium',
+        status: 'open',
+        createdDate: addDays(currentDate, -1),
+      },
+    ];
+
+    useAppState.mockReturnValue({
+      state,
+      dispatch: vi.fn(),
+    });
+
+    render(
+      <TaskDashboard
+        navigationRequest={{
+          requestKey: 'advisor-route-4',
+          advisorId: 'prioritization',
+          taskListPreset: 'needs_triage',
+          attentionContext: {
+            advisorName: 'Prioritization',
+            headline: 'Queue needs a decision',
+            reason: '1 high-priority unplanned • 1 unplanned total. Move this work into a real bucket before it turns into background guilt.',
+            planningLabel: 'Needs Triage',
+            planningCount: 1,
+          },
+        }}
+      />,
+    );
+
+    const taskList = screen.getByLabelText('Task list');
+
+    expect(screen.getByText('Attention Radar Handoff')).toBeInTheDocument();
+    expect(screen.getByText('Prioritization: Queue needs a decision')).toBeInTheDocument();
+    expect(screen.getByText('1 scoped task currently matches Needs Triage.')).toBeInTheDocument();
+    expect(within(taskList).getByText('Give prioritization a queue home')).toBeInTheDocument();
+    expect(within(taskList).queryByText('Give therapy a queue home too')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Expand to all advisors' }));
+
+    expect(screen.queryByText('Attention Radar Handoff')).not.toBeInTheDocument();
+    expect(screen.queryByText('Scoped to Prioritization')).not.toBeInTheDocument();
+    expect(within(taskList).getByText('Give prioritization a queue home')).toBeInTheDocument();
+    expect(within(taskList).getByText('Give therapy a queue home too')).toBeInTheDocument();
+  });
 });
