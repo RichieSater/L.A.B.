@@ -1,6 +1,11 @@
 import type { AdvisorId } from '../../types/advisor';
 import type { TaskListPreset } from '../../types/dashboard-navigation';
-import type { EnrichedTaskItem, WeeklyReviewActionGroup, WeeklyReviewSummary } from '../../state/selectors';
+import type {
+  AdvisorPlanningShortcut,
+  EnrichedTaskItem,
+  WeeklyReviewActionGroup,
+  WeeklyReviewSummary,
+} from '../../state/selectors';
 import type { TaskPlanningBucket } from '../../types/task-planning';
 import { formatDate, formatDaysAgo, formatDateKey } from '../../utils/date';
 
@@ -231,6 +236,7 @@ export function WeeklyReviewCard({
                 recommendedPreset={snapshot.recommendedPreset}
                 recommendedLabel={snapshot.recommendedLabel}
                 recommendedCount={snapshot.recommendedCount}
+                alternatePlanningShortcuts={snapshot.alternatePlanningShortcuts}
                 onOpenAdvisorLane={onOpenAdvisorLane}
               />
             ))}
@@ -482,6 +488,7 @@ function AdvisorSnapshotCard({
   recommendedPreset,
   recommendedLabel,
   recommendedCount,
+  alternatePlanningShortcuts,
   onOpenAdvisorLane,
 }: {
   advisorId: AdvisorId;
@@ -499,6 +506,7 @@ function AdvisorSnapshotCard({
   recommendedPreset: TaskListPreset;
   recommendedLabel: string;
   recommendedCount: number;
+  alternatePlanningShortcuts: AdvisorPlanningShortcut[];
   onOpenAdvisorLane: (advisorId: AdvisorId, preset: TaskListPreset) => void;
 }) {
   const statusLabel =
@@ -530,14 +538,35 @@ function AdvisorSnapshotCard({
       </p>
       <p className="mt-3 text-sm text-gray-300">{note}</p>
       {openTasks > 0 && (
-        <div className="mt-3 flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => onOpenAdvisorLane(advisorId, recommendedPreset)}
-            className="rounded-lg border border-blue-400/30 bg-blue-500/10 px-3 py-2 text-sm font-medium text-blue-100 transition-colors hover:border-blue-300/50 hover:text-white"
-          >
-            {getAdvisorSnapshotActionLabel(recommendedLabel, recommendedCount, recommendedPreset)}
-          </button>
+        <div className="mt-3 space-y-2">
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => onOpenAdvisorLane(advisorId, recommendedPreset)}
+              className="rounded-lg border border-blue-400/30 bg-blue-500/10 px-3 py-2 text-sm font-medium text-blue-100 transition-colors hover:border-blue-300/50 hover:text-white"
+            >
+              {getAdvisorSnapshotActionLabel(recommendedLabel, recommendedCount, recommendedPreset)}
+            </button>
+          </div>
+          {alternatePlanningShortcuts.length > 0 && (
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+                Other scoped lanes
+              </p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {alternatePlanningShortcuts.map(shortcut => (
+                  <button
+                    key={`${advisorId}:${shortcut.preset}`}
+                    type="button"
+                    onClick={() => onOpenAdvisorLane(advisorId, shortcut.preset)}
+                    className="rounded-lg border border-gray-700 bg-gray-950/70 px-3 py-2 text-xs font-medium text-gray-300 transition-colors hover:border-gray-600 hover:text-gray-100"
+                  >
+                    {shortcut.label} ({shortcut.count})
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </article>

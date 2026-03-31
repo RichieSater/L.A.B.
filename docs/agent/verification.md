@@ -33,6 +33,7 @@ For weekly-focus changes, verify the persistence and derivation boundaries toget
 
 For weekly-review changes, verify both the derived signals and the persistence boundary: stale `today`, overdue planned, and high-priority unplanned counts should reflect current queue state, weekly momentum stats should reflect completed tasks, sessions, and quick logs inside the correct week window, marking a review complete should survive bootstrap/save reloads for the same week, and reflection notes should reload into the correct week entry without overwriting the prior week's notes.
 For weekly review advisor-signal routing, verify each advisor card opens Weekly LAB on that advisor's recommended scoped lane and falls back to the advisor's scoped open task list when no special planner lane is active.
+For weekly review adjacent lane shortcuts, verify advisor-signal cards only expose other non-empty scoped planner lanes and that using those buttons keeps the current advisor scope while switching presets.
 
 For weekly recap changes, keep the recap deterministic: wins should come from completed tasks, advisor callouts should match weekly advisor snapshot state, unfinished pressure should mirror the same queue signals shown elsewhere in the review, and next-week focus prompts should stay derived from those signals instead of introducing another saved summary model.
 

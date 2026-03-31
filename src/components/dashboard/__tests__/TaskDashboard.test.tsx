@@ -122,7 +122,7 @@ describe('TaskDashboard', () => {
     expect(within(taskList).getByText('Stop carrying this task in Today')).toBeInTheDocument();
     expect(within(taskList).queryByText('Recover the overdue commitment')).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: /weekly focus/i }));
+    fireEvent.click(within(taskList).getByRole('button', { name: /weekly focus/i }));
     expect(within(taskList).getByText('Move the weekly focus item forward')).toBeInTheDocument();
     expect(within(taskList).queryByText('Give the backlog item a real bucket')).not.toBeInTheDocument();
   });

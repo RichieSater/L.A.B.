@@ -115,6 +115,13 @@ function makeSummary(
         recommendedPreset: 'carry_over',
         recommendedLabel: 'Carry Over',
         recommendedCount: 1,
+        alternatePlanningShortcuts: [
+          {
+            preset: 'overdue',
+            label: 'Overdue',
+            count: 1,
+          },
+        ],
       },
       {
         advisorId: 'fitness',
@@ -132,6 +139,7 @@ function makeSummary(
         recommendedPreset: 'all_open',
         recommendedLabel: 'Open Tasks',
         recommendedCount: 2,
+        alternatePlanningShortcuts: [],
       },
     ],
     recapSections: [
@@ -211,6 +219,7 @@ describe('WeeklyReviewCard', () => {
       target: { value: 'Finally closed the lingering therapist loop.' },
     });
     fireEvent.click(screen.getByRole('button', { name: 'Open Carry Over (1)' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Overdue (1)' }));
     fireEvent.click(screen.getByRole('button', { name: 'Mark review done' }));
     fireEvent.click(screen.getAllByRole('button', { name: 'Today' })[0]);
 
@@ -220,6 +229,7 @@ describe('WeeklyReviewCard', () => {
       'Finally closed the lingering therapist loop.',
     );
     expect(onOpenAdvisorLane).toHaveBeenCalledWith('therapist', 'carry_over');
+    expect(onOpenAdvisorLane).toHaveBeenCalledWith('therapist', 'overdue');
     expect(onCompleteReview).toHaveBeenCalledWith('2026-03-29');
     expect(onSetPlanBucket).toHaveBeenCalledWith('therapist', 'task-1', 'today');
   });

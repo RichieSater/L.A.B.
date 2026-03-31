@@ -371,6 +371,12 @@ export interface WeeklyReviewWin extends EnrichedTaskItem {
   completedDate: string;
 }
 
+export interface AdvisorPlanningShortcut {
+  preset: AdvisorPlanningPreset;
+  label: string;
+  count: number;
+}
+
 export interface WeeklyReviewAdvisorSnapshot {
   advisorId: AdvisorId;
   advisorIcon: string;
@@ -387,6 +393,7 @@ export interface WeeklyReviewAdvisorSnapshot {
   recommendedPreset: TaskListPreset;
   recommendedLabel: string;
   recommendedCount: number;
+  alternatePlanningShortcuts: AdvisorPlanningShortcut[];
 }
 
 export interface WeeklyReviewRecapSection {
@@ -458,10 +465,7 @@ export interface AdvisorAttentionItem {
   quickLogsThisWeek: number;
 }
 
-export interface AdvisorAttentionPlanningShortcut {
-  preset: AdvisorPlanningPreset;
-  label: string;
-  count: number;
+export interface AdvisorAttentionPlanningShortcut extends AdvisorPlanningShortcut {
   headline: string;
   reason: string;
 }
@@ -538,16 +542,6 @@ function getAdvisorPlanningCandidates(input: {
       count: weeklyFocusOpen,
     },
   ];
-}
-
-function getAdvisorPlanningTarget(input: {
-  unplannedOpen: number;
-  highPriorityUnplanned: number;
-  staleTodayOpen: number;
-  overdueOpen: number;
-  weeklyFocusOpen: number;
-}): { preset: AdvisorPlanningPreset; count: number } | null {
-  return getAdvisorPlanningCandidates(input).find(candidate => candidate.count > 0) ?? null;
 }
 
 function getAdvisorPlanningLaneCopy(input: {
@@ -1126,13 +1120,25 @@ export function selectWeeklyReviewSummary(
 
         return advisorOpenItems.some(item => item.id === ref.taskId);
       }).length;
-      const planningTarget = getAdvisorPlanningTarget({
+      const planningCandidates = getAdvisorPlanningCandidates({
         unplannedOpen,
         highPriorityUnplanned: highPriorityUnplannedCount,
         staleTodayOpen,
         overdueOpen,
         weeklyFocusOpen,
       });
+      const planningTarget = planningCandidates.find(candidate => candidate.count > 0) ?? null;
+      const alternatePlanningShortcuts = planningCandidates
+        .filter(
+          candidate =>
+            candidate.count > 0
+            && candidate.preset !== planningTarget?.preset,
+        )
+        .map(candidate => ({
+          preset: candidate.preset,
+          label: ADVISOR_PLANNING_PRESET_LABELS[candidate.preset],
+          count: candidate.count,
+        }));
       const activityScore = completedTasks * 3 + sessions * 2 + quickLogs;
       const status: WeeklyReviewAdvisorSnapshot['status'] =
         overdueOpen > 0 ? 'attention' : activityScore > 0 ? 'momentum' : 'quiet';
@@ -1172,6 +1178,7 @@ export function selectWeeklyReviewSummary(
           ? ADVISOR_PLANNING_PRESET_LABELS[planningTarget.preset]
           : 'Open Tasks',
         recommendedCount: planningTarget?.count ?? openTasks,
+        alternatePlanningShortcuts,
       };
     })
     .sort((a, b) => {

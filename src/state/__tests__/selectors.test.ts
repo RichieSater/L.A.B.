@@ -148,6 +148,102 @@ describe('selectAdvisorAttentionSummary', () => {
 });
 
 describe('selectWeeklyReviewSummary', () => {
+  it('derives adjacent planner lanes for weekly-review advisor cards', () => {
+    const state = createDefaultAppState();
+    state.advisors.prioritization.activated = true;
+
+    state.advisors.prioritization.tasks = [
+      {
+        id: 'triage-task',
+        task: 'Give this backlog item a bucket',
+        dueDate: '2026-04-02',
+        priority: 'high',
+        status: 'open',
+        createdDate: '2026-03-28',
+      },
+      {
+        id: 'carry-task',
+        task: 'Stop carrying this today task',
+        dueDate: '2026-04-01',
+        priority: 'medium',
+        status: 'open',
+        createdDate: '2026-03-26',
+      },
+      {
+        id: 'overdue-task',
+        task: 'Recover the slipped commitment',
+        dueDate: '2026-03-30',
+        priority: 'medium',
+        status: 'open',
+        createdDate: '2026-03-25',
+      },
+      {
+        id: 'focus-task',
+        task: 'Move the weekly focus item',
+        dueDate: '2026-04-03',
+        priority: 'medium',
+        status: 'open',
+        createdDate: '2026-03-27',
+      },
+    ];
+
+    state.taskPlanning['prioritization:carry-task'] = {
+      advisorId: 'prioritization',
+      taskId: 'carry-task',
+      bucket: 'today',
+      updatedAt: '2026-03-30T09:00:00.000Z',
+    };
+    state.taskPlanning['prioritization:overdue-task'] = {
+      advisorId: 'prioritization',
+      taskId: 'overdue-task',
+      bucket: 'this_week',
+      updatedAt: '2026-03-31T09:00:00.000Z',
+    };
+    state.taskPlanning['prioritization:focus-task'] = {
+      advisorId: 'prioritization',
+      taskId: 'focus-task',
+      bucket: 'later',
+      updatedAt: '2026-03-31T10:00:00.000Z',
+    };
+    state.weeklyFocus.weeks = [
+      {
+        weekStart: '2026-03-29',
+        items: [
+          {
+            advisorId: 'prioritization',
+            taskId: 'focus-task',
+            addedAt: '2026-03-31T11:00:00.000Z',
+            carriedForwardFromWeekStart: null,
+          },
+        ],
+      },
+    ];
+
+    const summary = selectWeeklyReviewSummary(state, '2026-03-31');
+    const prioritizationSnapshot = summary.advisorSnapshots.find(
+      snapshot => snapshot.advisorId === 'prioritization',
+    );
+
+    expect(prioritizationSnapshot?.recommendedPreset).toBe('needs_triage');
+    expect(prioritizationSnapshot?.alternatePlanningShortcuts).toEqual([
+      {
+        preset: 'carry_over',
+        label: 'Carry Over',
+        count: 1,
+      },
+      {
+        preset: 'overdue',
+        label: 'Overdue',
+        count: 1,
+      },
+      {
+        preset: 'weekly_focus',
+        label: 'Weekly Focus',
+        count: 1,
+      },
+    ]);
+  });
+
   it('summarizes queue health for the current week', () => {
     const initialState = createDefaultAppState();
     initialState.advisors.prioritization.activated = true;
