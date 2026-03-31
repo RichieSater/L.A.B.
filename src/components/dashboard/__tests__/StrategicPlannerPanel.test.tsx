@@ -138,6 +138,19 @@ describe('StrategicPlannerPanel', () => {
       },
     });
 
+    fireEvent.click(within(row as HTMLElement).getByRole('button', { name: 'Open Weekly Focus in Weekly LAB' }));
+    expect(navigate).toHaveBeenCalledWith('/', {
+      state: {
+        dashboard: {
+          tab: 'week',
+          taskList: {
+            advisorId: 'prioritization',
+            taskListPreset: 'weekly_focus',
+          },
+        },
+      },
+    });
+
     fireEvent.click(within(row as HTMLElement).getByRole('button', { name: 'Update linked task' }));
 
     expect(dispatch).toHaveBeenCalledWith({
@@ -154,6 +167,70 @@ describe('StrategicPlannerPanel', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Open Compass' }));
     expect(navigate).toHaveBeenCalledWith('/compass');
+  });
+
+  it('falls back to the advisor-scoped task list when a linked task has no special weekly lane', async () => {
+    const dispatch = vi.fn();
+    const navigate = vi.fn();
+    const currentYear = new Date().getFullYear();
+    const appState = createDefaultAppState();
+    const linkedTaskId = 'PRI-LINKED-2';
+
+    appState.advisors.prioritization.activated = true;
+    appState.advisors.prioritization.tasks = [
+      {
+        id: linkedTaskId,
+        task: 'Keep the month goal moving',
+        dueDate: 'ongoing',
+        priority: 'medium',
+        status: 'open',
+        createdDate: '2026-03-30',
+      },
+    ];
+    appState.taskPlanning[`prioritization:${linkedTaskId}`] = {
+      advisorId: 'prioritization',
+      taskId: linkedTaskId,
+      bucket: 'later',
+      updatedAt: '2026-03-30T09:00:00.000Z',
+    };
+
+    const strategicYear = createStrategicDashboardYear(currentYear);
+    strategicYear.sections.monthGoals.goals[0] = {
+      ...strategicYear.sections.monthGoals.goals[0],
+      text: 'Keep the month goal moving',
+      linkedTask: {
+        advisorId: 'prioritization',
+        taskId: linkedTaskId,
+      },
+    };
+    appState.strategicDashboard.years = [strategicYear];
+
+    useAppState.mockReturnValue({
+      state: appState,
+      dispatch,
+    });
+    useNavigate.mockReturnValue(navigate);
+
+    const { container } = render(<StrategicPlannerPanel />);
+
+    await waitFor(() => {
+      expect(apiClient.listCompassSessions).toHaveBeenCalledTimes(1);
+    });
+
+    const row = container.querySelector('[data-goal-key="monthGoals-0"]');
+    expect(row).not.toBeNull();
+
+    fireEvent.click(within(row as HTMLElement).getByRole('button', { name: 'Open advisor task list' }));
+    expect(navigate).toHaveBeenCalledWith('/', {
+      state: {
+        dashboard: {
+          tab: 'week',
+          taskList: {
+            advisorId: 'prioritization',
+          },
+        },
+      },
+    });
   });
 
   it('surfaces the active Compass session and resumes it directly from the planner shell', async () => {

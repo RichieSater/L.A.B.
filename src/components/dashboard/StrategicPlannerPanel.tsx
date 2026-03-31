@@ -3,12 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { ACTIVE_ADVISOR_IDS, ADVISOR_CONFIGS } from '../../advisors/registry';
 import { apiClient } from '../../lib/api';
 import { useAppState } from '../../state/app-context';
-import { selectAllTaskItems, selectWeeklyFocusSummary } from '../../state/selectors';
+import { selectAllTaskItems, selectWeeklyFocusSummary, selectWeeklyReviewSummary } from '../../state/selectors';
 import { getStrategicDashboardYear, type StrategicDashboardSectionKey } from '../../types/strategic-dashboard';
 import type { AdvisorId } from '../../types/advisor';
 import type { CompassSessionSummary } from '../../types/compass';
+import type { DashboardNavigationState, TaskListPreset } from '../../types/dashboard-navigation';
 import type { TaskPlanningBucket } from '../../types/task-planning';
 import type { TaskStatus } from '../../types/action-item';
+import { today } from '../../utils/date';
 
 const PROMOTION_BUCKETS: Record<StrategicDashboardSectionKey, 'today' | 'this_week' | 'later'> = {
   biggestGoals: 'later',
@@ -27,6 +29,14 @@ const LINKED_TASK_BUCKET_OPTIONS: Array<{ label: string; value: TaskPlanningBuck
 
 const PRIMARY_SECTIONS: StrategicDashboardSectionKey[] = ['yearGoals', 'quarterGoals', 'monthGoals'];
 const SUPPORTING_SECTIONS: StrategicDashboardSectionKey[] = ['biggestGoals', 'landmarkVision'];
+type LinkedTaskWeeklyLabRoutePreset = Exclude<TaskListPreset, 'all_open'>;
+
+const LINKED_TASK_WEEKLY_LAB_ROUTE_LABELS: Record<LinkedTaskWeeklyLabRoutePreset, string> = {
+  needs_triage: 'Needs Triage',
+  carry_over: 'Carry Over',
+  overdue: 'Overdue',
+  weekly_focus: 'Weekly Focus',
+};
 
 export function StrategicPlannerPanel() {
   const navigate = useNavigate();
@@ -41,7 +51,9 @@ export function StrategicPlannerPanel() {
   );
   const latestCompassInsights = state.strategicDashboard.latestCompassInsights;
   const weeklyFocus = selectWeeklyFocusSummary(state);
+  const weeklyReview = selectWeeklyReviewSummary(state);
   const allTasks = selectAllTaskItems(state);
+  const currentDate = today();
   const taskMap = useMemo(
     () => new Map(allTasks.map(task => [`${task.advisorId}:${task.id}`, task])),
     [allTasks],
@@ -49,6 +61,10 @@ export function StrategicPlannerPanel() {
   const focusTaskKeys = useMemo(
     () => new Set(weeklyFocus.items.map(item => `${item.advisorId}:${item.id}`)),
     [weeklyFocus.items],
+  );
+  const staleTodayKeys = useMemo(
+    () => new Set(weeklyReview.staleToday.map(item => `${item.advisorId}:${item.id}`)),
+    [weeklyReview.staleToday],
   );
   const activeCompassSession = useMemo(
     () => compassSessions.find(session => session.status === 'in_progress') ?? null,
@@ -115,8 +131,12 @@ export function StrategicPlannerPanel() {
         planningBucket: null,
         inWeeklyFocus: false,
         status: null,
+        weeklyLabRoute: null,
       };
     }
+
+    const isCarryOver = staleTodayKeys.has(linkedKey);
+    const inWeeklyFocus = focusTaskKeys.has(linkedKey);
 
     return {
       state: task.status === 'open' ? 'open' : 'completed',
@@ -124,8 +144,16 @@ export function StrategicPlannerPanel() {
       taskId: linkedTask.taskId,
       advisorName,
       planningBucket: task.planningBucket,
-      inWeeklyFocus: focusTaskKeys.has(linkedKey),
+      inWeeklyFocus,
       status: task.status,
+      weeklyLabRoute: getLinkedTaskWeeklyLabRoute({
+        status: task.status,
+        planningBucket: task.planningBucket,
+        isCarryOver,
+        isInWeeklyFocus: inWeeklyFocus,
+        dueDate: task.dueDate,
+        currentDate,
+      }),
     };
   }
 
@@ -206,6 +234,28 @@ export function StrategicPlannerPanel() {
             },
           },
     );
+  }
+
+  function openLinkedTaskInWeeklyLab(summary: GoalLinkedTaskSummary) {
+    if (summary.state !== 'open') {
+      return;
+    }
+
+    const dashboardState: DashboardNavigationState = {
+      dashboard: {
+        tab: 'week',
+        taskList: summary.weeklyLabRoute
+          ? {
+              advisorId: summary.advisorId,
+              taskListPreset: summary.weeklyLabRoute.preset,
+            }
+          : {
+              advisorId: summary.advisorId,
+            },
+      },
+    };
+
+    navigate('/', { state: dashboardState });
   }
 
   return (
@@ -355,6 +405,11 @@ export function StrategicPlannerPanel() {
                         toggleLinkedTaskFocus(linkedTaskSummary);
                       }
                     }}
+                    onOpenLinkedTaskInWeeklyLab={() => {
+                      if (linkedTaskSummary) {
+                        openLinkedTaskInWeeklyLab(linkedTaskSummary);
+                      }
+                    }}
                   />
                     );
                   })()
@@ -417,6 +472,11 @@ export function StrategicPlannerPanel() {
                         toggleLinkedTaskFocus(linkedTaskSummary);
                       }
                     }}
+                    onOpenLinkedTaskInWeeklyLab={() => {
+                      if (linkedTaskSummary) {
+                        openLinkedTaskInWeeklyLab(linkedTaskSummary);
+                      }
+                    }}
                   />
                     );
                   })()
@@ -463,6 +523,10 @@ interface GoalLinkedTaskSummary {
   planningBucket: TaskPlanningBucket | null;
   inWeeklyFocus: boolean;
   status: TaskStatus | null;
+  weeklyLabRoute: {
+    preset: LinkedTaskWeeklyLabRoutePreset;
+    label: string;
+  } | null;
 }
 
 function InsightCard({ title, items }: { title: string; items: string[] }) {
@@ -523,6 +587,7 @@ function GoalRow({
   onSetLinkedTaskBucket,
   onClearLinkedTaskBucket,
   onToggleLinkedTaskFocus,
+  onOpenLinkedTaskInWeeklyLab,
 }: {
   goalKey: string;
   sectionKey: StrategicDashboardSectionKey;
@@ -541,6 +606,7 @@ function GoalRow({
   onSetLinkedTaskBucket: (bucket: TaskPlanningBucket) => void;
   onClearLinkedTaskBucket: () => void;
   onToggleLinkedTaskFocus: () => void;
+  onOpenLinkedTaskInWeeklyLab: () => void;
 }) {
   const reusableLinkedTask = linkedTaskSummary?.state === 'open';
 
@@ -627,6 +693,22 @@ function GoalRow({
                       {linkedTaskSummary.inWeeklyFocus ? 'Remove Focus' : 'Add Focus'}
                     </button>
                   </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={onOpenLinkedTaskInWeeklyLab}
+                      className="rounded-full border border-sky-300/40 bg-sky-50 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-sky-900 transition hover:border-sky-500 hover:bg-sky-100"
+                    >
+                      {linkedTaskSummary.weeklyLabRoute
+                        ? `Open ${linkedTaskSummary.weeklyLabRoute.label} in Weekly LAB`
+                        : 'Open advisor task list'}
+                    </button>
+                    {linkedTaskSummary.weeklyLabRoute && (
+                      <p className="text-[11px] text-stone-500">
+                        {getLinkedTaskWeeklyLabRouteHint(linkedTaskSummary.weeklyLabRoute)}
+                      </p>
+                    )}
+                  </div>
                 </div>
               ) : null}
             </div>
@@ -705,6 +787,74 @@ function formatPlanningBucket(bucket: TaskPlanningBucket): string {
       return 'This week';
     case 'later':
       return 'Later';
+  }
+}
+
+function getLinkedTaskWeeklyLabRoute(input: {
+  status: TaskStatus;
+  planningBucket: TaskPlanningBucket | null;
+  isCarryOver: boolean;
+  isInWeeklyFocus: boolean;
+  dueDate: string;
+  currentDate: string;
+}): {
+  preset: LinkedTaskWeeklyLabRoutePreset;
+  label: string;
+} | null {
+  const {
+    status,
+    planningBucket,
+    isCarryOver,
+    isInWeeklyFocus,
+    dueDate,
+    currentDate,
+  } = input;
+
+  if (status !== 'open') {
+    return null;
+  }
+
+  if (!planningBucket) {
+    return {
+      preset: 'needs_triage',
+      label: LINKED_TASK_WEEKLY_LAB_ROUTE_LABELS.needs_triage,
+    };
+  }
+
+  if (isCarryOver) {
+    return {
+      preset: 'carry_over',
+      label: LINKED_TASK_WEEKLY_LAB_ROUTE_LABELS.carry_over,
+    };
+  }
+
+  if (dueDate !== 'ongoing' && dueDate < currentDate) {
+    return {
+      preset: 'overdue',
+      label: LINKED_TASK_WEEKLY_LAB_ROUTE_LABELS.overdue,
+    };
+  }
+
+  if (isInWeeklyFocus) {
+    return {
+      preset: 'weekly_focus',
+      label: LINKED_TASK_WEEKLY_LAB_ROUTE_LABELS.weekly_focus,
+    };
+  }
+
+  return null;
+}
+
+function getLinkedTaskWeeklyLabRouteHint(route: { preset: LinkedTaskWeeklyLabRoutePreset }): string {
+  switch (route.preset) {
+    case 'needs_triage':
+      return 'Reopen the scoped triage lane before this goal adds more work.';
+    case 'carry_over':
+      return 'Jump straight into the scoped carry-over sweep for this linked work.';
+    case 'overdue':
+      return 'Recover the overdue task inside the canonical planner surface.';
+    case 'weekly_focus':
+      return 'Continue the focus work from the same advisor-scoped Weekly LAB lane.';
   }
 }
 

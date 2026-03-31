@@ -64,6 +64,7 @@ The durable product baseline is a planning-first "Life Advisory Board" app:
 - weekly review advisor signals now open the current advisor's most relevant Weekly LAB lane directly, falling back to that advisor's scoped open task list when no special planner lane is active
 - weekly review advisor signals now also expose adjacent non-empty scoped planner lanes, so the review surface can keep sweeping the same advisor without dropping back to generic browsing
 - advisor-detail task rows now expose the matching advisor-scoped Weekly LAB lane directly when a task belongs in triage, carry-over, overdue, or weekly-focus cleanup, so item-level sweeps can jump straight into the canonical planner surface
+- strategic goal rows now expose a direct Weekly LAB handoff for open linked tasks, reopening the advisor-scoped canonical lane that matches the task's current state and falling back to the scoped task list when no special lane is active
 - scheduled advisory sessions with optional one-way Google Calendar sync and an explicit manual sync-health repair action
 
 ## Durable Boundaries
@@ -89,6 +90,7 @@ The durable product baseline is a planning-first "Life Advisory Board" app:
 - The latest review-surface polish also verifies that Weekly Review advisor signals can open the current advisor's recommended scoped planner lane, and that the CTA falls back to the advisor's open task list when no special lane is active.
 - The latest weekly-review planner polish also verifies that advisor-signal cards expose adjacent non-empty scoped planner lanes, and that those shortcuts keep the active advisor scope while switching presets.
 - The latest advisor-detail planner polish also verifies that task rows can open their matching advisor-scoped Weekly LAB lane directly, using the same preset vocabulary instead of trapping the user inside the detail page after spotting a carry-over or triage item.
+- The latest strategic-planner polish also verifies that open linked goal tasks can reopen the advisor-scoped Weekly LAB lane matching their current canonical planner state, and that neutral linked tasks fall back to the advisor-scoped task list instead of a strategy-only dead end.
 - The current repo also contains additional in-flight dirty worktree changes across Compass, calendar, server, and dashboard files. Those changes are not evidence that the documented product is missing; they are simply not yet re-recorded as a new verified baseline.
 - Legacy `weekly` and `GoldenCompass` repos remain reference apps outside this repo; LAB is the active product surface and source of truth.
 
