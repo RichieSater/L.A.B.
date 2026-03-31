@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { AdvisorId } from '../../types/advisor';
+import type { TaskStatus } from '../../types/action-item';
 import { useAdvisor } from '../../hooks/use-advisor';
 import { useAuth } from '../../auth/auth-context';
 import {
@@ -31,6 +32,13 @@ type AdvisorPlannerRoute = {
   count: number;
 };
 
+const ADVISOR_PLANNER_ROUTE_LABELS: Record<AdvisorPlannerRoutePreset, string> = {
+  needs_triage: 'Needs Triage',
+  carry_over: 'Carry Over',
+  overdue: 'Overdue',
+  weekly_focus: 'Weekly Focus',
+};
+
 export function AdvisorDetail({ advisorId }: AdvisorDetailProps) {
   const navigate = useNavigate();
   const { profile } = useAuth();
@@ -42,22 +50,39 @@ export function AdvisorDetail({ advisorId }: AdvisorDetailProps) {
   const strategicYear = getStrategicDashboardYear(appState.strategicDashboard, planningYear);
   const focus = selectWeeklyFocusSummary(appState);
   const review = selectWeeklyReviewSummary(appState);
+  const currentDate = today();
   const relevantFocus = focus.items.filter(item => item.advisorId === advisorId);
   const focusTaskIds = new Set(relevantFocus.map(item => item.id));
+  const staleTodayTaskIds = new Set(
+    review.staleToday
+      .filter(item => item.advisorId === advisorId)
+      .map(item => item.id),
+  );
   const yearGoals = strategicYear.sections.yearGoals.goals
     .map(goal => goal.text.trim())
     .filter(Boolean);
   const schedulingEnabled = profile?.schedulingEnabled ?? false;
   const plannerItems = state.tasks.map(item => {
     const assignment = appState.taskPlanning[getTaskPlanningKey(advisorId, item.id)];
+    const planningBucket = assignment?.bucket ?? null;
+    const isInWeeklyFocus = focusTaskIds.has(item.id);
+    const isCarryOver = staleTodayTaskIds.has(item.id);
     return {
       ...item,
-      planningBucket: assignment?.bucket ?? null,
-      isInWeeklyFocus: focusTaskIds.has(item.id),
+      planningBucket,
+      isInWeeklyFocus,
+      isCarryOver,
+      weeklyLabRoute: getTaskWeeklyLabRoute({
+        status: item.status,
+        planningBucket,
+        isCarryOver,
+        isInWeeklyFocus,
+        dueDate: item.dueDate,
+        currentDate,
+      }),
     };
   });
   const openPlannerItems = plannerItems.filter(item => item.status === 'open');
-  const currentDate = today();
   const staleTodayCount = review.staleToday.filter(item => item.advisorId === advisorId).length;
   const overdueCount = openPlannerItems.filter(
     item => item.dueDate !== 'ongoing' && item.dueDate < currentDate,
@@ -257,6 +282,7 @@ export function AdvisorDetail({ advisorId }: AdvisorDetailProps) {
               onAddWeeklyFocus={handleAddWeeklyFocus}
               onRemoveWeeklyFocus={handleRemoveWeeklyFocus}
               onScheduleTask={handleScheduleTask}
+              onOpenWeeklyLabRoute={handleOpenWeeklyLab}
               schedulingEnabled={schedulingEnabled}
             />
             {state.habits.length > 0 && (
@@ -427,6 +453,58 @@ export function AdvisorDetail({ advisorId }: AdvisorDetailProps) {
       )}
     </div>
   );
+}
+
+function getTaskWeeklyLabRoute(input: {
+  status: TaskStatus;
+  planningBucket: 'today' | 'this_week' | 'later' | null;
+  isCarryOver: boolean;
+  isInWeeklyFocus: boolean;
+  dueDate: string;
+  currentDate: string;
+}): { preset: AdvisorPlannerRoutePreset; label: string } | null {
+  const {
+    status,
+    planningBucket,
+    isCarryOver,
+    isInWeeklyFocus,
+    dueDate,
+    currentDate,
+  } = input;
+
+  if (status !== 'open') {
+    return null;
+  }
+
+  if (!planningBucket) {
+    return {
+      preset: 'needs_triage',
+      label: ADVISOR_PLANNER_ROUTE_LABELS.needs_triage,
+    };
+  }
+
+  if (isCarryOver) {
+    return {
+      preset: 'carry_over',
+      label: ADVISOR_PLANNER_ROUTE_LABELS.carry_over,
+    };
+  }
+
+  if (dueDate !== 'ongoing' && dueDate < currentDate) {
+    return {
+      preset: 'overdue',
+      label: ADVISOR_PLANNER_ROUTE_LABELS.overdue,
+    };
+  }
+
+  if (isInWeeklyFocus) {
+    return {
+      preset: 'weekly_focus',
+      label: ADVISOR_PLANNER_ROUTE_LABELS.weekly_focus,
+    };
+  }
+
+  return null;
 }
 
 function PlannerStat({ label, value }: { label: string; value: number }) {

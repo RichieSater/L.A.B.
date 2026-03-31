@@ -57,6 +57,7 @@ For advisor-attention changes, verify the action routing as well as the ranking:
 
 For advisor-to-planner routing changes, verify the handoff rather than adding new planner state: advisor-attention task nudges should open the weekly LAB on the expected preset and keep the advisor scope applied until the user intentionally clears it.
 For advisor-detail planner-routing changes, verify the planning-context CTA opens the weekly LAB on the recommended advisor-scoped preset and that any adjacent lane shortcuts keep the same advisor scope instead of falling back to the generic task list.
+For advisor-detail task-row planner routing, verify routeable open tasks expose the matching Weekly LAB shortcut directly on the row and that those shortcuts keep the current advisor scope while targeting the task's highest-signal lane in the order `needs_triage`, `carry_over`, `overdue`, then `weekly_focus`.
 
 Date-only values in the UI are local calendar dates. Do not derive a `YYYY-MM-DD` value with `toISOString().split('T')[0]` when the user-facing intent is "today" or a local date input, because that silently shifts dates across timezones.
 

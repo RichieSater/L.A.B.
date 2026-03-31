@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ADVISOR_CONFIGS } from '../../../advisors/registry';
 import { createDefaultAppState } from '../../../state/init';
 import { createStrategicDashboardYear } from '../../../types/strategic-dashboard';
-import { startOfWeek, today } from '../../../utils/date';
+import { addDays, startOfWeek, today } from '../../../utils/date';
 
 const { useAdvisor, useAuth } = vi.hoisted(() => ({
   useAdvisor: vi.fn(),
@@ -58,7 +58,9 @@ describe('AdvisorDetail', () => {
     const navigate = vi.fn();
     const appState = createDefaultAppState();
     const currentYear = new Date().getFullYear();
-    const weekStart = startOfWeek(today());
+    const currentDate = today();
+    const weekStart = startOfWeek(currentDate);
+    const previousDate = addDays(currentDate, -1);
     const advisorState = appState.advisors.prioritization;
 
     advisorState.activated = true;
@@ -66,10 +68,10 @@ describe('AdvisorDetail', () => {
       {
         id: 'task-1',
         task: 'Lock the quarterly priorities',
-        dueDate: '2026-03-31',
+        dueDate: currentDate,
         priority: 'high',
         status: 'open',
-        createdDate: '2026-03-29',
+        createdDate: previousDate,
       },
       {
         id: 'task-2',
@@ -77,14 +79,14 @@ describe('AdvisorDetail', () => {
         dueDate: 'ongoing',
         priority: 'medium',
         status: 'open',
-        createdDate: '2026-03-30',
+        createdDate: currentDate,
       },
     ];
     appState.taskPlanning['prioritization:task-1'] = {
       advisorId: 'prioritization',
       taskId: 'task-1',
       bucket: 'today',
-      updatedAt: '2026-03-30T09:00:00.000Z',
+      updatedAt: `${previousDate}T09:00:00.000Z`,
     };
     appState.weeklyFocus.weeks = [
       {
@@ -124,13 +126,16 @@ describe('AdvisorDetail', () => {
 
     expect(screen.getByText('Planning Context')).toBeInTheDocument();
     expect(screen.getByText('Needs Triage deserves the next sweep')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Open Needs Triage in Weekly LAB' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Carry Over (1)' })).toBeInTheDocument();
     expect(
       screen.getByText('2 open tasks in this domain. 1 still needs a queue home.'),
     ).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Open Needs Triage in Weekly LAB' }));
+    const planningCard = screen.getByText('Needs Triage deserves the next sweep').closest('div');
+    expect(planningCard).not.toBeNull();
+    fireEvent.click(
+      within(planningCard as HTMLElement).getByRole('button', { name: 'Open Needs Triage in Weekly LAB' }),
+    );
     expect(navigate).toHaveBeenCalledWith('/', {
       state: {
         dashboard: {
@@ -155,8 +160,40 @@ describe('AdvisorDetail', () => {
       },
     });
 
+    const carryOverTaskRow = container.querySelector('[data-task-id="task-1"]');
     const taskRow = container.querySelector('[data-task-id="task-2"]');
+    expect(carryOverTaskRow).not.toBeNull();
     expect(taskRow).not.toBeNull();
+
+    fireEvent.click(
+      within(carryOverTaskRow as HTMLElement).getByRole('button', { name: 'Open Carry Over in Weekly LAB' }),
+    );
+    expect(navigate).toHaveBeenLastCalledWith('/', {
+      state: {
+        dashboard: {
+          tab: 'week',
+          taskList: {
+            advisorId: 'prioritization',
+            taskListPreset: 'carry_over',
+          },
+        },
+      },
+    });
+
+    fireEvent.click(
+      within(taskRow as HTMLElement).getByRole('button', { name: 'Open Needs Triage in Weekly LAB' }),
+    );
+    expect(navigate).toHaveBeenLastCalledWith('/', {
+      state: {
+        dashboard: {
+          tab: 'week',
+          taskList: {
+            advisorId: 'prioritization',
+            taskListPreset: 'needs_triage',
+          },
+        },
+      },
+    });
 
     fireEvent.click(within(taskRow as HTMLElement).getByRole('button', { name: 'This Week' }));
     expect(dispatch).toHaveBeenCalledWith({

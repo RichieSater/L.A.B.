@@ -1,15 +1,36 @@
 import { useState } from 'react';
-import type { ActionItem } from '../../types/action-item';
-import { ActionItemRow } from './ActionItemRow';
+import type { TaskPlanningBucket } from '../../types/task-planning';
+import {
+  ActionItemRow,
+  type AdvisorPlannerTaskItem,
+  type AdvisorPlannerTaskRoute,
+} from './ActionItemRow';
 
 interface ActionItemListProps {
-  items: ActionItem[];
+  items: AdvisorPlannerTaskItem[];
   onToggleComplete: (id: string) => void;
+  onSetPlanBucket: (taskId: string, bucket: TaskPlanningBucket) => void;
+  onClearPlanBucket: (taskId: string) => void;
+  onAddWeeklyFocus: (taskId: string) => void;
+  onRemoveWeeklyFocus: (taskId: string) => void;
+  onScheduleTask?: (taskId: string) => void;
+  onOpenWeeklyLabRoute?: (preset: AdvisorPlannerTaskRoute['preset']) => void;
+  schedulingEnabled?: boolean;
 }
 
 type Filter = 'all' | 'open' | 'completed';
 
-export function ActionItemList({ items, onToggleComplete }: ActionItemListProps) {
+export function ActionItemList({
+  items,
+  onToggleComplete,
+  onSetPlanBucket,
+  onClearPlanBucket,
+  onAddWeeklyFocus,
+  onRemoveWeeklyFocus,
+  onScheduleTask,
+  onOpenWeeklyLabRoute,
+  schedulingEnabled = false,
+}: ActionItemListProps) {
   const [filter, setFilter] = useState<Filter>('open');
 
   const filtered = items.filter(item => {
@@ -55,6 +76,13 @@ export function ActionItemList({ items, onToggleComplete }: ActionItemListProps)
               key={item.id}
               item={item}
               onToggleComplete={onToggleComplete}
+              onSetPlanBucket={onSetPlanBucket}
+              onClearPlanBucket={onClearPlanBucket}
+              onAddWeeklyFocus={onAddWeeklyFocus}
+              onRemoveWeeklyFocus={onRemoveWeeklyFocus}
+              onScheduleTask={onScheduleTask}
+              onOpenWeeklyLabRoute={onOpenWeeklyLabRoute}
+              schedulingEnabled={schedulingEnabled}
             />
           ))
         )}
