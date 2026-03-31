@@ -420,4 +420,87 @@ describe('TaskDashboard', () => {
     expect(within(taskList).getByText('Give prioritization a queue home')).toBeInTheDocument();
     expect(within(taskList).getByText('Give therapy a queue home too')).toBeInTheDocument();
   });
+
+  it('lets a routed attention handoff pivot into another non-empty scoped planner lane', () => {
+    const state = createDefaultAppState();
+    const currentDate = today();
+
+    state.advisors.prioritization.activated = true;
+    state.advisors.therapist.activated = true;
+    state.advisors.prioritization.tasks = [
+      {
+        id: 'prio-triage',
+        task: 'Give prioritization a queue home',
+        dueDate: addDays(currentDate, 1),
+        priority: 'high',
+        status: 'open',
+        createdDate: addDays(currentDate, -1),
+      },
+      {
+        id: 'prio-carry',
+        task: 'Rebucket the routed prioritization carry-over task',
+        dueDate: addDays(currentDate, 2),
+        priority: 'medium',
+        status: 'open',
+        createdDate: addDays(currentDate, -3),
+      },
+    ];
+    state.advisors.therapist.tasks = [
+      {
+        id: 'therapy-carry',
+        task: 'Therapy carry-over should stay hidden from the routed pivot',
+        dueDate: addDays(currentDate, 2),
+        priority: 'medium',
+        status: 'open',
+        createdDate: addDays(currentDate, -3),
+      },
+    ];
+    state.taskPlanning['prioritization:prio-carry'] = {
+      advisorId: 'prioritization',
+      taskId: 'prio-carry',
+      bucket: 'today',
+      updatedAt: `${addDays(currentDate, -1)}T09:00:00.000Z`,
+    };
+    state.taskPlanning['therapist:therapy-carry'] = {
+      advisorId: 'therapist',
+      taskId: 'therapy-carry',
+      bucket: 'today',
+      updatedAt: `${addDays(currentDate, -1)}T10:00:00.000Z`,
+    };
+
+    useAppState.mockReturnValue({
+      state,
+      dispatch: vi.fn(),
+    });
+
+    render(
+      <TaskDashboard
+        navigationRequest={{
+          requestKey: 'advisor-route-5',
+          advisorId: 'prioritization',
+          taskListPreset: 'needs_triage',
+          attentionContext: {
+            advisorName: 'Prioritization',
+            headline: 'Queue needs a decision',
+            reason: '1 high-priority unplanned • 2 open total. Sweep the scoped lanes without leaving the advisor context.',
+            planningLabel: 'Needs Triage',
+            planningCount: 1,
+          },
+        }}
+      />,
+    );
+
+    const taskList = screen.getByLabelText('Task list');
+
+    expect(screen.getByRole('button', { name: 'Open Carry Over lane' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open Carry Over lane' }));
+
+    expect(screen.getByText('Attention Radar Handoff')).toBeInTheDocument();
+    expect(screen.getByText('Scoped to Prioritization')).toBeInTheDocument();
+    expect(screen.getByText('Tasks for Prioritization still sitting in Today from an earlier sweep.')).toBeInTheDocument();
+    expect(within(taskList).getByText('Rebucket the routed prioritization carry-over task')).toBeInTheDocument();
+    expect(within(taskList).queryByText('Give prioritization a queue home')).not.toBeInTheDocument();
+    expect(within(taskList).queryByText('Therapy carry-over should stay hidden from the routed pivot')).not.toBeInTheDocument();
+  });
 });
