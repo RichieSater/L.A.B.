@@ -1,10 +1,12 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ACTIVE_ADVISOR_IDS, ADVISOR_CONFIGS } from '../../advisors/registry';
+import { apiClient } from '../../lib/api';
 import { useAppState } from '../../state/app-context';
 import { selectAllTaskItems, selectWeeklyFocusSummary } from '../../state/selectors';
 import { getStrategicDashboardYear, type StrategicDashboardSectionKey } from '../../types/strategic-dashboard';
 import type { AdvisorId } from '../../types/advisor';
+import type { CompassSessionSummary } from '../../types/compass';
 import type { TaskPlanningBucket } from '../../types/task-planning';
 import type { TaskStatus } from '../../types/action-item';
 
@@ -30,6 +32,8 @@ export function StrategicPlannerPanel() {
   const navigate = useNavigate();
   const { state, dispatch } = useAppState();
   const [advisorChoices, setAdvisorChoices] = useState<Record<string, AdvisorId>>({});
+  const [compassSessions, setCompassSessions] = useState<CompassSessionSummary[]>([]);
+  const [compassSessionsLoaded, setCompassSessionsLoaded] = useState(false);
   const planningYear = new Date().getFullYear();
   const strategicYear = useMemo(
     () => getStrategicDashboardYear(state.strategicDashboard, planningYear),
@@ -46,6 +50,39 @@ export function StrategicPlannerPanel() {
     () => new Set(weeklyFocus.items.map(item => `${item.advisorId}:${item.id}`)),
     [weeklyFocus.items],
   );
+  const activeCompassSession = useMemo(
+    () => compassSessions.find(session => session.status === 'in_progress') ?? null,
+    [compassSessions],
+  );
+  const latestCompletedCompassSession = useMemo(
+    () => compassSessions.find(session => session.status === 'completed') ?? null,
+    [compassSessions],
+  );
+
+  useEffect(() => {
+    let active = true;
+
+    apiClient.listCompassSessions()
+      .then(result => {
+        if (active) {
+          setCompassSessions(result);
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setCompassSessions([]);
+        }
+      })
+      .finally(() => {
+        if (active) {
+          setCompassSessionsLoaded(true);
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   function getAdvisorChoice(key: string, lockedAdvisorId: AdvisorId | null): AdvisorId {
     return lockedAdvisorId ?? advisorChoices[key] ?? 'prioritization';
@@ -188,18 +225,68 @@ export function StrategicPlannerPanel() {
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
-            <button
-              type="button"
-              onClick={() => navigate('/compass')}
-              className="rounded-full border border-amber-300 bg-amber-50 px-5 py-2.5 text-sm font-semibold text-amber-900 transition hover:border-amber-500 hover:bg-amber-100"
-            >
-              Open Compass
-            </button>
+            {activeCompassSession ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => navigate(`/compass/${activeCompassSession.id}`)}
+                  className="rounded-full border border-amber-300 bg-amber-50 px-5 py-2.5 text-sm font-semibold text-amber-900 transition hover:border-amber-500 hover:bg-amber-100"
+                >
+                  Resume Compass
+                </button>
+                <button
+                  type="button"
+                  onClick={() => navigate('/compass')}
+                  className="rounded-full border border-stone-200 bg-white px-5 py-2.5 text-sm font-semibold text-stone-700 transition hover:border-stone-300 hover:bg-stone-50"
+                >
+                  Open Compass Library
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                onClick={() => navigate('/compass')}
+                className="rounded-full border border-amber-300 bg-amber-50 px-5 py-2.5 text-sm font-semibold text-amber-900 transition hover:border-amber-500 hover:bg-amber-100"
+              >
+                Open Compass
+              </button>
+            )}
             <div className="rounded-full border border-stone-200 bg-white px-4 py-2 text-sm font-semibold text-stone-700 shadow-sm">
               {planningYear} strategy
             </div>
           </div>
         </div>
+
+        {activeCompassSession ? (
+          <div className="mt-6 rounded-3xl border border-amber-200 bg-amber-50/80 px-5 py-4">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-700">
+                  Compass in progress
+                </p>
+                <p className="mt-1 text-base font-semibold text-stone-900">
+                  {activeCompassSession.title}
+                </p>
+                <p className="mt-1 text-sm text-stone-700">
+                  Step {activeCompassSession.currentScreen + 1} saved • {activeCompassSession.answerCount} answers captured • Updated{' '}
+                  {new Date(activeCompassSession.updatedAt).toLocaleDateString()}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => navigate(`/compass/${activeCompassSession.id}`)}
+                className="rounded-full bg-stone-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-stone-800"
+              >
+                Resume
+              </button>
+            </div>
+          </div>
+        ) : compassSessionsLoaded && latestCompletedCompassSession ? (
+          <div className="mt-6 rounded-3xl border border-stone-200 bg-white/75 px-5 py-4 text-sm text-stone-600">
+            Latest Compass: <span className="font-semibold text-stone-900">{latestCompletedCompassSession.title}</span>{' '}
+            completed {new Date(latestCompletedCompassSession.completedAt ?? latestCompletedCompassSession.updatedAt).toLocaleDateString()}.
+          </div>
+        ) : null}
 
         {latestCompassInsights ? (
           <div className="mt-6 grid gap-4 lg:grid-cols-3">

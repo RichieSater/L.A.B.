@@ -1,11 +1,14 @@
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createDefaultAppState } from '../../../state/init';
 import { createStrategicDashboardYear } from '../../../types/strategic-dashboard';
 import { StrategicPlannerPanel } from '../StrategicPlannerPanel';
 
-const { useAppState } = vi.hoisted(() => ({
+const { useAppState, apiClient } = vi.hoisted(() => ({
   useAppState: vi.fn(),
+  apiClient: {
+    listCompassSessions: vi.fn(),
+  },
 }));
 
 const { useNavigate } = vi.hoisted(() => ({
@@ -14,6 +17,10 @@ const { useNavigate } = vi.hoisted(() => ({
 
 vi.mock('../../../state/app-context', () => ({
   useAppState,
+}));
+
+vi.mock('../../../lib/api', () => ({
+  apiClient,
 }));
 
 vi.mock('react-router-dom', async () => {
@@ -27,9 +34,10 @@ vi.mock('react-router-dom', async () => {
 describe('StrategicPlannerPanel', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    apiClient.listCompassSessions.mockResolvedValue([]);
   });
 
-  it('shows linked canonical task status and reuses the same promotion action', () => {
+  it('shows linked canonical task status and reuses the same promotion action', async () => {
     const dispatch = vi.fn();
     const navigate = vi.fn();
     const currentYear = new Date().getFullYear();
@@ -85,6 +93,10 @@ describe('StrategicPlannerPanel', () => {
     useNavigate.mockReturnValue(navigate);
 
     const { container } = render(<StrategicPlannerPanel />);
+
+    await waitFor(() => {
+      expect(apiClient.listCompassSessions).toHaveBeenCalledTimes(1);
+    });
 
     const row = container.querySelector('[data-goal-key="yearGoals-0"]');
     expect(row).not.toBeNull();
@@ -142,5 +154,50 @@ describe('StrategicPlannerPanel', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Open Compass' }));
     expect(navigate).toHaveBeenCalledWith('/compass');
+  });
+
+  it('surfaces the active Compass session and resumes it directly from the planner shell', async () => {
+    const dispatch = vi.fn();
+    const navigate = vi.fn();
+    const appState = createDefaultAppState();
+
+    useAppState.mockReturnValue({
+      state: appState,
+      dispatch,
+    });
+    useNavigate.mockReturnValue(navigate);
+    apiClient.listCompassSessions.mockResolvedValue([
+      {
+        id: 'compass-session-1',
+        title: `Golden Compass ${new Date().getFullYear()}`,
+        planningYear: new Date().getFullYear(),
+        status: 'in_progress',
+        currentScreen: 6,
+        answerCount: 14,
+        createdAt: '2026-03-30T12:00:00.000Z',
+        updatedAt: '2026-03-30T13:30:00.000Z',
+        completedAt: null,
+        insights: null,
+      },
+    ]);
+
+    render(<StrategicPlannerPanel />);
+
+    expect(await screen.findByText('Compass in progress')).toBeInTheDocument();
+    expect(screen.getByText(/Step 7 saved/i)).toBeInTheDocument();
+    expect(screen.getByText(/14 answers captured/i)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Resume Compass' }));
+    expect(navigate).toHaveBeenCalledWith('/compass/compass-session-1');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Resume' }));
+    expect(navigate).toHaveBeenCalledWith('/compass/compass-session-1');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open Compass Library' }));
+    expect(navigate).toHaveBeenCalledWith('/compass');
+
+    await waitFor(() => {
+      expect(apiClient.listCompassSessions).toHaveBeenCalledTimes(1);
+    });
   });
 });
