@@ -67,6 +67,7 @@ The durable product baseline is a planning-first "Life Advisory Board" app:
 - strategic goal rows now expose a direct Weekly LAB handoff for open linked tasks, reopening the advisor-scoped canonical lane that matches the task's current state and falling back to the scoped task list when no special lane is active
 - daily-planning action cards now expose direct advisor-scoped Weekly LAB shortcuts whenever a carry-over, overdue, unplanned, or in-focus task already maps to a canonical lane, so daily cleanup can narrow the live task list without losing the card context
 - weekly-focus cards now expose the same advisor-scoped Weekly LAB shortcuts on current objectives plus eligible carry-forward and suggested tasks, so focus triage can reopen the matching lane before or after a focus action
+- the weekly planner's Recommended Next Move callout now also exposes other non-empty planner lanes, so a queue sweep can pivot into another live preset without hunting through the filter bar or losing the active advisor scope
 - scheduled advisory sessions with optional one-way Google Calendar sync and an explicit manual sync-health repair action
 
 ## Durable Boundaries
@@ -94,6 +95,7 @@ The durable product baseline is a planning-first "Life Advisory Board" app:
 - The latest advisor-detail planner polish also verifies that task rows can open their matching advisor-scoped Weekly LAB lane directly, using the same preset vocabulary instead of trapping the user inside the detail page after spotting a carry-over or triage item.
 - The latest strategic-planner polish also verifies that open linked goal tasks can reopen the advisor-scoped Weekly LAB lane matching their current canonical planner state, and that neutral linked tasks fall back to the advisor-scoped task list instead of a strategy-only dead end.
 - The latest planning-loop routing polish also verifies that daily-planning action cards and weekly-focus cards can reopen the matching advisor-scoped Weekly LAB lane directly, keeping the canonical preset plus advisor scope intact instead of forcing the user to re-find that task in the raw list.
+- The latest task-list polish also verifies that Recommended Next Move only offers other non-empty planner lanes and that those alternate shortcuts keep the current advisor scope applied while switching presets.
 - The current repo also contains additional in-flight dirty worktree changes across Compass, calendar, server, and dashboard files. Those changes are not evidence that the documented product is missing; they are simply not yet re-recorded as a new verified baseline.
 - Legacy `weekly` and `GoldenCompass` repos remain reference apps outside this repo; LAB is the active product surface and source of truth.
 

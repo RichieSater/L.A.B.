@@ -152,6 +152,11 @@ export function TaskDashboard({ navigationRequest = null }: TaskDashboardProps) 
   const recommendedPresetReason = recommendedPreset
     ? getRecommendedPresetReason(recommendedPreset.key)
     : null;
+  const recommendedAlternativePresets = recommendedPreset
+    ? taskListPresets.filter(
+      preset => preset.key !== 'all_open' && preset.count > 0 && preset.key !== recommendedPreset.key,
+    )
+    : [];
   const showAttentionHandoff = shouldShowAttentionHandoff({
     attentionContext,
     initialAdvisorFilter,
@@ -539,6 +544,26 @@ export function TaskDashboard({ navigationRequest = null }: TaskDashboardProps) 
                 <p className="mt-1 max-w-2xl text-sm text-gray-300">
                   {recommendedPresetReason}
                 </p>
+                {recommendedAlternativePresets.length > 0 && (
+                  <div className="mt-3">
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-sky-100/70">
+                      Other live lanes
+                    </p>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {recommendedAlternativePresets.map(preset => (
+                        <button
+                          key={`recommended:${preset.key}`}
+                          type="button"
+                          aria-label={`Open recommended ${preset.label} lane`}
+                          onClick={() => applyTaskListPreset(preset.key)}
+                          className="rounded-lg border border-sky-300/20 bg-gray-950/60 px-3 py-2 text-sm text-sky-100 transition-colors hover:border-sky-200/40 hover:text-white"
+                        >
+                          {preset.label} ({preset.count})
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
               <button
                 type="button"

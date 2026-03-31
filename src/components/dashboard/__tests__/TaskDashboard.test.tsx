@@ -118,11 +118,11 @@ describe('TaskDashboard', () => {
     expect(within(taskList).getByText('Give the backlog item a real bucket')).toBeInTheDocument();
     expect(within(taskList).queryByText('Stop carrying this task in Today')).not.toBeInTheDocument();
 
-    fireEvent.click(within(taskList).getByRole('button', { name: /carry over/i }));
+    fireEvent.click(within(taskList).getByRole('button', { name: /carry over/i, pressed: false }));
     expect(within(taskList).getByText('Stop carrying this task in Today')).toBeInTheDocument();
     expect(within(taskList).queryByText('Recover the overdue commitment')).not.toBeInTheDocument();
 
-    fireEvent.click(within(taskList).getByRole('button', { name: /weekly focus/i }));
+    fireEvent.click(within(taskList).getByRole('button', { name: /weekly focus/i, pressed: false }));
     expect(within(taskList).getByText('Move the weekly focus item forward')).toBeInTheDocument();
     expect(within(taskList).queryByText('Give the backlog item a real bucket')).not.toBeInTheDocument();
   });
@@ -176,6 +176,84 @@ describe('TaskDashboard', () => {
 
     const taskList = screen.getByLabelText('Task list');
     expect(within(taskList).getByText('Move the weekly focus item forward')).toBeInTheDocument();
+  });
+
+  it('surfaces alternate live lanes next to the recommended next move', () => {
+    const state = createDefaultAppState();
+    const currentDate = today();
+    const weekStart = startOfWeek(currentDate);
+
+    state.advisors.prioritization.activated = true;
+    state.advisors.prioritization.tasks = [
+      {
+        id: 'triage-task',
+        task: 'Give the backlog item a real bucket',
+        dueDate: addDays(currentDate, 2),
+        priority: 'high',
+        status: 'open',
+        createdDate: addDays(currentDate, -2),
+      },
+      {
+        id: 'carry-over-task',
+        task: 'Stop carrying this task in Today',
+        dueDate: addDays(currentDate, 1),
+        priority: 'medium',
+        status: 'open',
+        createdDate: addDays(currentDate, -4),
+      },
+      {
+        id: 'focus-task',
+        task: 'Move the weekly focus item forward',
+        dueDate: addDays(currentDate, 3),
+        priority: 'medium',
+        status: 'open',
+        createdDate: addDays(currentDate, -3),
+      },
+    ];
+
+    state.taskPlanning['prioritization:carry-over-task'] = {
+      advisorId: 'prioritization',
+      taskId: 'carry-over-task',
+      bucket: 'today',
+      updatedAt: `${addDays(currentDate, -1)}T09:00:00.000Z`,
+    };
+    state.taskPlanning['prioritization:focus-task'] = {
+      advisorId: 'prioritization',
+      taskId: 'focus-task',
+      bucket: 'later',
+      updatedAt: `${currentDate}T10:00:00.000Z`,
+    };
+    state.weeklyFocus.weeks = [
+      {
+        weekStart,
+        items: [
+          {
+            advisorId: 'prioritization',
+            taskId: 'focus-task',
+            addedAt: `${currentDate}T11:00:00.000Z`,
+            carriedForwardFromWeekStart: null,
+          },
+        ],
+      },
+    ];
+
+    useAppState.mockReturnValue({
+      state,
+      dispatch: vi.fn(),
+    });
+
+    render(<TaskDashboard />);
+
+    expect(screen.getByText('Other live lanes')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Open recommended Carry Over lane' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Open recommended Weekly Focus lane' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open recommended Carry Over lane' }));
+
+    const taskList = screen.getByLabelText('Task list');
+    expect(within(taskList).getByRole('button', { name: /carry over/i, pressed: true })).toBeInTheDocument();
+    expect(within(taskList).getByText('Stop carrying this task in Today')).toBeInTheDocument();
+    expect(within(taskList).queryByText('Give the backlog item a real bucket')).not.toBeInTheDocument();
   });
 
   it('applies routed advisor-specific task lane requests without creating new filter state', () => {
@@ -291,7 +369,7 @@ describe('TaskDashboard', () => {
     );
 
     const taskList = screen.getByLabelText('Task list');
-    fireEvent.click(within(taskList).getByRole('button', { name: /carry over/i }));
+    fireEvent.click(within(taskList).getByRole('button', { name: /carry over/i, pressed: false }));
     expect(screen.getByText('Scoped to Prioritization')).toBeInTheDocument();
     expect(within(taskList).getByText('Rebucket the stale prioritization today task')).toBeInTheDocument();
     expect(within(taskList).queryByText('Therapy carry-over should stay hidden')).not.toBeInTheDocument();
@@ -353,6 +431,113 @@ describe('TaskDashboard', () => {
     expect(screen.getByText('Tasks for Prioritization still sitting in Today from an earlier sweep.')).toBeInTheDocument();
     expect(within(taskList).getByText('Rebucket the stale prioritization today task')).toBeInTheDocument();
     expect(within(taskList).queryByText('Therapy triage should not drive the scoped recommendation')).not.toBeInTheDocument();
+  });
+
+  it('keeps advisor scope when using alternate live lanes from the recommended next move', () => {
+    const state = createDefaultAppState();
+    const currentDate = today();
+
+    state.advisors.prioritization.activated = true;
+    state.advisors.therapist.activated = true;
+    state.advisors.prioritization.tasks = [
+      {
+        id: 'prio-carry',
+        task: 'Rebucket the stale prioritization today task',
+        dueDate: addDays(currentDate, 2),
+        priority: 'medium',
+        status: 'open',
+        createdDate: addDays(currentDate, -3),
+      },
+      {
+        id: 'prio-focus',
+        task: 'Move the prioritization focus task forward',
+        dueDate: addDays(currentDate, 3),
+        priority: 'medium',
+        status: 'open',
+        createdDate: addDays(currentDate, -2),
+      },
+    ];
+    state.advisors.therapist.tasks = [
+      {
+        id: 'therapy-triage',
+        task: 'Therapy triage should stay outside the scoped alternate lane',
+        dueDate: addDays(currentDate, 1),
+        priority: 'high',
+        status: 'open',
+        createdDate: addDays(currentDate, -1),
+      },
+      {
+        id: 'therapy-focus',
+        task: 'Therapy focus should stay outside the scoped alternate lane',
+        dueDate: addDays(currentDate, 3),
+        priority: 'medium',
+        status: 'open',
+        createdDate: addDays(currentDate, -2),
+      },
+    ];
+    state.taskPlanning['prioritization:prio-carry'] = {
+      advisorId: 'prioritization',
+      taskId: 'prio-carry',
+      bucket: 'today',
+      updatedAt: `${addDays(currentDate, -1)}T09:00:00.000Z`,
+    };
+    state.taskPlanning['prioritization:prio-focus'] = {
+      advisorId: 'prioritization',
+      taskId: 'prio-focus',
+      bucket: 'later',
+      updatedAt: `${currentDate}T10:00:00.000Z`,
+    };
+    state.taskPlanning['therapist:therapy-focus'] = {
+      advisorId: 'therapist',
+      taskId: 'therapy-focus',
+      bucket: 'later',
+      updatedAt: `${currentDate}T11:00:00.000Z`,
+    };
+    state.weeklyFocus.weeks = [
+      {
+        weekStart: startOfWeek(currentDate),
+        items: [
+          {
+            advisorId: 'prioritization',
+            taskId: 'prio-focus',
+            addedAt: `${currentDate}T12:00:00.000Z`,
+            carriedForwardFromWeekStart: null,
+          },
+          {
+            advisorId: 'therapist',
+            taskId: 'therapy-focus',
+            addedAt: `${currentDate}T13:00:00.000Z`,
+            carriedForwardFromWeekStart: null,
+          },
+        ],
+      },
+    ];
+
+    useAppState.mockReturnValue({
+      state,
+      dispatch: vi.fn(),
+    });
+
+    render(
+      <TaskDashboard
+        navigationRequest={{
+          requestKey: 'advisor-route-3b',
+          advisorId: 'prioritization',
+        }}
+      />,
+    );
+
+    expect(screen.getByText('Carry Over deserves the next sweep')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Open recommended Weekly Focus lane' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open recommended Weekly Focus lane' }));
+
+    const taskList = screen.getByLabelText('Task list');
+    expect(screen.getByText('Scoped to Prioritization')).toBeInTheDocument();
+    expect(within(taskList).getByRole('button', { name: /weekly focus/i, pressed: true })).toBeInTheDocument();
+    expect(within(taskList).getByText('Move the prioritization focus task forward')).toBeInTheDocument();
+    expect(within(taskList).queryByText('Therapy focus should stay outside the scoped alternate lane')).not.toBeInTheDocument();
+    expect(within(taskList).queryByText('Therapy triage should stay outside the scoped alternate lane')).not.toBeInTheDocument();
   });
 
   it('shows routed attention context and can expand back to the full LAB lane', () => {
