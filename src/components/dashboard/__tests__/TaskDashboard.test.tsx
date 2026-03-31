@@ -28,7 +28,7 @@ describe('TaskDashboard', () => {
     });
   });
 
-  it('jumps the raw task list into high-signal preset views', () => {
+  it('recommends the highest-signal next move and jumps the raw task list into preset views', () => {
     const state = createDefaultAppState();
     const currentDate = today();
     const weekStart = startOfWeek(currentDate);
@@ -110,7 +110,11 @@ describe('TaskDashboard', () => {
 
     const taskList = screen.getByLabelText('Task list');
 
-    fireEvent.click(screen.getByRole('button', { name: /needs triage/i }));
+    expect(screen.getByText('Recommended Next Move')).toBeInTheDocument();
+    expect(screen.getByText('Needs Triage deserves the next sweep')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Jump to Needs Triage' }));
+    expect(screen.getByRole('button', { name: 'Viewing Needs Triage' })).toBeInTheDocument();
     expect(within(taskList).getByText('Give the backlog item a real bucket')).toBeInTheDocument();
     expect(within(taskList).queryByText('Stop carrying this task in Today')).not.toBeInTheDocument();
 
@@ -121,5 +125,56 @@ describe('TaskDashboard', () => {
     fireEvent.click(screen.getByRole('button', { name: /weekly focus/i }));
     expect(within(taskList).getByText('Move the weekly focus item forward')).toBeInTheDocument();
     expect(within(taskList).queryByText('Give the backlog item a real bucket')).not.toBeInTheDocument();
+  });
+
+  it('falls back to weekly focus when no higher-urgency planner lane is available', () => {
+    const state = createDefaultAppState();
+    const currentDate = today();
+    const weekStart = startOfWeek(currentDate);
+
+    state.advisors.prioritization.activated = true;
+    state.advisors.prioritization.tasks = [
+      {
+        id: 'focus-task',
+        task: 'Move the weekly focus item forward',
+        dueDate: addDays(currentDate, 3),
+        priority: 'medium',
+        status: 'open',
+        createdDate: addDays(currentDate, -3),
+      },
+    ];
+
+    state.taskPlanning['prioritization:focus-task'] = {
+      advisorId: 'prioritization',
+      taskId: 'focus-task',
+      bucket: 'later',
+      updatedAt: `${currentDate}T10:00:00.000Z`,
+    };
+    state.weeklyFocus.weeks = [
+      {
+        weekStart,
+        items: [
+          {
+            advisorId: 'prioritization',
+            taskId: 'focus-task',
+            addedAt: `${currentDate}T11:00:00.000Z`,
+            carriedForwardFromWeekStart: null,
+          },
+        ],
+      },
+    ];
+
+    useAppState.mockReturnValue({
+      state,
+      dispatch: vi.fn(),
+    });
+
+    render(<TaskDashboard />);
+
+    expect(screen.getByText('Weekly Focus deserves the next sweep')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Jump to Weekly Focus' }));
+
+    const taskList = screen.getByLabelText('Task list');
+    expect(within(taskList).getByText('Move the weekly focus item forward')).toBeInTheDocument();
   });
 });

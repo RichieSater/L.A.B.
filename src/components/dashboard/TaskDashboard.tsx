@@ -25,6 +25,12 @@ type StatusFilter = 'open' | 'completed' | 'all';
 type PriorityFilter = 'all' | 'high' | 'medium' | 'low';
 type PlanningFilter = 'all' | 'planned' | 'unplanned';
 type TaskListPreset = 'all_open' | 'needs_triage' | 'carry_over' | 'overdue' | 'weekly_focus';
+type TaskListPresetMeta = {
+  key: TaskListPreset;
+  label: string;
+  count: number;
+  description: string;
+};
 
 export function TaskDashboard() {
   const { profile } = useAuth();
@@ -66,12 +72,7 @@ export function TaskDashboard() {
   const openCount = allItems.filter(i => i.status === 'open').length;
   const plannedCount = planning.totalPlanned;
   const focusCount = focus.items.length;
-  const taskListPresets: Array<{
-    key: TaskListPreset;
-    label: string;
-    count: number;
-    description: string;
-  }> = [
+  const taskListPresets: TaskListPresetMeta[] = [
     {
       key: 'all_open',
       label: 'All Open',
@@ -107,6 +108,10 @@ export function TaskDashboard() {
   const selectedPreset =
     taskListPresets.find(preset => preset.key === taskListPreset)
     ?? taskListPresets[0];
+  const recommendedPreset = getRecommendedTaskListPreset(taskListPresets);
+  const recommendedPresetReason = recommendedPreset
+    ? getRecommendedPresetReason(recommendedPreset.key)
+    : null;
 
   const applyTaskListPreset = (preset: TaskListPreset) => {
     setTaskListPreset(preset);
@@ -312,6 +317,35 @@ export function TaskDashboard() {
       />
 
       <section aria-label="Task list" className="mt-6">
+        {recommendedPreset && recommendedPresetReason && (
+          <div className="mb-4 rounded-xl border border-sky-500/20 bg-sky-500/10 p-4">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-sky-300">Recommended Next Move</p>
+                <h3 className="mt-1 text-sm font-semibold text-gray-100">
+                  {recommendedPreset.label} deserves the next sweep
+                </h3>
+                <p className="mt-1 max-w-2xl text-sm text-gray-300">
+                  {recommendedPresetReason}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => applyTaskListPreset(recommendedPreset.key)}
+                className={`rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
+                  taskListPreset === recommendedPreset.key
+                    ? 'border-sky-300/40 bg-sky-200/15 text-sky-100'
+                    : 'border-sky-300/30 bg-gray-950/60 text-sky-200 hover:border-sky-200/50 hover:text-sky-100'
+                }`}
+              >
+                {taskListPreset === recommendedPreset.key
+                  ? `Viewing ${recommendedPreset.label}`
+                  : `Jump to ${recommendedPreset.label}`}
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
           <div>
             <h3 className="text-sm font-semibold uppercase tracking-wide text-gray-300">Task List</h3>
@@ -485,4 +519,32 @@ export function TaskDashboard() {
       )}
     </div>
   );
+}
+
+function getRecommendedTaskListPreset(taskListPresets: TaskListPresetMeta[]): TaskListPresetMeta | null {
+  const priorityOrder: TaskListPreset[] = ['needs_triage', 'carry_over', 'overdue', 'weekly_focus'];
+
+  for (const key of priorityOrder) {
+    const preset = taskListPresets.find(item => item.key === key);
+    if (preset && preset.count > 0) {
+      return preset;
+    }
+  }
+
+  return null;
+}
+
+function getRecommendedPresetReason(preset: TaskListPreset): string {
+  switch (preset) {
+    case 'needs_triage':
+      return 'Open backlog items still need a real queue bucket before the week can stay intentional.';
+    case 'carry_over':
+      return 'Yesterday’s Today list is leaking forward. Clean that carry-over before adding more work.';
+    case 'overdue':
+      return 'Open commitments already slipped past their due date and should be recovered before more planning.';
+    case 'weekly_focus':
+      return 'Committed weekly-focus work is still open, so the highest-leverage move is advancing those promises.';
+    case 'all_open':
+      return 'All open work is available.';
+  }
 }

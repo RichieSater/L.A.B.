@@ -38,6 +38,7 @@ For strategic-dashboard changes, verify the server-owned round-trip as well as t
 For Compass changes, verify autosave, resume, and completion together: in-progress answers should reload into the saved session, completion should derive fresh Compass insights, and current-year goal seeding should only overwrite `yearGoals` when that year has not been manually edited in LAB.
 
 For weekly-first dashboard changes, verify that the root LAB home opens on the planner view, strategic panels and queue cards stay in sync, and advisor-created or advisor-updated tasks appear in the planner with the correct bucket and weekly-focus state without duplicate task content.
+For task-list preset polish, verify the derived recommendation stays inside the canonical preset model: the highest-signal lane should prioritize `needs_triage`, then `carry_over`, then `overdue`, then `weekly_focus`, and the CTA should apply the same filter reset behavior as the preset buttons instead of introducing separate list state.
 
 For recent-activity timeline changes, verify the derivation boundary instead of inventing a new record source: completed tasks, recorded sessions, quick logs, and completed daily/weekly rituals should all appear in the correct window, the `today`, `last 7 days`, and `this week` filters should change the feed deterministically, and empty windows should degrade to a clear zero-state instead of stale activity.
 
