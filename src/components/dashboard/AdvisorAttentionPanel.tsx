@@ -65,6 +65,20 @@ export function AdvisorAttentionPanel({
     navigate(`/advisor/${item.advisorId}`);
   };
 
+  const handleOpenPlannerLane = (item: AdvisorAttentionItem) => {
+    onOpenTasks({
+      advisorId: item.advisorId,
+      taskListPreset: getPlanningPreset(item),
+      attentionContext: {
+        advisorName: item.advisorName,
+        headline: item.headline,
+        reason: item.reason,
+        planningLabel: item.planningLabel,
+        planningCount: item.planningCount,
+      },
+    });
+  };
+
   return (
     <section className="mb-6 rounded-xl border border-gray-800 bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 p-5">
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -95,6 +109,11 @@ export function AdvisorAttentionPanel({
               item={item}
               schedulingEnabled={schedulingEnabled}
               onPrimaryAction={() => handlePrimaryAction(item)}
+              onOpenPlannerLane={
+                item.primaryAction !== 'plan' && item.planningPreset && item.planningCount > 0
+                  ? () => handleOpenPlannerLane(item)
+                  : null
+              }
               onOpenAdvisor={() => navigate(`/advisor/${item.advisorId}`)}
             />
           ))}
@@ -173,11 +192,13 @@ function AttentionCard({
   item,
   schedulingEnabled,
   onPrimaryAction,
+  onOpenPlannerLane,
   onOpenAdvisor,
 }: {
   item: AdvisorAttentionItem;
   schedulingEnabled: boolean;
   onPrimaryAction: () => void;
+  onOpenPlannerLane: (() => void) | null;
   onOpenAdvisor: () => void;
 }) {
   return (
@@ -206,13 +227,21 @@ function AttentionCard({
         <p className="mt-1">{formatQuickLogLine(item)}</p>
       </div>
 
-      <div className="mt-4 flex gap-2">
+      <div className="mt-4 flex flex-wrap gap-2">
         <button
           onClick={onPrimaryAction}
-          className="flex-1 rounded-lg bg-gray-200 px-3 py-2 text-sm font-medium text-gray-900 transition-colors hover:bg-white"
+          className="min-w-[140px] flex-1 rounded-lg bg-gray-200 px-3 py-2 text-sm font-medium text-gray-900 transition-colors hover:bg-white"
         >
           {getPrimaryActionLabel(item, schedulingEnabled)}
         </button>
+        {onOpenPlannerLane && item.planningLabel && (
+          <button
+            onClick={onOpenPlannerLane}
+            className="min-w-[140px] flex-1 rounded-lg border border-blue-400/30 bg-blue-500/10 px-3 py-2 text-sm font-medium text-blue-100 transition-colors hover:border-blue-300/50 hover:text-white"
+          >
+            {`Open ${item.planningLabel}`}
+          </button>
+        )}
         <button
           onClick={onOpenAdvisor}
           className="rounded-lg border border-gray-700 px-3 py-2 text-sm text-gray-300 transition-colors hover:border-gray-600 hover:text-gray-100"

@@ -16,9 +16,9 @@ function makeSummary(
         advisorColor: '#38bdf8',
         status: 'urgent',
         primaryAction: 'schedule',
-        planningPreset: null,
-        planningLabel: null,
-        planningCount: 0,
+        planningPreset: 'carry_over',
+        planningLabel: 'Carry Over',
+        planningCount: 1,
         headline: 'Session cadence slipped',
         reason: '1 overdue task is still open on top of the missed cadence.',
         lastSessionDate: '2026-03-15',
@@ -121,6 +121,34 @@ describe('AdvisorAttentionPanel', () => {
         reason: '1 high-priority unplanned • 2 unplanned total. Move this work into a real bucket.',
         planningLabel: 'Needs Triage',
         planningCount: 2,
+      },
+    });
+  });
+
+  it('exposes planner shortcuts on non-planning cards when a scoped lane already exists', () => {
+    const onOpenTasks = vi.fn();
+
+    render(
+      <MemoryRouter>
+        <AdvisorAttentionPanel
+          summary={makeSummary()}
+          onOpenTasks={onOpenTasks}
+          schedulingEnabled
+        />
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open Carry Over' }));
+
+    expect(onOpenTasks).toHaveBeenCalledWith({
+      advisorId: 'therapist',
+      taskListPreset: 'carry_over',
+      attentionContext: {
+        advisorName: 'Therapist',
+        headline: 'Session cadence slipped',
+        reason: '1 overdue task is still open on top of the missed cadence.',
+        planningLabel: 'Carry Over',
+        planningCount: 1,
       },
     });
   });
