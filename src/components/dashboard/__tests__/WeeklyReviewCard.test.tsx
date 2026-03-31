@@ -112,6 +112,9 @@ function makeSummary(
         overdueOpen: 1,
         status: 'attention',
         note: '1 completed, 1 session, 1 quick log, but 1 overdue task still open.',
+        recommendedPreset: 'carry_over',
+        recommendedLabel: 'Carry Over',
+        recommendedCount: 1,
       },
       {
         advisorId: 'fitness',
@@ -126,6 +129,9 @@ function makeSummary(
         overdueOpen: 0,
         status: 'momentum',
         note: '1 completed, 1 quick log',
+        recommendedPreset: 'all_open',
+        recommendedLabel: 'Open Tasks',
+        recommendedCount: 2,
       },
     ],
     recapSections: [
@@ -171,6 +177,7 @@ describe('WeeklyReviewCard', () => {
     const onCompleteReview = vi.fn();
     const onSetPlanBucket = vi.fn();
     const onSetReviewField = vi.fn();
+    const onOpenAdvisorLane = vi.fn();
 
     render(
       <WeeklyReviewCard
@@ -183,6 +190,7 @@ describe('WeeklyReviewCard', () => {
         onSetPlanBucket={onSetPlanBucket}
         onClearPlanBucket={vi.fn()}
         onScheduleTask={vi.fn()}
+        onOpenAdvisorLane={onOpenAdvisorLane}
         schedulingEnabled={false}
       />,
     );
@@ -202,6 +210,7 @@ describe('WeeklyReviewCard', () => {
     fireEvent.change(screen.getByLabelText('Biggest win'), {
       target: { value: 'Finally closed the lingering therapist loop.' },
     });
+    fireEvent.click(screen.getByRole('button', { name: 'Open Carry Over (1)' }));
     fireEvent.click(screen.getByRole('button', { name: 'Mark review done' }));
     fireEvent.click(screen.getAllByRole('button', { name: 'Today' })[0]);
 
@@ -210,6 +219,7 @@ describe('WeeklyReviewCard', () => {
       'biggestWin',
       'Finally closed the lingering therapist loop.',
     );
+    expect(onOpenAdvisorLane).toHaveBeenCalledWith('therapist', 'carry_over');
     expect(onCompleteReview).toHaveBeenCalledWith('2026-03-29');
     expect(onSetPlanBucket).toHaveBeenCalledWith('therapist', 'task-1', 'today');
   });

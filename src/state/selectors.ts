@@ -384,6 +384,9 @@ export interface WeeklyReviewAdvisorSnapshot {
   overdueOpen: number;
   status: 'attention' | 'momentum' | 'quiet';
   note: string;
+  recommendedPreset: TaskListPreset;
+  recommendedLabel: string;
+  recommendedCount: number;
 }
 
 export interface WeeklyReviewRecapSection {
@@ -501,6 +504,51 @@ const ADVISOR_PLANNING_PRESET_LABELS: Record<AdvisorPlanningPreset, string> = {
   overdue: 'Overdue',
   weekly_focus: 'Weekly Focus',
 };
+
+function getAdvisorPlanningCandidates(input: {
+  unplannedOpen: number;
+  highPriorityUnplanned: number;
+  staleTodayOpen: number;
+  overdueOpen: number;
+  weeklyFocusOpen: number;
+}): Array<{ preset: AdvisorPlanningPreset; count: number }> {
+  const {
+    unplannedOpen,
+    highPriorityUnplanned,
+    staleTodayOpen,
+    overdueOpen,
+    weeklyFocusOpen,
+  } = input;
+
+  return [
+    {
+      preset: 'needs_triage',
+      count: highPriorityUnplanned > 0 || unplannedOpen >= 2 ? unplannedOpen : 0,
+    },
+    {
+      preset: 'carry_over',
+      count: staleTodayOpen,
+    },
+    {
+      preset: 'overdue',
+      count: overdueOpen,
+    },
+    {
+      preset: 'weekly_focus',
+      count: weeklyFocusOpen,
+    },
+  ];
+}
+
+function getAdvisorPlanningTarget(input: {
+  unplannedOpen: number;
+  highPriorityUnplanned: number;
+  staleTodayOpen: number;
+  overdueOpen: number;
+  weeklyFocusOpen: number;
+}): { preset: AdvisorPlanningPreset; count: number } | null {
+  return getAdvisorPlanningCandidates(input).find(candidate => candidate.count > 0) ?? null;
+}
 
 function getAdvisorPlanningLaneCopy(input: {
   preset: AdvisorPlanningPreset;
@@ -1063,9 +1111,28 @@ export function selectWeeklyReviewSummary(
       const advisorOpenItems = openItems.filter(item => item.advisorId === advisorId);
       const openTasks = advisorOpenItems.length;
       const plannedOpen = advisorOpenItems.filter(item => !!item.planningBucket).length;
+      const unplannedOpen = openTasks - plannedOpen;
+      const staleTodayOpen = staleToday.filter(item => item.advisorId === advisorId).length;
       const overdueOpen = advisorOpenItems.filter(
         item => item.dueDate !== 'ongoing' && item.dueDate < todayDate,
       ).length;
+      const highPriorityUnplannedCount = highPriorityUnplanned.filter(
+        item => item.advisorId === advisorId,
+      ).length;
+      const weeklyFocusOpen = focusTaskRefs.filter(ref => {
+        if (ref.advisorId !== advisorId) {
+          return false;
+        }
+
+        return advisorOpenItems.some(item => item.id === ref.taskId);
+      }).length;
+      const planningTarget = getAdvisorPlanningTarget({
+        unplannedOpen,
+        highPriorityUnplanned: highPriorityUnplannedCount,
+        staleTodayOpen,
+        overdueOpen,
+        weeklyFocusOpen,
+      });
       const activityScore = completedTasks * 3 + sessions * 2 + quickLogs;
       const status: WeeklyReviewAdvisorSnapshot['status'] =
         overdueOpen > 0 ? 'attention' : activityScore > 0 ? 'momentum' : 'quiet';
@@ -1100,6 +1167,11 @@ export function selectWeeklyReviewSummary(
         overdueOpen,
         status,
         note,
+        recommendedPreset: planningTarget?.preset ?? 'all_open',
+        recommendedLabel: planningTarget
+          ? ADVISOR_PLANNING_PRESET_LABELS[planningTarget.preset]
+          : 'Open Tasks',
+        recommendedCount: planningTarget?.count ?? openTasks,
       };
     })
     .sort((a, b) => {
@@ -1450,24 +1522,13 @@ export function selectAdvisorAttentionSummary(
     const supportsQuickLog = selectSupportsQuickLog(advisorId);
     const needsSchedule =
       !advisorState.lastSessionDate || sessionStatus === 'overdue' || sessionStatus === 'due';
-    const planningCandidates = ([
-      {
-        preset: 'needs_triage',
-        count: highPriorityUnplanned > 0 || unplannedOpen >= 2 ? unplannedOpen : 0,
-      },
-      {
-        preset: 'carry_over',
-        count: staleTodayOpen,
-      },
-      {
-        preset: 'overdue',
-        count: overdueOpen,
-      },
-      {
-        preset: 'weekly_focus',
-        count: weeklyFocusOpen,
-      },
-    ] as const);
+    const planningCandidates = getAdvisorPlanningCandidates({
+      unplannedOpen,
+      highPriorityUnplanned,
+      staleTodayOpen,
+      overdueOpen,
+      weeklyFocusOpen,
+    });
     const planningTarget = planningCandidates.find(candidate => candidate.count > 0) ?? null;
     const alternatePlanningShortcuts = planningCandidates
       .filter(

@@ -387,6 +387,7 @@ export function TaskDashboard({ navigationRequest = null }: TaskDashboardProps) 
         onSetPlanBucket={handleSetPlanBucket}
         onClearPlanBucket={handleClearPlanBucket}
         onScheduleTask={setScheduleItem}
+        onOpenAdvisorLane={(advisorId, preset) => applyTaskListPreset(preset, advisorId)}
         schedulingEnabled={schedulingEnabled}
       />
 

@@ -60,6 +60,7 @@ The durable product baseline is a planning-first "Life Advisory Board" app:
 - advisor-scoped weekly LAB context now also exposes adjacent non-empty scoped planner lanes even without an Attention Radar handoff, so a user can keep sweeping that advisor from the same context card
 - advisor-scoped weekly LAB views now also scope the recent-activity timeline to that advisor so the review surface reflects domain-specific momentum instead of unrelated activity or global rituals
 - planning-focused Attention Radar cards now expose adjacent non-empty scoped planner lanes directly on the card, so the user can jump into another live queue sweep before leaving the advisors tab
+- weekly review advisor signals now open the current advisor's most relevant Weekly LAB lane directly, falling back to that advisor's scoped open task list when no special planner lane is active
 - scheduled advisory sessions with optional one-way Google Calendar sync and an explicit manual sync-health repair action
 
 ## Durable Boundaries
@@ -81,6 +82,7 @@ The durable product baseline is a planning-first "Life Advisory Board" app:
 - The latest scoped-advisor planner polish also verifies that the standalone advisor-context card can pivot into another non-empty scoped planner lane without relying on an Attention Radar handoff.
 - The latest advisor-scoped review polish also verifies that the recent-activity timeline follows the active advisor scope and excludes unrelated advisor activity plus global planning rituals while the weekly planner is narrowed.
 - The latest advisor-attention polish also verifies that planning-focused radar cards expose adjacent non-empty planner lanes with lane-specific handoff copy instead of forcing the user to discover those pivots only after opening the first lane.
+- The latest review-surface polish also verifies that Weekly Review advisor signals can open the current advisor's recommended scoped planner lane, and that the CTA falls back to the advisor's open task list when no special lane is active.
 - The current repo also contains additional in-flight dirty worktree changes across Compass, calendar, server, and dashboard files. Those changes are not evidence that the documented product is missing; they are simply not yet re-recorded as a new verified baseline.
 - Legacy `weekly` and `GoldenCompass` repos remain reference apps outside this repo; LAB is the active product surface and source of truth.
 

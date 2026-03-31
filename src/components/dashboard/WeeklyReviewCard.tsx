@@ -1,3 +1,5 @@
+import type { AdvisorId } from '../../types/advisor';
+import type { TaskListPreset } from '../../types/dashboard-navigation';
 import type { EnrichedTaskItem, WeeklyReviewActionGroup, WeeklyReviewSummary } from '../../state/selectors';
 import type { TaskPlanningBucket } from '../../types/task-planning';
 import { formatDate, formatDaysAgo, formatDateKey } from '../../utils/date';
@@ -16,6 +18,7 @@ interface WeeklyReviewCardProps {
   onSetPlanBucket: (advisorId: string, taskId: string, bucket: TaskPlanningBucket) => void;
   onClearPlanBucket: (advisorId: string, taskId: string) => void;
   onScheduleTask: (item: EnrichedTaskItem) => void;
+  onOpenAdvisorLane: (advisorId: AdvisorId, preset: TaskListPreset) => void;
   schedulingEnabled: boolean;
 }
 
@@ -29,6 +32,7 @@ export function WeeklyReviewCard({
   onSetPlanBucket,
   onClearPlanBucket,
   onScheduleTask,
+  onOpenAdvisorLane,
   schedulingEnabled,
 }: WeeklyReviewCardProps) {
   const insights = [
@@ -212,6 +216,7 @@ export function WeeklyReviewCard({
             {summary.advisorSnapshots.map(snapshot => (
               <AdvisorSnapshotCard
                 key={snapshot.advisorId}
+                advisorId={snapshot.advisorId}
                 advisorName={snapshot.advisorName}
                 advisorIcon={snapshot.advisorIcon}
                 advisorColor={snapshot.advisorColor}
@@ -223,6 +228,10 @@ export function WeeklyReviewCard({
                 overdueOpen={snapshot.overdueOpen}
                 status={snapshot.status}
                 note={snapshot.note}
+                recommendedPreset={snapshot.recommendedPreset}
+                recommendedLabel={snapshot.recommendedLabel}
+                recommendedCount={snapshot.recommendedCount}
+                onOpenAdvisorLane={onOpenAdvisorLane}
               />
             ))}
           </div>
@@ -458,6 +467,7 @@ function ReviewStat({
 }
 
 function AdvisorSnapshotCard({
+  advisorId,
   advisorName,
   advisorIcon,
   advisorColor,
@@ -469,7 +479,12 @@ function AdvisorSnapshotCard({
   overdueOpen,
   status,
   note,
+  recommendedPreset,
+  recommendedLabel,
+  recommendedCount,
+  onOpenAdvisorLane,
 }: {
+  advisorId: AdvisorId;
   advisorName: string;
   advisorIcon: string;
   advisorColor: string;
@@ -481,6 +496,10 @@ function AdvisorSnapshotCard({
   overdueOpen: number;
   status: 'attention' | 'momentum' | 'quiet';
   note: string;
+  recommendedPreset: TaskListPreset;
+  recommendedLabel: string;
+  recommendedCount: number;
+  onOpenAdvisorLane: (advisorId: AdvisorId, preset: TaskListPreset) => void;
 }) {
   const statusLabel =
     status === 'attention' ? 'Needs attention' : status === 'momentum' ? 'Momentum' : 'Quiet week';
@@ -510,8 +529,31 @@ function AdvisorSnapshotCard({
         {openTasks} open • {plannedOpen} planned • {overdueOpen} overdue
       </p>
       <p className="mt-3 text-sm text-gray-300">{note}</p>
+      {openTasks > 0 && (
+        <div className="mt-3 flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => onOpenAdvisorLane(advisorId, recommendedPreset)}
+            className="rounded-lg border border-blue-400/30 bg-blue-500/10 px-3 py-2 text-sm font-medium text-blue-100 transition-colors hover:border-blue-300/50 hover:text-white"
+          >
+            {getAdvisorSnapshotActionLabel(recommendedLabel, recommendedCount, recommendedPreset)}
+          </button>
+        </div>
+      )}
     </article>
   );
+}
+
+function getAdvisorSnapshotActionLabel(
+  recommendedLabel: string,
+  recommendedCount: number,
+  recommendedPreset: TaskListPreset,
+): string {
+  if (recommendedPreset === 'all_open') {
+    return `Open Tasks (${recommendedCount})`;
+  }
+
+  return `Open ${recommendedLabel} (${recommendedCount})`;
 }
 
 function ReviewActionCard({

@@ -118,7 +118,7 @@ describe('TaskDashboard', () => {
     expect(within(taskList).getByText('Give the backlog item a real bucket')).toBeInTheDocument();
     expect(within(taskList).queryByText('Stop carrying this task in Today')).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: /carry over/i }));
+    fireEvent.click(within(taskList).getByRole('button', { name: /carry over/i }));
     expect(within(taskList).getByText('Stop carrying this task in Today')).toBeInTheDocument();
     expect(within(taskList).queryByText('Recover the overdue commitment')).not.toBeInTheDocument();
 
@@ -290,9 +290,8 @@ describe('TaskDashboard', () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: /carry over/i }));
-
     const taskList = screen.getByLabelText('Task list');
+    fireEvent.click(within(taskList).getByRole('button', { name: /carry over/i }));
     expect(screen.getByText('Scoped to Prioritization')).toBeInTheDocument();
     expect(within(taskList).getByText('Rebucket the stale prioritization today task')).toBeInTheDocument();
     expect(within(taskList).queryByText('Therapy carry-over should stay hidden')).not.toBeInTheDocument();
@@ -677,5 +676,60 @@ describe('TaskDashboard', () => {
     expect(timeline).not.toBeNull();
     expect(within(timeline as HTMLElement).getByText(state.advisors.fitness.tasks[0]!.task)).toBeInTheDocument();
     expect(within(timeline as HTMLElement).queryByText(state.advisors.therapist.tasks[0]!.task)).not.toBeInTheDocument();
+  });
+
+  it('opens an advisor-scoped planner lane from weekly review advisor signals', () => {
+    const state = createDefaultAppState();
+    const currentDate = today();
+
+    state.advisors.prioritization.activated = true;
+    state.advisors.therapist.activated = true;
+    state.advisors.prioritization.tasks = [
+      {
+        id: 'prio-carry',
+        task: 'Rebucket the stale prioritization today task',
+        dueDate: addDays(currentDate, 2),
+        priority: 'medium',
+        status: 'open',
+        createdDate: addDays(currentDate, -3),
+      },
+    ];
+    state.advisors.therapist.tasks = [
+      {
+        id: 'therapy-later',
+        task: 'Therapy task should stay hidden from the review handoff',
+        dueDate: addDays(currentDate, 3),
+        priority: 'medium',
+        status: 'open',
+        createdDate: addDays(currentDate, -2),
+      },
+    ];
+    state.taskPlanning['prioritization:prio-carry'] = {
+      advisorId: 'prioritization',
+      taskId: 'prio-carry',
+      bucket: 'today',
+      updatedAt: `${addDays(currentDate, -1)}T09:00:00.000Z`,
+    };
+    state.taskPlanning['therapist:therapy-later'] = {
+      advisorId: 'therapist',
+      taskId: 'therapy-later',
+      bucket: 'later',
+      updatedAt: `${currentDate}T10:00:00.000Z`,
+    };
+
+    useAppState.mockReturnValue({
+      state,
+      dispatch: vi.fn(),
+    });
+
+    render(<TaskDashboard />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open Carry Over (1)' }));
+
+    const taskList = screen.getByLabelText('Task list');
+    expect(screen.getByText('Scoped to Prioritization')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Viewing Carry Over' })).toBeInTheDocument();
+    expect(within(taskList).getByText('Rebucket the stale prioritization today task')).toBeInTheDocument();
+    expect(within(taskList).queryByText('Therapy task should stay hidden from the review handoff')).not.toBeInTheDocument();
   });
 });
