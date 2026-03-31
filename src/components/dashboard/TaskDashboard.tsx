@@ -168,6 +168,9 @@ export function TaskDashboard({ navigationRequest = null }: TaskDashboardProps) 
     && scopedAdvisorAttentionItem.status !== 'steady'
     && !showAttentionHandoff
     && scopedAdvisorActionLabel !== null;
+  const scopedAdvisorAlternativePresets = showScopedAdvisorContext
+    ? taskListPresets.filter(preset => preset.count > 0 && preset.key !== taskListPreset)
+    : [];
 
   const applyTaskListPreset = (
     preset: TaskListPreset,
@@ -481,6 +484,26 @@ export function TaskDashboard({ navigationRequest = null }: TaskDashboardProps) 
                 <p className="mt-2 text-xs text-blue-100/80">
                   {formatScopedAdvisorStatusLine(scopedAdvisorAttentionItem)}
                 </p>
+                {scopedAdvisorAlternativePresets.length > 0 && (
+                  <div className="mt-3">
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-blue-100/70">
+                      Other scoped lanes
+                    </p>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {scopedAdvisorAlternativePresets.map(preset => (
+                        <button
+                          key={`scoped:${preset.key}`}
+                          type="button"
+                          aria-label={`Open ${preset.label} lane`}
+                          onClick={() => applyTaskListPreset(preset.key)}
+                          className="rounded-lg border border-blue-300/20 bg-gray-950/60 px-3 py-2 text-sm text-blue-100 transition-colors hover:border-blue-200/40 hover:text-white"
+                        >
+                          {preset.label} ({preset.count})
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
               {scopedAdvisorActionLabel && (
                 <button

@@ -551,4 +551,88 @@ describe('TaskDashboard', () => {
     expect(screen.getByText('Quick Log')).toBeInTheDocument();
     expect(screen.getByText('Fitness')).toBeInTheDocument();
   });
+
+  it('lets scoped advisor context pivot into another non-empty lane without a handoff banner', () => {
+    const state = createDefaultAppState();
+    const currentDate = today();
+
+    state.advisors.fitness.activated = true;
+    state.advisors.therapist.activated = true;
+    state.advisors.fitness.lastSessionDate = addDays(currentDate, -2);
+    state.advisors.fitness.nextDueDate = addDays(currentDate, 5);
+    state.advisors.fitness.tasks = [
+      {
+        id: 'fitness-check-in',
+        task: 'Capture the current training signal',
+        dueDate: addDays(currentDate, 3),
+        priority: 'medium',
+        status: 'open',
+        createdDate: addDays(currentDate, -2),
+      },
+      {
+        id: 'fitness-carry',
+        task: 'Rebucket the stale fitness today task',
+        dueDate: addDays(currentDate, 2),
+        priority: 'high',
+        status: 'open',
+        createdDate: addDays(currentDate, -4),
+      },
+    ];
+    state.advisors.therapist.tasks = [
+      {
+        id: 'therapy-carry',
+        task: 'Therapy carry-over should stay hidden from the scoped advisor pivot',
+        dueDate: addDays(currentDate, 2),
+        priority: 'medium',
+        status: 'open',
+        createdDate: addDays(currentDate, -4),
+      },
+    ];
+    state.taskPlanning['fitness:fitness-check-in'] = {
+      advisorId: 'fitness',
+      taskId: 'fitness-check-in',
+      bucket: 'later',
+      updatedAt: `${currentDate}T09:00:00.000Z`,
+    };
+    state.taskPlanning['fitness:fitness-carry'] = {
+      advisorId: 'fitness',
+      taskId: 'fitness-carry',
+      bucket: 'today',
+      updatedAt: `${addDays(currentDate, -1)}T09:00:00.000Z`,
+    };
+    state.taskPlanning['therapist:therapy-carry'] = {
+      advisorId: 'therapist',
+      taskId: 'therapy-carry',
+      bucket: 'today',
+      updatedAt: `${addDays(currentDate, -1)}T10:00:00.000Z`,
+    };
+
+    useAppState.mockReturnValue({
+      state,
+      dispatch: vi.fn(),
+    });
+
+    render(
+      <TaskDashboard
+        navigationRequest={{
+          requestKey: 'advisor-route-7',
+          advisorId: 'fitness',
+        }}
+      />,
+    );
+
+    const taskList = screen.getByLabelText('Task list');
+
+    expect(screen.getByText('Advisor Context')).toBeInTheDocument();
+    expect(screen.queryByText('Attention Radar Handoff')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Open Carry Over lane' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open Carry Over lane' }));
+
+    expect(screen.getByText('Scoped to Fitness')).toBeInTheDocument();
+    expect(screen.getByText('Tasks for Fitness still sitting in Today from an earlier sweep.')).toBeInTheDocument();
+    expect(within(taskList).getByText('Rebucket the stale fitness today task')).toBeInTheDocument();
+    expect(within(taskList).queryByText('Capture the current training signal')).not.toBeInTheDocument();
+    expect(within(taskList).queryByText('Therapy carry-over should stay hidden from the scoped advisor pivot')).not.toBeInTheDocument();
+  });
 });
