@@ -46,6 +46,8 @@ For recent-activity timeline changes, verify the derivation boundary instead of 
 
 For advisor-attention changes, verify the action routing as well as the ranking: cadence pressure should beat purely presentational “quiet” states, task-triage nudges should open the task board, quick-log nudges should open the quick-log modal, and schedule nudges should still degrade cleanly when scheduling is disabled.
 
+For advisor-to-planner routing changes, verify the handoff rather than adding new planner state: advisor-attention task nudges should open the weekly LAB on the expected preset and keep the advisor scope applied until the user intentionally clears it.
+
 Date-only values in the UI are local calendar dates. Do not derive a `YYYY-MM-DD` value with `toISOString().split('T')[0]` when the user-facing intent is "today" or a local date input, because that silently shifts dates across timezones.
 
 For Google Calendar lifecycle changes, verify both directions: connecting should sync already-scheduled future sessions, and disconnecting should clear session sync metadata without leaving stale "synced" state in app data.

@@ -51,6 +51,7 @@ The durable product baseline is a planning-first "Life Advisory Board" app:
 - a weekly momentum digest plus a recent-activity timeline derived from completed tasks, sessions, quick logs, and completed planning/review rituals
 - the weekly review now includes a deterministic recap built from those same signals, compressing wins, active advisors, unfinished pressure, and next-week focus without a second summary store
 - the weekly-first planner task list now derives a single recommended next move from canonical triage, carry-over, overdue, and weekly-focus signals so the next sweep is obvious without a second planner model
+- advisor attention nudges can now jump directly into the relevant weekly LAB lane for that advisor instead of reopening a generic task list
 - scheduled advisory sessions with optional one-way Google Calendar sync and an explicit manual sync-health repair action
 
 ## Durable Boundaries

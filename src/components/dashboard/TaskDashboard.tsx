@@ -1,13 +1,19 @@
 import { useState } from 'react';
 import { useAuth } from '../../auth/auth-context';
 import type { AdvisorId } from '../../types/advisor';
+import type {
+  TaskDashboardNavigationRequest,
+  TaskListPreset,
+} from '../../types/dashboard-navigation';
 import { useAppState } from '../../state/app-context';
 import { ScheduleModal } from '../scheduling/ScheduleModal';
 import type { TaskPlanningBucket } from '../../types/task-planning';
 import {
+  selectRecentActivitySummary,
   selectAllHabits,
   selectAllTaskItems,
   selectDailyPlanningSummary,
+  type RecentActivityWindow,
   selectWeeklyFocusSummary,
   selectTaskPlanningSummary,
   selectWeeklyReviewSummary,
@@ -18,13 +24,13 @@ import { today } from '../../utils/date';
 import { TaskPlanningBoard } from './TaskPlanningBoard';
 import { TaskRow } from './TaskRow';
 import { DailyPlanningCard } from './DailyPlanningCard';
+import { RecentActivityTimeline } from './RecentActivityTimeline';
 import { WeeklyFocusCard } from './WeeklyFocusCard';
 import { WeeklyReviewCard } from './WeeklyReviewCard';
 
 type StatusFilter = 'open' | 'completed' | 'all';
 type PriorityFilter = 'all' | 'high' | 'medium' | 'low';
 type PlanningFilter = 'all' | 'planned' | 'unplanned';
-type TaskListPreset = 'all_open' | 'needs_triage' | 'carry_over' | 'overdue' | 'weekly_focus';
 type TaskListPresetMeta = {
   key: TaskListPreset;
   label: string;
@@ -32,7 +38,19 @@ type TaskListPresetMeta = {
   description: string;
 };
 
-export function TaskDashboard() {
+interface TaskDashboardProps {
+  navigationRequest?: TaskDashboardNavigationRequest | null;
+}
+
+export function TaskDashboard({ navigationRequest = null }: TaskDashboardProps) {
+  const initialTaskListPreset = navigationRequest?.taskListPreset ?? 'all_open';
+  const initialAdvisorFilter = navigationRequest?.advisorId ?? 'all';
+  const initialPlanningFilter: PlanningFilter =
+    initialTaskListPreset === 'needs_triage'
+      ? 'unplanned'
+      : initialTaskListPreset === 'carry_over'
+        ? 'planned'
+        : 'all';
   const { profile } = useAuth();
   const { state, dispatch } = useAppState();
   const allItems = selectAllTaskItems(state);
@@ -44,12 +62,14 @@ export function TaskDashboard() {
   const focusKeys = new Set(focus.items.map(item => `${item.advisorId}:${item.id}`));
 
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('open');
-  const [advisorFilter, setAdvisorFilter] = useState<AdvisorId | 'all'>('all');
+  const [advisorFilter, setAdvisorFilter] = useState<AdvisorId | 'all'>(initialAdvisorFilter);
   const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>('all');
-  const [planningFilter, setPlanningFilter] = useState<PlanningFilter>('all');
-  const [taskListPreset, setTaskListPreset] = useState<TaskListPreset>('all_open');
+  const [planningFilter, setPlanningFilter] = useState<PlanningFilter>(initialPlanningFilter);
+  const [taskListPreset, setTaskListPreset] = useState<TaskListPreset>(initialTaskListPreset);
+  const [activityWindow, setActivityWindow] = useState<RecentActivityWindow>('last_7_days');
   const [scheduleItem, setScheduleItem] = useState<EnrichedTaskItem | null>(null);
   const schedulingEnabled = profile?.schedulingEnabled ?? false;
+  const recentActivity = selectRecentActivitySummary(state, activityWindow);
   const now = today();
   const staleTodayKeys = new Set(review.staleToday.map(item => `${item.advisorId}:${item.id}`));
 
@@ -113,10 +133,13 @@ export function TaskDashboard() {
     ? getRecommendedPresetReason(recommendedPreset.key)
     : null;
 
-  const applyTaskListPreset = (preset: TaskListPreset) => {
+  const applyTaskListPreset = (
+    preset: TaskListPreset,
+    advisorScope: AdvisorId | 'all' = 'all',
+  ) => {
     setTaskListPreset(preset);
     setStatusFilter('open');
-    setAdvisorFilter('all');
+    setAdvisorFilter(advisorScope);
     setPriorityFilter('all');
     setPlanningFilter(preset === 'needs_triage' ? 'unplanned' : preset === 'carry_over' ? 'planned' : 'all');
   };
@@ -295,6 +318,12 @@ export function TaskDashboard() {
         schedulingEnabled={schedulingEnabled}
       />
 
+      <RecentActivityTimeline
+        summary={recentActivity}
+        selectedWindow={activityWindow}
+        onSelectWindow={setActivityWindow}
+      />
+
       <WeeklyFocusCard
         summary={focus}
         onAddFocusTask={handleAddWeeklyFocusTask}
@@ -352,6 +381,11 @@ export function TaskDashboard() {
             <p className="mt-1 max-w-2xl text-sm text-gray-500">
               {selectedPreset.description}
             </p>
+            {advisorFilter !== 'all' && (
+              <p className="mt-2 text-xs uppercase tracking-wide text-gray-500">
+                Scoped to {ADVISOR_CONFIGS[advisorFilter].shortName}
+              </p>
+            )}
           </div>
 
           <div className="flex flex-wrap gap-2">

@@ -177,4 +177,54 @@ describe('TaskDashboard', () => {
     const taskList = screen.getByLabelText('Task list');
     expect(within(taskList).getByText('Move the weekly focus item forward')).toBeInTheDocument();
   });
+
+  it('applies routed advisor-specific task lane requests without creating new filter state', () => {
+    const state = createDefaultAppState();
+    const currentDate = today();
+
+    state.advisors.prioritization.activated = true;
+    state.advisors.therapist.activated = true;
+    state.advisors.prioritization.tasks = [
+      {
+        id: 'prio-triage',
+        task: 'Give prioritization a queue home',
+        dueDate: addDays(currentDate, 1),
+        priority: 'high',
+        status: 'open',
+        createdDate: addDays(currentDate, -1),
+      },
+    ];
+    state.advisors.therapist.tasks = [
+      {
+        id: 'therapy-triage',
+        task: 'Give therapy a queue home',
+        dueDate: addDays(currentDate, 1),
+        priority: 'medium',
+        status: 'open',
+        createdDate: addDays(currentDate, -1),
+      },
+    ];
+
+    useAppState.mockReturnValue({
+      state,
+      dispatch: vi.fn(),
+    });
+
+    render(
+      <TaskDashboard
+        navigationRequest={{
+          requestKey: 'advisor-route-1',
+          advisorId: 'prioritization',
+          taskListPreset: 'needs_triage',
+        }}
+      />,
+    );
+
+    const taskList = screen.getByLabelText('Task list');
+
+    expect(screen.getByText('Scoped to Prioritization')).toBeInTheDocument();
+    expect(within(taskList).getByText('Give prioritization a queue home')).toBeInTheDocument();
+    expect(within(taskList).queryByText('Give therapy a queue home')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Viewing Needs Triage' })).toBeInTheDocument();
+  });
 });

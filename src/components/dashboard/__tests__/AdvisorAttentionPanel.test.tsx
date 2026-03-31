@@ -103,6 +103,9 @@ describe('AdvisorAttentionPanel', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Review tasks' }));
 
-    expect(onOpenTasks).toHaveBeenCalledTimes(1);
+    expect(onOpenTasks).toHaveBeenCalledWith({
+      advisorId: 'prioritization',
+      taskListPreset: 'needs_triage',
+    });
   });
 });

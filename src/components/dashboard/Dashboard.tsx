@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useAuth } from '../../auth/auth-context';
 import { useAppState } from '../../state/app-context';
 import {
@@ -9,30 +10,81 @@ import {
 } from '../../state/selectors';
 import { ADVISOR_CONFIGS } from '../../advisors/registry';
 import type { AdvisorId } from '../../types/advisor';
+import type {
+  DashboardNavigationState,
+  DashboardTab,
+  TaskDashboardNavigationRequest,
+} from '../../types/dashboard-navigation';
 import { AdvisorCardGrid } from './AdvisorCardGrid';
 import { AdvisorAttentionPanel } from './AdvisorAttentionPanel';
 import { TaskDashboard } from './TaskDashboard';
 import { CalendarView } from './CalendarView';
 import { DailyLogButton } from './DailyLogButton';
-
-type DashboardTab = 'advisors' | 'tasks' | 'calendar';
+import { StrategicPlannerPanel } from './StrategicPlannerPanel';
 
 export function Dashboard() {
+  const location = useLocation();
+  const navigationState = location.state as DashboardNavigationState | null;
+  const dashboard = navigationState?.dashboard;
+
+  return (
+    <DashboardView
+      key={location.key}
+      initialActiveTab={dashboard?.tab ?? 'week'}
+      initialTaskNavigationRequest={
+        dashboard?.taskList
+          ? {
+              ...dashboard.taskList,
+              requestKey: location.key,
+            }
+          : null
+      }
+    />
+  );
+}
+
+function DashboardView({
+  initialActiveTab,
+  initialTaskNavigationRequest,
+}: {
+  initialActiveTab: DashboardTab;
+  initialTaskNavigationRequest: TaskDashboardNavigationRequest | null;
+}) {
   const { profile } = useAuth();
   const { state, dispatch } = useAppState();
-  const [activeTab, setActiveTab] = useState<DashboardTab>('advisors');
+  const [activeTab, setActiveTab] = useState<DashboardTab>(initialActiveTab);
+  const [taskNavigationRequest, setTaskNavigationRequest] =
+    useState<TaskDashboardNavigationRequest | null>(initialTaskNavigationRequest);
+  const requestCounterRef = useRef(0);
   const sortedAdvisors = selectAdvisorsWithPinnedOrder(state);
   const inactiveAdvisors = selectInactiveAdvisorIds(state);
   const allOpenItems = selectAllOpenTasks(state);
   const attention = selectAdvisorAttentionSummary(state);
   const schedulingEnabled = profile?.schedulingEnabled ?? false;
 
+  const handleOpenTasks = (
+    request?: Omit<TaskDashboardNavigationRequest, 'requestKey'>,
+  ) => {
+    setActiveTab('week');
+
+    if (!request) {
+      setTaskNavigationRequest(null);
+      return;
+    }
+
+    requestCounterRef.current += 1;
+    setTaskNavigationRequest({
+      ...request,
+      requestKey: `dashboard-${requestCounterRef.current}`,
+    });
+  };
+
   return (
     <div>
       {/* Section header */}
       <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
         <div>
-          <h2 className="text-lg font-semibold text-gray-100">Your Advisors</h2>
+          <h2 className="text-lg font-semibold text-gray-100">Weekly LAB</h2>
           <p className="text-sm text-gray-500 mt-0.5">
             {allOpenItems.length} open tasks across all domains
           </p>
@@ -40,7 +92,7 @@ export function Dashboard() {
         <div className="flex items-center gap-3">
           <DailyLogButton />
           <div className="flex gap-1 bg-gray-900 rounded-lg p-1">
-            {(['advisors', 'tasks', 'calendar'] as DashboardTab[]).map(tab => (
+            {(['week', 'advisors', 'calendar'] as DashboardTab[]).map(tab => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -50,7 +102,7 @@ export function Dashboard() {
                     : 'text-gray-500 hover:text-gray-300'
                 }`}
               >
-                {tab === 'advisors' ? 'Advisors' : tab === 'tasks' ? 'Tasks' : 'Calendar'}
+                {tab === 'week' ? 'Week' : tab === 'advisors' ? 'Advisors' : 'Calendar'}
               </button>
             ))}
           </div>
@@ -58,11 +110,20 @@ export function Dashboard() {
       </div>
 
       {/* Tab content */}
+      {activeTab === 'week' && (
+        <div className="space-y-6">
+          <StrategicPlannerPanel />
+          <TaskDashboard
+            key={taskNavigationRequest?.requestKey ?? 'task-dashboard'}
+            navigationRequest={taskNavigationRequest}
+          />
+        </div>
+      )}
       {activeTab === 'advisors' && (
         <>
           <AdvisorAttentionPanel
             summary={attention}
-            onOpenTasks={() => setActiveTab('tasks')}
+            onOpenTasks={handleOpenTasks}
             schedulingEnabled={schedulingEnabled}
           />
 
@@ -97,7 +158,6 @@ export function Dashboard() {
           )}
         </>
       )}
-      {activeTab === 'tasks' && <TaskDashboard />}
       {activeTab === 'calendar' && <CalendarView />}
     </div>
   );

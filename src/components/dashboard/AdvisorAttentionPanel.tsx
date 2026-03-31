@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { AdvisorId } from '../../types/advisor';
+import type { TaskDashboardNavigationRequest } from '../../types/dashboard-navigation';
 import type { AdvisorAttentionItem, AdvisorAttentionSummary } from '../../state/selectors';
 import { QuickLogModal } from '../quick-log/QuickLogModal';
 import { ScheduleModal } from '../scheduling/ScheduleModal';
@@ -8,7 +9,9 @@ import { formatDate, formatDaysAgo } from '../../utils/date';
 
 interface AdvisorAttentionPanelProps {
   summary: AdvisorAttentionSummary;
-  onOpenTasks: () => void;
+  onOpenTasks: (
+    request?: Omit<TaskDashboardNavigationRequest, 'requestKey'>,
+  ) => void;
   schedulingEnabled: boolean;
 }
 
@@ -45,7 +48,10 @@ export function AdvisorAttentionPanel({
     }
 
     if (item.primaryAction === 'plan') {
-      onOpenTasks();
+      onOpenTasks({
+        advisorId: item.advisorId,
+        taskListPreset: getPlanningPreset(item),
+      });
       return;
     }
 
@@ -98,7 +104,7 @@ export function AdvisorAttentionPanel({
               </p>
             </div>
             <button
-              onClick={onOpenTasks}
+              onClick={() => onOpenTasks()}
               className="rounded-lg border border-gray-700 px-3 py-2 text-xs font-medium text-gray-300 transition-colors hover:border-gray-600 hover:text-gray-100"
             >
               Open task board
@@ -150,6 +156,14 @@ export function AdvisorAttentionPanel({
       )}
     </section>
   );
+}
+
+function getPlanningPreset(item: AdvisorAttentionItem): TaskDashboardNavigationRequest['taskListPreset'] {
+  if (item.overdueOpen > 0) {
+    return 'overdue';
+  }
+
+  return 'needs_triage';
 }
 
 function AttentionCard({
