@@ -748,7 +748,7 @@ describe('selectAdvisorAttentionSummary', () => {
     expect(summary.items.find(item => item.advisorId === 'prioritization')?.primaryAction).toBe('plan');
     expect(summary.items.find(item => item.advisorId === 'fitness')?.primaryAction).toBe('quick_log');
     expect(summary.scheduleCount).toBe(1);
-    expect(summary.planCount).toBe(1);
+    expect(summary.planCount).toBe(2);
     expect(summary.quickLogCount).toBe(1);
   });
 });

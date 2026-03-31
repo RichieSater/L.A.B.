@@ -1735,7 +1735,8 @@ export function selectAdvisorAttentionSummary(
     items,
     needsAttentionCount: items.filter(item => item.status !== 'steady').length,
     scheduleCount: items.filter(item => item.primaryAction === 'schedule').length,
-    planCount: items.filter(item => item.primaryAction === 'plan').length,
+    // Queue pressure can coexist with schedule/log nudges, so count any card that can open a live planner lane.
+    planCount: items.filter(item => item.planningPreset !== null).length,
     quickLogCount: items.filter(item => item.primaryAction === 'quick_log').length,
     quietCount: items.filter(item => item.status === 'steady').length,
   };

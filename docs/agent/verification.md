@@ -60,6 +60,7 @@ For recent-activity planner routing, verify advisor-linked entries only show pla
 For recent-activity timeline changes, verify the derivation boundary instead of inventing a new record source: completed tasks, recorded sessions, quick logs, and completed daily/weekly rituals should all appear in the correct window, the `today`, `last 7 days`, and `this week` filters should change the feed deterministically, and empty windows should degrade to a clear zero-state instead of stale activity.
 
 For advisor-attention changes, verify the action routing as well as the ranking: cadence pressure should beat purely presentational “quiet” states, task-triage nudges should open the task board, quick-log nudges should open the quick-log modal, and schedule nudges should still degrade cleanly when scheduling is disabled.
+For advisor-attention radar summary counts, verify `Queue Decisions` reflects any advisor that currently exposes a live planner lane, including schedule-first or quick-log-first cards with Weekly LAB shortcuts.
 
 For advisor-to-planner routing changes, verify the handoff rather than adding new planner state: advisor-attention task nudges should open the weekly LAB on the expected preset and keep the advisor scope applied until the user intentionally clears it.
 For advisor-detail planner-routing changes, verify the planning-context CTA opens the weekly LAB on the recommended advisor-scoped preset and that any adjacent lane shortcuts keep the same advisor scope instead of falling back to the generic task list.

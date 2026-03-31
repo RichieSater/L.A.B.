@@ -117,7 +117,7 @@ function makeSummary(
     ],
     needsAttentionCount: 2,
     scheduleCount: 1,
-    planCount: 1,
+    planCount: 2,
     quickLogCount: 0,
     quietCount: 1,
     ...overrides,
@@ -142,6 +142,11 @@ describe('AdvisorAttentionPanel', () => {
     expect(screen.getByText('Session cadence slipped')).toBeInTheDocument();
     expect(screen.getByText('Queue needs a decision')).toBeInTheDocument();
     expect(screen.getByText('Stable Right Now')).toBeInTheDocument();
+    const queueDecisionsStat = screen.getByText('Queue Decisions').closest('div');
+    if (!queueDecisionsStat) {
+      throw new Error('Expected queue decisions stat.');
+    }
+    expect(within(queueDecisionsStat).getByText('2')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Open Needs Triage' }));
 
