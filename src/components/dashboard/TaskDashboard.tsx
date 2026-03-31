@@ -24,6 +24,7 @@ import { WeeklyReviewCard } from './WeeklyReviewCard';
 type StatusFilter = 'open' | 'completed' | 'all';
 type PriorityFilter = 'all' | 'high' | 'medium' | 'low';
 type PlanningFilter = 'all' | 'planned' | 'unplanned';
+type TaskListPreset = 'all_open' | 'needs_triage' | 'carry_over' | 'overdue' | 'weekly_focus';
 
 export function TaskDashboard() {
   const { profile } = useAuth();
@@ -40,8 +41,11 @@ export function TaskDashboard() {
   const [advisorFilter, setAdvisorFilter] = useState<AdvisorId | 'all'>('all');
   const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>('all');
   const [planningFilter, setPlanningFilter] = useState<PlanningFilter>('all');
+  const [taskListPreset, setTaskListPreset] = useState<TaskListPreset>('all_open');
   const [scheduleItem, setScheduleItem] = useState<EnrichedTaskItem | null>(null);
   const schedulingEnabled = profile?.schedulingEnabled ?? false;
+  const now = today();
+  const staleTodayKeys = new Set(review.staleToday.map(item => `${item.advisorId}:${item.id}`));
 
   const filtered = allItems.filter(item => {
     if (statusFilter === 'open' && item.status !== 'open') return false;
@@ -50,16 +54,71 @@ export function TaskDashboard() {
     if (priorityFilter !== 'all' && item.priority !== priorityFilter) return false;
     if (planningFilter === 'planned' && !item.planningBucket) return false;
     if (planningFilter === 'unplanned' && !!item.planningBucket) return false;
+    if (taskListPreset === 'carry_over' && !staleTodayKeys.has(`${item.advisorId}:${item.id}`)) return false;
+    if (taskListPreset === 'overdue' && (item.status !== 'open' || item.dueDate === 'ongoing' || item.dueDate >= now)) return false;
+    if (taskListPreset === 'weekly_focus' && (item.status !== 'open' || !focusKeys.has(`${item.advisorId}:${item.id}`))) return false;
     return true;
   });
 
-  const now = today();
   const overdueCount = allItems.filter(
     i => i.status === 'open' && i.dueDate !== 'ongoing' && i.dueDate < now,
   ).length;
   const openCount = allItems.filter(i => i.status === 'open').length;
   const plannedCount = planning.totalPlanned;
   const focusCount = focus.items.length;
+  const taskListPresets: Array<{
+    key: TaskListPreset;
+    label: string;
+    count: number;
+    description: string;
+  }> = [
+    {
+      key: 'all_open',
+      label: 'All Open',
+      count: openCount,
+      description: 'Every open canonical task across the LAB.',
+    },
+    {
+      key: 'needs_triage',
+      label: 'Needs Triage',
+      count: planning.unplanned.length,
+      description: 'Open tasks that still need a real queue bucket.',
+    },
+    {
+      key: 'carry_over',
+      label: 'Carry Over',
+      count: review.staleToday.length,
+      description: 'Tasks still sitting in Today from an earlier sweep.',
+    },
+    {
+      key: 'overdue',
+      label: 'Overdue',
+      count: overdueCount,
+      description: 'Open work whose due date already slipped.',
+    },
+    {
+      key: 'weekly_focus',
+      label: 'Weekly Focus',
+      count: focus.openCount,
+      description: 'Committed focus tasks that still need movement.',
+    },
+  ];
+
+  const selectedPreset =
+    taskListPresets.find(preset => preset.key === taskListPreset)
+    ?? taskListPresets[0];
+
+  const applyTaskListPreset = (preset: TaskListPreset) => {
+    setTaskListPreset(preset);
+    setStatusFilter('open');
+    setAdvisorFilter('all');
+    setPriorityFilter('all');
+    setPlanningFilter(preset === 'needs_triage' ? 'unplanned' : preset === 'carry_over' ? 'planned' : 'all');
+  };
+
+  const clearTaskListPreset = () => {
+    setTaskListPreset('all_open');
+  };
 
   const handleToggle = (advisorId: string, taskId: string) => {
     const item = allItems.find(i => i.id === taskId && i.advisorId === advisorId);
@@ -252,14 +311,52 @@ export function TaskDashboard() {
         schedulingEnabled={schedulingEnabled}
       />
 
-      {/* Filters */}
-      <div className="flex flex-wrap gap-4 mb-4">
+      <section aria-label="Task list" className="mt-6">
+        <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h3 className="text-sm font-semibold uppercase tracking-wide text-gray-300">Task List</h3>
+            <p className="mt-1 max-w-2xl text-sm text-gray-500">
+              {selectedPreset.description}
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            {taskListPresets.map(preset => {
+              const disabled = preset.key !== 'all_open' && preset.count === 0;
+              return (
+                <button
+                  key={preset.key}
+                  type="button"
+                  disabled={disabled}
+                  aria-pressed={taskListPreset === preset.key}
+                  onClick={() => applyTaskListPreset(preset.key)}
+                  className={`rounded-lg border px-3 py-2 text-left transition-colors ${
+                    taskListPreset === preset.key
+                      ? 'border-gray-200 bg-gray-100 text-gray-950'
+                      : disabled
+                        ? 'cursor-not-allowed border-gray-800 bg-gray-950/60 text-gray-600'
+                        : 'border-gray-800 bg-gray-950/80 text-gray-300 hover:border-gray-700 hover:text-gray-100'
+                  }`}
+                >
+                  <div className="text-xs font-semibold uppercase tracking-wide">{preset.label}</div>
+                  <div className="mt-1 text-sm">{preset.count}</div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Filters */}
+        <div className="mb-4 flex flex-wrap gap-4">
         {/* Status filter */}
         <div className="flex gap-1">
           {(['open', 'completed', 'all'] as StatusFilter[]).map(f => (
             <button
               key={f}
-              onClick={() => setStatusFilter(f)}
+              onClick={() => {
+                clearTaskListPreset();
+                setStatusFilter(f);
+              }}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                 statusFilter === f
                   ? 'bg-gray-700 text-gray-200'
@@ -274,7 +371,10 @@ export function TaskDashboard() {
         {/* Advisor filter */}
         <div className="flex gap-1">
           <button
-            onClick={() => setAdvisorFilter('all')}
+            onClick={() => {
+              clearTaskListPreset();
+              setAdvisorFilter('all');
+            }}
             className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
               advisorFilter === 'all'
                 ? 'bg-gray-700 text-gray-200'
@@ -288,7 +388,10 @@ export function TaskDashboard() {
             return (
               <button
                 key={id}
-                onClick={() => setAdvisorFilter(id)}
+                onClick={() => {
+                  clearTaskListPreset();
+                  setAdvisorFilter(id);
+                }}
                 className={`px-2 py-1.5 rounded-lg text-xs transition-colors ${
                   advisorFilter === id
                     ? 'bg-gray-700'
@@ -308,7 +411,10 @@ export function TaskDashboard() {
           {(['all', 'high', 'medium', 'low'] as PriorityFilter[]).map(f => (
             <button
               key={f}
-              onClick={() => setPriorityFilter(f)}
+              onClick={() => {
+                clearTaskListPreset();
+                setPriorityFilter(f);
+              }}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                 priorityFilter === f
                   ? 'bg-gray-700 text-gray-200'
@@ -324,7 +430,10 @@ export function TaskDashboard() {
           {(['all', 'planned', 'unplanned'] as PlanningFilter[]).map(f => (
             <button
               key={f}
-              onClick={() => setPlanningFilter(f)}
+              onClick={() => {
+                clearTaskListPreset();
+                setPlanningFilter(f);
+              }}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                 planningFilter === f
                   ? 'bg-gray-700 text-gray-200'
@@ -335,35 +444,36 @@ export function TaskDashboard() {
             </button>
           ))}
         </div>
-      </div>
+        </div>
 
-      {/* Task list */}
-      <div className="space-y-2">
-        {filtered.length === 0 ? (
-          <p className="text-sm text-gray-500 py-8 text-center">
-            No {statusFilter === 'all' ? '' : statusFilter + ' '}tasks
-            {advisorFilter !== 'all' ? ` from ${ADVISOR_CONFIGS[advisorFilter].shortName}` : ''}
-            {priorityFilter !== 'all' ? ` with ${priorityFilter} priority` : ''}.
-            {planningFilter === 'planned' ? ' Try the unplanned filter to triage backlog work.' : ''}
-            {planningFilter === 'unplanned' ? ' Every shown item still needs a queue bucket.' : ''}
-          </p>
-        ) : (
-          filtered.map(item => (
-            <TaskRow
-              key={`${item.advisorId}-${item.id}`}
-              item={item}
-              isInWeeklyFocus={focusKeys.has(`${item.advisorId}:${item.id}`)}
-              onToggleComplete={handleToggle}
-              onAddWeeklyFocus={handleAddWeeklyFocusTask}
-              onRemoveWeeklyFocus={handleRemoveWeeklyFocusTask}
-              onSetPlanBucket={handleSetPlanBucket}
-              onClearPlanBucket={handleClearPlanBucket}
-              onScheduleTask={setScheduleItem}
-              schedulingEnabled={schedulingEnabled}
-            />
-          ))
-        )}
-      </div>
+        {/* Task list */}
+        <div className="space-y-2">
+          {filtered.length === 0 ? (
+            <p className="text-sm text-gray-500 py-8 text-center">
+              No {statusFilter === 'all' ? '' : statusFilter + ' '}tasks
+              {advisorFilter !== 'all' ? ` from ${ADVISOR_CONFIGS[advisorFilter].shortName}` : ''}
+              {priorityFilter !== 'all' ? ` with ${priorityFilter} priority` : ''}.
+              {planningFilter === 'planned' ? ' Try the unplanned filter to triage backlog work.' : ''}
+              {planningFilter === 'unplanned' ? ' Every shown item still needs a queue bucket.' : ''}
+            </p>
+          ) : (
+            filtered.map(item => (
+              <TaskRow
+                key={`${item.advisorId}-${item.id}`}
+                item={item}
+                isInWeeklyFocus={focusKeys.has(`${item.advisorId}:${item.id}`)}
+                onToggleComplete={handleToggle}
+                onAddWeeklyFocus={handleAddWeeklyFocusTask}
+                onRemoveWeeklyFocus={handleRemoveWeeklyFocusTask}
+                onSetPlanBucket={handleSetPlanBucket}
+                onClearPlanBucket={handleClearPlanBucket}
+                onScheduleTask={setScheduleItem}
+                schedulingEnabled={schedulingEnabled}
+              />
+            ))
+          )}
+        </div>
+      </section>
 
       {scheduleItem && (
         <ScheduleModal
