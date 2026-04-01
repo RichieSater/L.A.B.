@@ -7,6 +7,9 @@ import {
   createDefaultDailyPlanningState,
   normalizeDailyPlanningState,
 } from '../types/daily-planning.js';
+import {
+  createDefaultStrategicDashboardState,
+} from '../types/strategic-dashboard.js';
 import { createDefaultWeeklyFocusState } from '../types/weekly-focus.js';
 import { createDefaultWeeklyReviewState, normalizeWeeklyReviewState } from '../types/weekly-review.js';
 import { createDefaultStrategicDashboardState } from '../types/strategic-dashboard.js';

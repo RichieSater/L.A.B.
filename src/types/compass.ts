@@ -1,6 +1,10 @@
-import type { StrategicCompassInsights } from './strategic-dashboard';
+export interface CompassInsights {
+  annualGoals: string[];
+  dailyRituals: string[];
+  supportPeople: string[];
+}
 
-export type CompassSessionStatus = 'in_progress' | 'completed';
+export type CompassSessionStatus = 'in_progress' | 'completed' | 'abandoned';
 
 export interface CompassSessionSummary {
   id: string;
@@ -12,5 +16,5 @@ export interface CompassSessionSummary {
   createdAt: string;
   updatedAt: string;
   completedAt: string | null;
-  insights: StrategicCompassInsights | null;
+  insights: CompassInsights | null;
 }

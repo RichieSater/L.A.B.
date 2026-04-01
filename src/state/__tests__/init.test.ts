@@ -61,6 +61,10 @@ describe('createDefaultAppState', () => {
     expect(state.weeklyReview).toEqual({
       entries: [],
     });
+    expect(state.strategicDashboard).toEqual({
+      years: [],
+      latestCompassInsights: null,
+    });
   });
 });
 
@@ -82,6 +86,10 @@ describe('loadAppStateFromStorage', () => {
     });
     expect(state.weeklyReview).toEqual({
       entries: [],
+    });
+    expect(state.strategicDashboard).toEqual({
+      years: [],
+      latestCompassInsights: null,
     });
   });
 

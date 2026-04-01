@@ -7,9 +7,7 @@ import type { QuickLogEntry } from '../types/quick-log';
 import type { TaskPlanningBucket } from '../types/task-planning';
 import type { DailyPlanningField } from '../types/daily-planning';
 import type { WeeklyReviewField } from '../types/weekly-review';
-import type {
-  StrategicDashboardSectionKey,
-} from '../types/strategic-dashboard';
+import type { StrategicDashboardSectionKey, StrategicWinField } from '../types/strategic-dashboard';
 
 export type AppAction =
   | { type: 'INITIALIZE'; payload: AppState }
@@ -47,7 +45,7 @@ export type AppAction =
     }
   | {
       type: 'SET_STRATEGIC_WIN';
-      payload: { year: number; field: 'currentWins' | 'previousWins'; index: number; value: string };
+      payload: { year: number; field: StrategicWinField; index: number; value: string };
     }
   | {
       type: 'PROMOTE_STRATEGIC_GOAL_TO_TASK';

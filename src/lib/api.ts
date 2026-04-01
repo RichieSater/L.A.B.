@@ -146,6 +146,10 @@ export const apiClient = {
   getGoogleCalendarConnection(): Promise<GoogleCalendarConnection> {
     return request<GoogleCalendarConnection>('/api/google-calendar/connection');
   },
+
+  listCompassSessions(): Promise<CompassSessionSummary[]> {
+    return request<CompassSessionSummary[]>('/api/compass-sessions');
+  },
 };
 
 export function isApiClientError(error: unknown): error is ApiClientError {
