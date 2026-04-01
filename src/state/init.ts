@@ -12,7 +12,6 @@ import {
 } from '../types/strategic-dashboard.js';
 import { createDefaultWeeklyFocusState } from '../types/weekly-focus.js';
 import { createDefaultWeeklyReviewState, normalizeWeeklyReviewState } from '../types/weekly-review.js';
-import { createDefaultStrategicDashboardState } from '../types/strategic-dashboard.js';
 
 export interface AppPersistence {
   loadAdvisorState(id: AdvisorId): Promise<AdvisorState | null>;

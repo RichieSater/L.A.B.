@@ -119,10 +119,6 @@ export const apiClient = {
     return request<ScheduledSession[]>('/api/scheduled-sessions');
   },
 
-  listCompassSessions(): Promise<CompassSessionSummary[]> {
-    return request<CompassSessionSummary[]>('/api/compass-sessions');
-  },
-
   createScheduledSession(input: CreateScheduledSessionInput): Promise<ScheduledSession> {
     return request<ScheduledSession>('/api/scheduled-sessions', {
       method: 'POST',
