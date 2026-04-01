@@ -1,4 +1,5 @@
 import { useParams, Navigate } from 'react-router-dom';
+import { ADVISORY_BOARD_PATH, getAdvisorPath } from '../constants/routes';
 import type { AdvisorId } from '../types/advisor';
 import { ADVISOR_CONFIGS } from '../advisors/registry';
 import { useAuth } from '../auth/auth-context';
@@ -12,7 +13,7 @@ export function SessionPage() {
   const { getUpcomingSession } = useScheduling();
 
   if (!advisorId || !ADVISOR_CONFIGS[advisorId as AdvisorId]) {
-    return <Navigate to="/" replace />;
+    return <Navigate to={ADVISORY_BOARD_PATH} replace />;
   }
 
   const id = advisorId as AdvisorId;
@@ -38,7 +39,7 @@ export function SessionPage() {
           </p>
         )}
         <a
-          href={`/advisor/${advisorId}`}
+          href={getAdvisorPath(advisorId)}
           className="inline-block mt-6 px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg text-sm text-gray-200 transition-colors"
         >
           Back to {config.shortName}

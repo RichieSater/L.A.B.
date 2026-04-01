@@ -112,6 +112,16 @@ function makeSummary(
         overdueOpen: 1,
         status: 'attention',
         note: '1 completed, 1 session, 1 quick log, but 1 overdue task still open.',
+        recommendedPreset: 'carry_over',
+        recommendedLabel: 'Carry Over',
+        recommendedCount: 1,
+        alternatePlanningShortcuts: [
+          {
+            preset: 'overdue',
+            label: 'Overdue',
+            count: 1,
+          },
+        ],
       },
       {
         advisorId: 'fitness',
@@ -126,6 +136,44 @@ function makeSummary(
         overdueOpen: 0,
         status: 'momentum',
         note: '1 completed, 1 quick log',
+        recommendedPreset: 'all_open',
+        recommendedLabel: 'Open Tasks',
+        recommendedCount: 2,
+        alternatePlanningShortcuts: [],
+      },
+    ],
+    recapSections: [
+      {
+        id: 'wins',
+        title: 'What moved',
+        description: 'Concrete wins from the week so the review starts from evidence.',
+        lines: ['Closed the therapist intake loop (Therapist)'],
+        emptyState: 'No completed task wins were captured this week yet.',
+        tone: 'success',
+      },
+      {
+        id: 'advisors',
+        title: 'Active domains',
+        description: 'Which advisors generated momentum or still need attention.',
+        lines: ['Therapist: 1 completed, 1 session, 1 quick log, but 1 overdue task still open.'],
+        emptyState: 'No advisor-specific movement is standing out yet.',
+        tone: 'primary',
+      },
+      {
+        id: 'pressure',
+        title: 'Unfinished pressure',
+        description: 'The queue or planning friction most likely to leak into next week.',
+        lines: ['Overdue planned: Rebook therapist session.'],
+        emptyState: 'The queue is balanced right now; there is no obvious spillover pressure.',
+        tone: 'attention',
+      },
+      {
+        id: 'focus',
+        title: 'Next week focus',
+        description: 'Deterministic prompts for what deserves the first planning decision next.',
+        lines: ['Resolve Rebook therapist session before adding fresh commitments.'],
+        emptyState: 'Protect momentum and schedule from the current Today bucket before adding more backlog.',
+        tone: 'neutral',
       },
     ],
     ...overrides,
@@ -137,6 +185,7 @@ describe('WeeklyReviewCard', () => {
     const onCompleteReview = vi.fn();
     const onSetPlanBucket = vi.fn();
     const onSetReviewField = vi.fn();
+    const onOpenAdvisorLane = vi.fn();
 
     render(
       <WeeklyReviewCard
@@ -149,6 +198,7 @@ describe('WeeklyReviewCard', () => {
         onSetPlanBucket={onSetPlanBucket}
         onClearPlanBucket={vi.fn()}
         onScheduleTask={vi.fn()}
+        onOpenAdvisorLane={onOpenAdvisorLane}
         schedulingEnabled={false}
       />,
     );
@@ -160,10 +210,16 @@ describe('WeeklyReviewCard', () => {
     expect(screen.getByText('Momentum Snapshot')).toBeInTheDocument();
     expect(screen.getByText('Closed the therapist intake loop')).toBeInTheDocument();
     expect(screen.getByText('Advisor Signals')).toBeInTheDocument();
+    expect(screen.getByText('Weekly Recap')).toBeInTheDocument();
+    expect(screen.getByText('What moved')).toBeInTheDocument();
+    expect(screen.getByText('Unfinished pressure')).toBeInTheDocument();
+    expect(screen.getByText('Resolve Rebook therapist session before adding fresh commitments.')).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText('Biggest win'), {
       target: { value: 'Finally closed the lingering therapist loop.' },
     });
+    fireEvent.click(screen.getByRole('button', { name: 'Open Carry Over (1)' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Overdue (1)' }));
     fireEvent.click(screen.getByRole('button', { name: 'Mark review done' }));
     fireEvent.click(screen.getAllByRole('button', { name: 'Today' })[0]);
 
@@ -172,6 +228,8 @@ describe('WeeklyReviewCard', () => {
       'biggestWin',
       'Finally closed the lingering therapist loop.',
     );
+    expect(onOpenAdvisorLane).toHaveBeenCalledWith('therapist', 'carry_over');
+    expect(onOpenAdvisorLane).toHaveBeenCalledWith('therapist', 'overdue');
     expect(onCompleteReview).toHaveBeenCalledWith('2026-03-29');
     expect(onSetPlanBucket).toHaveBeenCalledWith('therapist', 'task-1', 'today');
   });

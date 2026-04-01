@@ -87,6 +87,10 @@ describe('ensureUserRecords', () => {
         weeklyReview: {
           entries: [],
         },
+        strategicDashboard: {
+          years: [],
+          latestCompassInsights: null,
+        },
       },
     ]);
 

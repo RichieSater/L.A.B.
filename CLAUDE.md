@@ -12,11 +12,13 @@ This file mirrors the repo harness. The canonical source of truth lives in `docs
 
 ## Start Here
 
-- Read [docs/agent/index.md](docs/agent/index.md).
+- Read [docs/agent/current-state.md](docs/agent/current-state.md).
+- Read [docs/agent/roadmap.md](docs/agent/roadmap.md).
 - Use [docs/agent/project-map.md](docs/agent/project-map.md) to choose files to inspect first.
+- Check [docs/exec-plans/active/README.md](docs/exec-plans/active/README.md) for the current non-maintenance plan surface.
 - Use [docs/agent/workflows.md](docs/agent/workflows.md) for real commands.
 - Use [docs/agent/verification.md](docs/agent/verification.md) before closing work.
-- Put complex-task plans in [docs/exec-plans/active/README.md](docs/exec-plans/active/README.md).
+- Use [docs/agent/index.md](docs/agent/index.md) for the repo summary and read order.
 
 ## Inspect-First Paths
 
@@ -31,5 +33,6 @@ This file mirrors the repo harness. The canonical source of truth lives in `docs
 ## Mirror Rules
 
 - Do not create a second, divergent instruction system here.
+- If `harness validate .` is green and `current-state.md` says maintenance is closed, do not pick harness-only work as the next slice.
 - If repo structure changes, refresh the generated harness with `harness refresh .`.
 - Treat `docs/agent/` as canonical and this file as a thin entrypoint.

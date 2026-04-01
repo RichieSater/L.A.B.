@@ -1,14 +1,21 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { AdvisorId } from '../../types/advisor';
-import type { AdvisorAttentionItem, AdvisorAttentionSummary } from '../../state/selectors';
+import type { TaskDashboardNavigationRequest } from '../../types/dashboard-navigation';
+import type {
+  AdvisorAttentionItem,
+  AdvisorAttentionPlanningShortcut,
+  AdvisorAttentionSummary,
+} from '../../state/selectors';
 import { QuickLogModal } from '../quick-log/QuickLogModal';
 import { ScheduleModal } from '../scheduling/ScheduleModal';
 import { formatDate, formatDaysAgo } from '../../utils/date';
 
 interface AdvisorAttentionPanelProps {
   summary: AdvisorAttentionSummary;
-  onOpenTasks: () => void;
+  onOpenTasks: (
+    request?: Omit<TaskDashboardNavigationRequest, 'requestKey'>,
+  ) => void;
   schedulingEnabled: boolean;
 }
 
@@ -45,11 +52,38 @@ export function AdvisorAttentionPanel({
     }
 
     if (item.primaryAction === 'plan') {
-      onOpenTasks();
+      onOpenTasks({
+        advisorId: item.advisorId,
+        taskListPreset: getPlanningPreset(item),
+        attentionContext: {
+          advisorName: item.advisorName,
+          headline: item.headline,
+          reason: item.reason,
+          planningLabel: item.planningLabel,
+          planningCount: item.planningCount,
+        },
+      });
       return;
     }
 
     navigate(`/advisor/${item.advisorId}`);
+  };
+
+  const handleOpenPlannerLane = (
+    item: AdvisorAttentionItem,
+    shortcut?: AdvisorAttentionPlanningShortcut,
+  ) => {
+    onOpenTasks({
+      advisorId: item.advisorId,
+      taskListPreset: shortcut?.preset ?? getPlanningPreset(item),
+      attentionContext: {
+        advisorName: item.advisorName,
+        headline: shortcut?.headline ?? item.headline,
+        reason: shortcut?.reason ?? item.reason,
+        planningLabel: shortcut?.label ?? item.planningLabel,
+        planningCount: shortcut?.count ?? item.planningCount,
+      },
+    });
   };
 
   return (
@@ -82,6 +116,16 @@ export function AdvisorAttentionPanel({
               item={item}
               schedulingEnabled={schedulingEnabled}
               onPrimaryAction={() => handlePrimaryAction(item)}
+              onOpenPlannerLane={
+                item.primaryAction !== 'plan' && item.planningPreset && item.planningCount > 0
+                  ? () => handleOpenPlannerLane(item)
+                  : null
+              }
+              onOpenAlternatePlannerLane={
+                item.alternatePlanningShortcuts.length > 0
+                  ? shortcut => handleOpenPlannerLane(item, shortcut)
+                  : null
+              }
               onOpenAdvisor={() => navigate(`/advisor/${item.advisorId}`)}
             />
           ))}
@@ -98,7 +142,7 @@ export function AdvisorAttentionPanel({
               </p>
             </div>
             <button
-              onClick={onOpenTasks}
+              onClick={() => onOpenTasks()}
               className="rounded-lg border border-gray-700 px-3 py-2 text-xs font-medium text-gray-300 transition-colors hover:border-gray-600 hover:text-gray-100"
             >
               Open task board
@@ -152,15 +196,23 @@ export function AdvisorAttentionPanel({
   );
 }
 
+function getPlanningPreset(item: AdvisorAttentionItem): TaskDashboardNavigationRequest['taskListPreset'] {
+  return item.planningPreset ?? 'needs_triage';
+}
+
 function AttentionCard({
   item,
   schedulingEnabled,
   onPrimaryAction,
+  onOpenPlannerLane,
+  onOpenAlternatePlannerLane,
   onOpenAdvisor,
 }: {
   item: AdvisorAttentionItem;
   schedulingEnabled: boolean;
   onPrimaryAction: () => void;
+  onOpenPlannerLane: (() => void) | null;
+  onOpenAlternatePlannerLane: ((shortcut: AdvisorAttentionPlanningShortcut) => void) | null;
   onOpenAdvisor: () => void;
 }) {
   return (
@@ -189,13 +241,21 @@ function AttentionCard({
         <p className="mt-1">{formatQuickLogLine(item)}</p>
       </div>
 
-      <div className="mt-4 flex gap-2">
+      <div className="mt-4 flex flex-wrap gap-2">
         <button
           onClick={onPrimaryAction}
-          className="flex-1 rounded-lg bg-gray-200 px-3 py-2 text-sm font-medium text-gray-900 transition-colors hover:bg-white"
+          className="min-w-[140px] flex-1 rounded-lg bg-gray-200 px-3 py-2 text-sm font-medium text-gray-900 transition-colors hover:bg-white"
         >
           {getPrimaryActionLabel(item, schedulingEnabled)}
         </button>
+        {onOpenPlannerLane && item.planningLabel && (
+          <button
+            onClick={onOpenPlannerLane}
+            className="min-w-[140px] flex-1 rounded-lg border border-blue-400/30 bg-blue-500/10 px-3 py-2 text-sm font-medium text-blue-100 transition-colors hover:border-blue-300/50 hover:text-white"
+          >
+            {`Open ${item.planningLabel}`}
+          </button>
+        )}
         <button
           onClick={onOpenAdvisor}
           className="rounded-lg border border-gray-700 px-3 py-2 text-sm text-gray-300 transition-colors hover:border-gray-600 hover:text-gray-100"
@@ -203,6 +263,23 @@ function AttentionCard({
           Open
         </button>
       </div>
+
+      {onOpenAlternatePlannerLane && item.alternatePlanningShortcuts.length > 0 && (
+        <div className="mt-3">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">Other live lanes</p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {item.alternatePlanningShortcuts.slice(0, 2).map(shortcut => (
+              <button
+                key={`${item.advisorId}:${shortcut.preset}`}
+                onClick={() => onOpenAlternatePlannerLane(shortcut)}
+                className="rounded-lg border border-gray-700 bg-gray-950/60 px-3 py-2 text-sm text-gray-300 transition-colors hover:border-gray-600 hover:text-gray-100"
+              >
+                {shortcut.label} ({shortcut.count})
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
     </article>
   );
 }
@@ -278,7 +355,7 @@ function getPrimaryActionLabel(
   }
 
   if (item.primaryAction === 'plan') {
-    return 'Review tasks';
+    return item.planningLabel ? `Open ${item.planningLabel}` : 'Review tasks';
   }
 
   if (item.primaryAction === 'quick_log') {

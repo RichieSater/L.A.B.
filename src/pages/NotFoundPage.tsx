@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom';
+import { HOME_PATH } from '../constants/routes';
 
 export function NotFoundPage() {
   const navigate = useNavigate();
@@ -11,10 +12,10 @@ export function NotFoundPage() {
         The page you're looking for doesn't exist or has been moved.
       </p>
       <button
-        onClick={() => navigate('/')}
+        onClick={() => navigate(HOME_PATH)}
         className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
       >
-        Back to Dashboard
+        Back to The System
       </button>
     </div>
   );

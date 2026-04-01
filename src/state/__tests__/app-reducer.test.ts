@@ -4,6 +4,10 @@ import { createDefaultAppState } from '../init';
 import type { AppState } from '../../types/app-state';
 import type { SessionImport } from '../../types/session';
 import { normalizeSessionImport } from '../../parser/import-normalizer';
+import {
+  applyCompassInsightsToStrategicDashboard,
+  createStrategicDashboardYear,
+} from '../../types/strategic-dashboard';
 
 function makeSessionImport(overrides: Partial<SessionImport> = {}): SessionImport {
   return {
@@ -269,5 +273,191 @@ describe('appReducer', () => {
     });
 
     expect(result.weeklyFocus.weeks).toEqual([]);
+  });
+
+  it('promotes a strategic goal into a canonical task and links the goal back to it', () => {
+    const planningYear = new Date().getFullYear();
+    const draftedState = createDefaultAppState();
+    draftedState.strategicDashboard.years = [createStrategicDashboardYear(planningYear)];
+
+    const withGoal = appReducer(draftedState, {
+      type: 'SET_STRATEGIC_GOAL_SLOT',
+      payload: {
+        year: planningYear,
+        sectionKey: 'quarterGoals',
+        index: 0,
+        text: 'Lock the quarter priorities',
+      },
+    });
+
+    const promoted = appReducer(withGoal, {
+      type: 'PROMOTE_STRATEGIC_GOAL_TO_TASK',
+      payload: {
+        year: planningYear,
+        sectionKey: 'quarterGoals',
+        index: 0,
+        advisorId: 'prioritization',
+        bucket: 'this_week',
+        addToWeeklyFocusWeekStart: '2026-03-29',
+      },
+    });
+
+    const linkedGoal = promoted.strategicDashboard.years[0]?.sections.quarterGoals.goals[0];
+    expect(linkedGoal?.linkedTask).toEqual(
+      expect.objectContaining({
+        advisorId: 'prioritization',
+      }),
+    );
+
+    const linkedTaskId = linkedGoal?.linkedTask?.taskId;
+    expect(linkedTaskId).toBeTruthy();
+    expect(promoted.advisors.prioritization.tasks).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: linkedTaskId,
+          task: 'Lock the quarter priorities',
+          status: 'open',
+        }),
+      ]),
+    );
+    expect(promoted.taskPlanning[`prioritization:${linkedTaskId}`]).toEqual(
+      expect.objectContaining({
+        bucket: 'this_week',
+      }),
+    );
+    expect(promoted.weeklyFocus.weeks[0]?.items).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          advisorId: 'prioritization',
+          taskId: linkedTaskId,
+        }),
+      ]),
+    );
+  });
+
+  it('re-promotes a linked strategic goal by updating the same canonical task', () => {
+    const planningYear = new Date().getFullYear();
+    const draftedState = createDefaultAppState();
+    draftedState.strategicDashboard.years = [createStrategicDashboardYear(planningYear)];
+
+    const firstPass = appReducer(
+      appReducer(draftedState, {
+        type: 'SET_STRATEGIC_GOAL_SLOT',
+        payload: {
+          year: planningYear,
+          sectionKey: 'monthGoals',
+          index: 0,
+          text: 'Ship the first draft',
+        },
+      }),
+      {
+        type: 'PROMOTE_STRATEGIC_GOAL_TO_TASK',
+        payload: {
+          year: planningYear,
+          sectionKey: 'monthGoals',
+          index: 0,
+          advisorId: 'prioritization',
+          bucket: 'today',
+          addToWeeklyFocusWeekStart: null,
+        },
+      },
+    );
+
+    const linkedTaskId = firstPass.strategicDashboard.years[0]?.sections.monthGoals.goals[0].linkedTask?.taskId;
+    expect(linkedTaskId).toBeTruthy();
+
+    const secondPass = appReducer(
+      appReducer(firstPass, {
+        type: 'SET_STRATEGIC_GOAL_SLOT',
+        payload: {
+          year: planningYear,
+          sectionKey: 'monthGoals',
+          index: 0,
+          text: 'Ship the polished first draft',
+        },
+      }),
+      {
+        type: 'PROMOTE_STRATEGIC_GOAL_TO_TASK',
+        payload: {
+          year: planningYear,
+          sectionKey: 'monthGoals',
+          index: 0,
+          advisorId: 'prioritization',
+          bucket: 'today',
+          addToWeeklyFocusWeekStart: null,
+        },
+      },
+    );
+
+    const matchingTasks = secondPass.advisors.prioritization.tasks.filter(task => task.id === linkedTaskId);
+    expect(matchingTasks).toHaveLength(1);
+    expect(matchingTasks[0]?.task).toBe('Ship the polished first draft');
+  });
+
+  it('marks manual strategy edits so Compass seeding can respect them', () => {
+    const planningYear = new Date().getFullYear();
+    const draftedState = createDefaultAppState();
+    draftedState.strategicDashboard.years = [createStrategicDashboardYear(planningYear)];
+
+    const result = appReducer(draftedState, {
+      type: 'SET_STRATEGIC_GOAL_SLOT',
+      payload: {
+        year: planningYear,
+        sectionKey: 'yearGoals',
+        index: 0,
+        text: 'Bring Golden Compass into LAB',
+      },
+    });
+
+    expect(result.strategicDashboard.years[0]?.sections.yearGoals.goals[0]).toEqual(
+      expect.objectContaining({
+        text: 'Bring Golden Compass into LAB',
+        source: 'manual',
+      }),
+    );
+    expect(result.strategicDashboard.years[0]?.lastManualEditAt).toBeTruthy();
+  });
+
+  it('seeds untouched year goals from Compass insights but leaves manually edited years alone', () => {
+    const planningYear = new Date().getFullYear();
+    const untouchedState = createDefaultAppState().strategicDashboard;
+    const touchedState = {
+      years: [
+        {
+          ...createStrategicDashboardYear(planningYear),
+          lastManualEditAt: '2026-04-01T10:00:00.000Z',
+        },
+      ],
+      latestCompassInsights: null,
+    };
+
+    const insights = {
+      annualGoals: ['Ship Golden Compass', 'Use LAB weekly', 'Keep long-term direction visible'],
+      dailyRituals: ['Plan first'],
+      supportPeople: ['Coach'],
+    };
+
+    const seeded = applyCompassInsightsToStrategicDashboard(
+      untouchedState,
+      planningYear,
+      insights,
+      '2026-04-01T12:00:00.000Z',
+    );
+    const protectedState = applyCompassInsightsToStrategicDashboard(
+      touchedState,
+      planningYear,
+      insights,
+      '2026-04-01T12:00:00.000Z',
+    );
+
+    expect(seeded.latestCompassInsights).toEqual(insights);
+    expect(seeded.years[0]?.sections.yearGoals.goals[0]).toEqual(
+      expect.objectContaining({
+        text: 'Ship Golden Compass',
+        source: 'compass',
+      }),
+    );
+    expect(protectedState.latestCompassInsights).toEqual(insights);
+    expect(protectedState.years[0]?.sections.yearGoals.goals[0]?.text).toBe('');
   });
 });

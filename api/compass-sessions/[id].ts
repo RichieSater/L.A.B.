@@ -1,0 +1,46 @@
+import type { VercelRequest, VercelResponse } from '@vercel/node';
+import type { UpdateCompassSessionInput } from '../../src/types/compass.js';
+import { requireUser } from '../../server/auth.js';
+import { getCompassSession, updateCompassSession } from '../../server/data.js';
+import { json, methodNotAllowed, readJsonBody } from '../../server/http.js';
+
+export default async function handler(
+  req: VercelRequest,
+  res: VercelResponse,
+): Promise<VercelResponse | void> {
+  const auth = await requireUser(req);
+
+  if (!auth) {
+    return json(res, 401, { error: 'Unauthorized' });
+  }
+
+  const sessionId = req.query.id;
+  const id = Array.isArray(sessionId) ? sessionId[0] : sessionId;
+
+  if (!id) {
+    return json(res, 400, { error: 'Compass session id is required.' });
+  }
+
+  if (req.method === 'GET') {
+    const session = await getCompassSession(auth.userId, id);
+
+    if (!session) {
+      return json(res, 404, { error: 'Compass session not found.' });
+    }
+
+    return json(res, 200, session);
+  }
+
+  if (req.method === 'PATCH') {
+    const input = readJsonBody<UpdateCompassSessionInput>(req);
+    const session = await updateCompassSession(auth.userId, id, input);
+
+    if (!session) {
+      return json(res, 404, { error: 'Compass session not found.' });
+    }
+
+    return json(res, 200, session);
+  }
+
+  return methodNotAllowed(res, ['GET', 'PATCH']);
+}

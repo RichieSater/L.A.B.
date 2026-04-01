@@ -7,6 +7,10 @@ import {
   createDefaultDailyPlanningState,
   normalizeDailyPlanningState,
 } from '../types/daily-planning.js';
+import {
+  createDefaultStrategicDashboardState,
+  normalizeStrategicDashboardState,
+} from '../types/strategic-dashboard.js';
 import { createDefaultWeeklyFocusState } from '../types/weekly-focus.js';
 import { createDefaultWeeklyReviewState, normalizeWeeklyReviewState } from '../types/weekly-review.js';
 
@@ -25,6 +29,8 @@ export interface AppPersistence {
   saveWeeklyFocus(weeklyFocus: AppState['weeklyFocus']): Promise<void>;
   loadWeeklyReview(): Promise<AppState['weeklyReview']>;
   saveWeeklyReview(weeklyReview: AppState['weeklyReview']): Promise<void>;
+  loadStrategicDashboard(): Promise<AppState['strategicDashboard']>;
+  saveStrategicDashboard(strategicDashboard: AppState['strategicDashboard']): Promise<void>;
 }
 
 export function createDefaultAdvisorState(advisorId: AdvisorId): AdvisorState {
@@ -72,6 +78,7 @@ export function createDefaultAppState(): AppState {
     dailyPlanning: createDefaultDailyPlanningState(),
     weeklyFocus: createDefaultWeeklyFocusState(),
     weeklyReview: createDefaultWeeklyReviewState(),
+    strategicDashboard: createDefaultStrategicDashboardState(),
     initialized: true,
     schemaVersion: CURRENT_SCHEMA_VERSION,
   };
@@ -93,13 +100,22 @@ export async function loadAppStateFromStorage(
     advisors[id] = saved ?? createDefaultAdvisorState(id);
   }
 
-  const [sharedMetrics, quickLogs, taskPlanning, dailyPlanning, weeklyFocus, weeklyReview] = await Promise.all([
+  const [
+    sharedMetrics,
+    quickLogs,
+    taskPlanning,
+    dailyPlanning,
+    weeklyFocus,
+    weeklyReview,
+    strategicDashboard,
+  ] = await Promise.all([
     storage.loadSharedMetrics(),
     storage.loadQuickLogs(),
     storage.loadTaskPlanning(),
     storage.loadDailyPlanning(),
     storage.loadWeeklyFocus(),
     storage.loadWeeklyReview(),
+    storage.loadStrategicDashboard(),
   ]);
 
   return {
@@ -110,6 +126,9 @@ export async function loadAppStateFromStorage(
     dailyPlanning: normalizeDailyPlanningState(dailyPlanning ?? createDefaultDailyPlanningState()),
     weeklyFocus: weeklyFocus ?? createDefaultWeeklyFocusState(),
     weeklyReview: normalizeWeeklyReviewState(weeklyReview ?? createDefaultWeeklyReviewState()),
+    strategicDashboard: normalizeStrategicDashboardState(
+      strategicDashboard ?? createDefaultStrategicDashboardState(),
+    ),
     initialized: true,
     schemaVersion: CURRENT_SCHEMA_VERSION,
   };
@@ -128,6 +147,7 @@ export async function saveAppStateToStorage(
   saves.push(storage.saveDailyPlanning(state.dailyPlanning));
   saves.push(storage.saveWeeklyFocus(state.weeklyFocus));
   saves.push(storage.saveWeeklyReview(state.weeklyReview));
+  saves.push(storage.saveStrategicDashboard(state.strategicDashboard));
 
   await Promise.all(saves);
 }

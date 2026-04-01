@@ -1,6 +1,8 @@
 import type { EnrichedTaskItem, WeeklyFocusSummary, WeeklyFocusTask } from '../../state/selectors';
+import type { TaskListPreset } from '../../types/dashboard-navigation';
 import type { TaskPlanningBucket } from '../../types/task-planning';
 import { endOfWeek, formatDate } from '../../utils/date';
+import { getItemWeeklyLabRoute } from './weekly-lab-routing';
 
 interface WeeklyFocusCardProps {
   summary: WeeklyFocusSummary;
@@ -12,6 +14,8 @@ interface WeeklyFocusCardProps {
   onRemoveFocusTask: (advisorId: string, taskId: string) => void;
   onSetPlanBucket: (advisorId: string, taskId: string, bucket: TaskPlanningBucket) => void;
   onScheduleTask: (item: EnrichedTaskItem) => void;
+  onOpenAdvisorLane?: (advisorId: string, preset: TaskListPreset) => void;
+  currentDate: string;
   schedulingEnabled: boolean;
 }
 
@@ -21,6 +25,8 @@ export function WeeklyFocusCard({
   onRemoveFocusTask,
   onSetPlanBucket,
   onScheduleTask,
+  onOpenAdvisorLane,
+  currentDate,
   schedulingEnabled,
 }: WeeklyFocusCardProps) {
   const canAddFocus = summary.remainingSlots > 0;
@@ -78,6 +84,8 @@ export function WeeklyFocusCard({
                   onRemoveFocusTask={onRemoveFocusTask}
                   onSetPlanBucket={onSetPlanBucket}
                   onScheduleTask={onScheduleTask}
+                  onOpenAdvisorLane={onOpenAdvisorLane}
+                  currentDate={currentDate}
                   schedulingEnabled={schedulingEnabled}
                 />
               ))}
@@ -111,6 +119,8 @@ export function WeeklyFocusCard({
                   onAction={() =>
                     onAddFocusTask(item.advisorId, item.id, summary.previousWeekStart)
                   }
+                  onOpenAdvisorLane={onOpenAdvisorLane}
+                  currentDate={currentDate}
                 />
               ))}
             </div>
@@ -138,6 +148,8 @@ export function WeeklyFocusCard({
                   actionLabel="Add to focus"
                   disabled={!canAddFocus}
                   onAction={() => onAddFocusTask(item.advisorId, item.id)}
+                  onOpenAdvisorLane={onOpenAdvisorLane}
+                  currentDate={currentDate}
                 />
               ))}
             </div>
@@ -162,14 +174,20 @@ function WeeklyFocusTaskCard({
   onRemoveFocusTask,
   onSetPlanBucket,
   onScheduleTask,
+  onOpenAdvisorLane,
+  currentDate,
   schedulingEnabled,
 }: {
   item: WeeklyFocusTask;
   onRemoveFocusTask: (advisorId: string, taskId: string) => void;
   onSetPlanBucket: (advisorId: string, taskId: string, bucket: TaskPlanningBucket) => void;
   onScheduleTask: (item: EnrichedTaskItem) => void;
+  onOpenAdvisorLane?: (advisorId: string, preset: TaskListPreset) => void;
+  currentDate: string;
   schedulingEnabled: boolean;
 }) {
+  const weeklyLabRoute = getItemWeeklyLabRoute(item, currentDate, true);
+
   return (
     <article className="rounded-lg border border-gray-800 bg-gray-950/70 p-3">
       <div className="flex items-start justify-between gap-3">
@@ -239,6 +257,15 @@ function WeeklyFocusTaskCard({
         >
           Remove focus
         </button>
+        {weeklyLabRoute && onOpenAdvisorLane && (
+          <button
+            type="button"
+            onClick={() => onOpenAdvisorLane(item.advisorId, weeklyLabRoute.preset)}
+            className="rounded-md border border-sky-400/20 bg-sky-500/10 px-2 py-1 text-xs text-sky-200 transition-colors hover:border-sky-300/40 hover:text-sky-100"
+          >
+            {`Open ${weeklyLabRoute.label} in Weekly LAB`}
+          </button>
+        )}
         {schedulingEnabled && item.status === 'open' && (
           <button
             onClick={() => onScheduleTask(item)}
@@ -258,13 +285,19 @@ function SuggestionCard({
   disabled,
   helper = null,
   onAction,
+  onOpenAdvisorLane,
+  currentDate,
 }: {
   item: EnrichedTaskItem;
   actionLabel: string;
   disabled: boolean;
   helper?: string | null;
   onAction: () => void;
+  onOpenAdvisorLane?: (advisorId: string, preset: TaskListPreset) => void;
+  currentDate: string;
 }) {
+  const weeklyLabRoute = getItemWeeklyLabRoute(item, currentDate, false);
+
   return (
     <article className="rounded-lg border border-gray-800 bg-gray-950/70 p-3">
       <p className="text-sm text-gray-100">{item.task}</p>
@@ -293,7 +326,7 @@ function SuggestionCard({
 
       {helper && <p className="mt-2 text-xs text-gray-500">{helper}</p>}
 
-      <div className="mt-3">
+      <div className="mt-3 flex flex-wrap gap-1.5">
         <button
           onClick={onAction}
           disabled={disabled}
@@ -305,6 +338,15 @@ function SuggestionCard({
         >
           {actionLabel}
         </button>
+        {weeklyLabRoute && onOpenAdvisorLane && (
+          <button
+            type="button"
+            onClick={() => onOpenAdvisorLane(item.advisorId, weeklyLabRoute.preset)}
+            className="rounded-md border border-sky-400/20 bg-sky-500/10 px-2 py-1 text-xs text-sky-200 transition-colors hover:border-sky-300/40 hover:text-sky-100"
+          >
+            {`Open ${weeklyLabRoute.label} in Weekly LAB`}
+          </button>
+        )}
       </div>
     </article>
   );

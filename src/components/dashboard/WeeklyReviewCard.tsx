@@ -1,4 +1,11 @@
-import type { EnrichedTaskItem, WeeklyReviewActionGroup, WeeklyReviewSummary } from '../../state/selectors';
+import type { AdvisorId } from '../../types/advisor';
+import type { TaskListPreset } from '../../types/dashboard-navigation';
+import type {
+  AdvisorPlanningShortcut,
+  EnrichedTaskItem,
+  WeeklyReviewActionGroup,
+  WeeklyReviewSummary,
+} from '../../state/selectors';
 import type { TaskPlanningBucket } from '../../types/task-planning';
 import { formatDate, formatDaysAgo, formatDateKey } from '../../utils/date';
 
@@ -16,6 +23,7 @@ interface WeeklyReviewCardProps {
   onSetPlanBucket: (advisorId: string, taskId: string, bucket: TaskPlanningBucket) => void;
   onClearPlanBucket: (advisorId: string, taskId: string) => void;
   onScheduleTask: (item: EnrichedTaskItem) => void;
+  onOpenAdvisorLane: (advisorId: AdvisorId, preset: TaskListPreset) => void;
   schedulingEnabled: boolean;
 }
 
@@ -29,6 +37,7 @@ export function WeeklyReviewCard({
   onSetPlanBucket,
   onClearPlanBucket,
   onScheduleTask,
+  onOpenAdvisorLane,
   schedulingEnabled,
 }: WeeklyReviewCardProps) {
   const insights = [
@@ -212,6 +221,7 @@ export function WeeklyReviewCard({
             {summary.advisorSnapshots.map(snapshot => (
               <AdvisorSnapshotCard
                 key={snapshot.advisorId}
+                advisorId={snapshot.advisorId}
                 advisorName={snapshot.advisorName}
                 advisorIcon={snapshot.advisorIcon}
                 advisorColor={snapshot.advisorColor}
@@ -223,11 +233,31 @@ export function WeeklyReviewCard({
                 overdueOpen={snapshot.overdueOpen}
                 status={snapshot.status}
                 note={snapshot.note}
+                recommendedPreset={snapshot.recommendedPreset}
+                recommendedLabel={snapshot.recommendedLabel}
+                recommendedCount={snapshot.recommendedCount}
+                alternatePlanningShortcuts={snapshot.alternatePlanningShortcuts}
+                onOpenAdvisorLane={onOpenAdvisorLane}
               />
             ))}
           </div>
         </section>
       </div>
+
+      <section className="mt-4 rounded-lg border border-gray-800 bg-gray-950/80 p-4">
+        <div className="mb-3">
+          <h4 className="text-sm font-semibold text-gray-200">Weekly Recap</h4>
+          <p className="mt-1 text-xs text-gray-500">
+            A deterministic readout from this week&apos;s wins, advisor momentum, and unresolved planner pressure.
+          </p>
+        </div>
+
+        <div className="grid gap-3 lg:grid-cols-2 2xl:grid-cols-4">
+          {summary.recapSections.map(section => (
+            <RecapSectionCard key={section.id} summary={section} />
+          ))}
+        </div>
+      </section>
 
       <div className="mt-4 grid gap-3 xl:grid-cols-[1.35fr_0.95fr]">
         <section className="rounded-lg border border-gray-800 bg-gray-950/80 p-4">
@@ -348,6 +378,37 @@ export function WeeklyReviewCard({
   );
 }
 
+function RecapSectionCard({
+  summary,
+}: {
+  summary: WeeklyReviewSummary['recapSections'][number];
+}) {
+  const toneClasses = {
+    success: 'border-emerald-500/15 bg-emerald-500/5',
+    primary: 'border-sky-500/15 bg-sky-500/5',
+    attention: 'border-amber-500/15 bg-amber-500/5',
+    neutral: 'border-gray-800 bg-gray-900/70',
+  } satisfies Record<WeeklyReviewSummary['recapSections'][number]['tone'], string>;
+
+  return (
+    <section className={`rounded-lg border p-3 ${toneClasses[summary.tone]}`}>
+      <h5 className="text-sm font-semibold text-gray-100">{summary.title}</h5>
+      <p className="mt-1 text-xs text-gray-500">{summary.description}</p>
+      {summary.lines.length > 0 ? (
+        <div className="mt-3 space-y-2">
+          {summary.lines.map(line => (
+            <p key={line} className="text-sm leading-6 text-gray-200">
+              {line}
+            </p>
+          ))}
+        </div>
+      ) : (
+        <p className="mt-3 text-sm leading-6 text-gray-500">{summary.emptyState}</p>
+      )}
+    </section>
+  );
+}
+
 function ReviewField({
   label,
   value,
@@ -412,6 +473,7 @@ function ReviewStat({
 }
 
 function AdvisorSnapshotCard({
+  advisorId,
   advisorName,
   advisorIcon,
   advisorColor,
@@ -423,7 +485,13 @@ function AdvisorSnapshotCard({
   overdueOpen,
   status,
   note,
+  recommendedPreset,
+  recommendedLabel,
+  recommendedCount,
+  alternatePlanningShortcuts,
+  onOpenAdvisorLane,
 }: {
+  advisorId: AdvisorId;
   advisorName: string;
   advisorIcon: string;
   advisorColor: string;
@@ -435,6 +503,11 @@ function AdvisorSnapshotCard({
   overdueOpen: number;
   status: 'attention' | 'momentum' | 'quiet';
   note: string;
+  recommendedPreset: TaskListPreset;
+  recommendedLabel: string;
+  recommendedCount: number;
+  alternatePlanningShortcuts: AdvisorPlanningShortcut[];
+  onOpenAdvisorLane: (advisorId: AdvisorId, preset: TaskListPreset) => void;
 }) {
   const statusLabel =
     status === 'attention' ? 'Needs attention' : status === 'momentum' ? 'Momentum' : 'Quiet week';
@@ -464,8 +537,52 @@ function AdvisorSnapshotCard({
         {openTasks} open • {plannedOpen} planned • {overdueOpen} overdue
       </p>
       <p className="mt-3 text-sm text-gray-300">{note}</p>
+      {openTasks > 0 && (
+        <div className="mt-3 space-y-2">
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => onOpenAdvisorLane(advisorId, recommendedPreset)}
+              className="rounded-lg border border-blue-400/30 bg-blue-500/10 px-3 py-2 text-sm font-medium text-blue-100 transition-colors hover:border-blue-300/50 hover:text-white"
+            >
+              {getAdvisorSnapshotActionLabel(recommendedLabel, recommendedCount, recommendedPreset)}
+            </button>
+          </div>
+          {alternatePlanningShortcuts.length > 0 && (
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+                Other scoped lanes
+              </p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {alternatePlanningShortcuts.map(shortcut => (
+                  <button
+                    key={`${advisorId}:${shortcut.preset}`}
+                    type="button"
+                    onClick={() => onOpenAdvisorLane(advisorId, shortcut.preset)}
+                    className="rounded-lg border border-gray-700 bg-gray-950/70 px-3 py-2 text-xs font-medium text-gray-300 transition-colors hover:border-gray-600 hover:text-gray-100"
+                  >
+                    {shortcut.label} ({shortcut.count})
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </article>
   );
+}
+
+function getAdvisorSnapshotActionLabel(
+  recommendedLabel: string,
+  recommendedCount: number,
+  recommendedPreset: TaskListPreset,
+): string {
+  if (recommendedPreset === 'all_open') {
+    return `Open Tasks (${recommendedCount})`;
+  }
+
+  return `Open ${recommendedLabel} (${recommendedCount})`;
 }
 
 function ReviewActionCard({

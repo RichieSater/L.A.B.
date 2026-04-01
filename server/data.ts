@@ -1,4 +1,4 @@
-import { and, eq, lte, sql } from 'drizzle-orm';
+import { and, desc, eq, lte, sql } from 'drizzle-orm';
 import type { AppState } from '../src/types/app-state.js';
 import type { AdvisorId } from '../src/types/advisor.js';
 import { ALL_ADVISOR_IDS } from '../src/advisors/registry.js';
@@ -8,6 +8,11 @@ import {
   createDefaultDailyPlanningState,
   normalizeDailyPlanningState,
 } from '../src/types/daily-planning.js';
+import {
+  applyCompassInsightsToStrategicDashboard,
+  createDefaultStrategicDashboardState,
+  normalizeStrategicDashboardState,
+} from '../src/types/strategic-dashboard.js';
 import type {
   BootstrapResponse,
   CreateScheduledSessionInput,
@@ -15,9 +20,20 @@ import type {
   UserProfile,
 } from '../src/types/api.js';
 import type { ScheduledSession } from '../src/types/scheduled-session.js';
+import type {
+  CompassSessionDetail,
+  CompassSessionSummary,
+  CreateCompassSessionInput,
+  UpdateCompassSessionInput,
+} from '../src/types/compass.js';
 import { createDefaultAppState, createDefaultAdvisorState } from '../src/state/init.js';
 import { createDefaultWeeklyFocusState } from '../src/types/weekly-focus.js';
 import { createDefaultWeeklyReviewState, normalizeWeeklyReviewState } from '../src/types/weekly-review.js';
+import {
+  countCompassAnswers,
+  createCompassSessionTitle,
+  deriveCompassInsights,
+} from '../src/lib/compass-insights.js';
 import { clerkClient } from './auth.js';
 import { db } from './db/client.js';
 import {
@@ -28,6 +44,7 @@ import {
 } from './google-calendar.js';
 import {
   advisorStates,
+  compassSessions,
   quickLogs,
   scheduledSessions,
   sharedMetrics,
@@ -55,6 +72,32 @@ function mapScheduledSession(row: typeof scheduledSessions.$inferSelect): Schedu
     status: row.status,
     calendarSyncStatus: row.calendarSyncStatus,
     createdAt: row.createdAt.toISOString(),
+  };
+}
+
+function mapCompassSessionSummary(
+  row: typeof compassSessions.$inferSelect,
+): CompassSessionSummary {
+  return {
+    id: row.id,
+    title: row.title,
+    planningYear: row.planningYear,
+    status: row.status,
+    currentScreen: row.currentScreen,
+    answerCount: countCompassAnswers(row.answers ?? {}),
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
+    completedAt: row.completedAt?.toISOString() ?? null,
+    insights: row.insights ?? null,
+  };
+}
+
+function mapCompassSessionDetail(
+  row: typeof compassSessions.$inferSelect,
+): CompassSessionDetail {
+  return {
+    ...mapCompassSessionSummary(row),
+    answers: row.answers ?? {},
   };
 }
 
@@ -146,6 +189,7 @@ export async function ensureUserRecords(userId: string): Promise<void> {
         dailyPlanning: createDefaultDailyPlanningState(),
         weeklyFocus: createDefaultWeeklyFocusState(),
         weeklyReview: createDefaultWeeklyReviewState(),
+        strategicDashboard: createDefaultStrategicDashboardState(),
       })
       .onConflictDoNothing(),
   ]);
@@ -194,6 +238,7 @@ async function resetLegacyUserState(userId: string): Promise<void> {
         dailyPlanning: createDefaultDailyPlanningState(),
         weeklyFocus: createDefaultWeeklyFocusState(),
         weeklyReview: createDefaultWeeklyReviewState(),
+        strategicDashboard: createDefaultStrategicDashboardState(),
         updatedAt: new Date(),
       })
       .where(eq(userAppMeta.userId, userId)),
@@ -276,6 +321,7 @@ export async function resetUserData(userId: string): Promise<void> {
         dailyPlanning: createDefaultDailyPlanningState(),
         weeklyFocus: createDefaultWeeklyFocusState(),
         weeklyReview: createDefaultWeeklyReviewState(),
+        strategicDashboard: createDefaultStrategicDashboardState(),
         updatedAt: new Date(),
       })
       .where(eq(userAppMeta.userId, userId)),
@@ -329,6 +375,9 @@ async function loadAppState(userId: string): Promise<AppState> {
   baseState.weeklyFocus = metaRow?.weeklyFocus ?? createDefaultWeeklyFocusState();
   baseState.weeklyReview = normalizeWeeklyReviewState(
     metaRow?.weeklyReview ?? createDefaultWeeklyReviewState(),
+  );
+  baseState.strategicDashboard = normalizeStrategicDashboardState(
+    metaRow?.strategicDashboard ?? createDefaultStrategicDashboardState(),
   );
   baseState.schemaVersion = metaRow?.schemaVersion ?? CURRENT_SCHEMA_VERSION;
   baseState.initialized = true;
@@ -615,6 +664,7 @@ export async function saveAppState(userId: string, appState: AppState): Promise<
         dailyPlanning: appState.dailyPlanning,
         weeklyFocus: appState.weeklyFocus,
         weeklyReview: appState.weeklyReview,
+        strategicDashboard: appState.strategicDashboard,
         updatedAt: new Date(),
       })
       .onConflictDoUpdate({
@@ -624,6 +674,7 @@ export async function saveAppState(userId: string, appState: AppState): Promise<
           dailyPlanning: appState.dailyPlanning,
           weeklyFocus: appState.weeklyFocus,
           weeklyReview: appState.weeklyReview,
+          strategicDashboard: appState.strategicDashboard,
           updatedAt: new Date(),
         },
       }),
@@ -646,6 +697,129 @@ export async function listScheduledSessions(userId: string): Promise<ScheduledSe
     .orderBy(scheduledSessions.scheduledAt);
 
   return rows.map(mapScheduledSession);
+}
+
+export async function listCompassSessions(userId: string): Promise<CompassSessionSummary[]> {
+  await ensureUserRecords(userId);
+
+  const rows = await db
+    .select()
+    .from(compassSessions)
+    .where(eq(compassSessions.userId, userId))
+    .orderBy(desc(compassSessions.updatedAt));
+
+  return rows.map(mapCompassSessionSummary);
+}
+
+export async function createCompassSession(
+  userId: string,
+  input: CreateCompassSessionInput,
+): Promise<CompassSessionDetail> {
+  await ensureUserRecords(userId);
+
+  const [created] = await db
+    .insert(compassSessions)
+    .values({
+      userId,
+      planningYear: input.planningYear,
+      title: createCompassSessionTitle(input.planningYear),
+      status: 'in_progress',
+      currentScreen: 0,
+      answers: {},
+      insights: null,
+      updatedAt: new Date(),
+    })
+    .returning();
+
+  return mapCompassSessionDetail(created);
+}
+
+export async function getCompassSession(
+  userId: string,
+  sessionId: string,
+): Promise<CompassSessionDetail | null> {
+  await ensureUserRecords(userId);
+
+  const row = await db.query.compassSessions.findFirst({
+    where: and(
+      eq(compassSessions.userId, userId),
+      eq(compassSessions.id, sessionId),
+    ),
+  });
+
+  return row ? mapCompassSessionDetail(row) : null;
+}
+
+export async function updateCompassSession(
+  userId: string,
+  sessionId: string,
+  input: UpdateCompassSessionInput,
+): Promise<CompassSessionDetail | null> {
+  await ensureUserRecords(userId);
+
+  const existing = await db.query.compassSessions.findFirst({
+    where: and(
+      eq(compassSessions.userId, userId),
+      eq(compassSessions.id, sessionId),
+    ),
+  });
+
+  if (!existing) {
+    return null;
+  }
+
+  const nextAnswers = input.answers ?? existing.answers ?? {};
+  const nextStatus = input.status ?? existing.status;
+  const completingNow = existing.status !== 'completed' && nextStatus === 'completed';
+  const nextInsights =
+    nextStatus === 'completed'
+      ? completingNow
+        ? deriveCompassInsights(nextAnswers)
+        : (existing.insights ?? deriveCompassInsights(nextAnswers))
+      : existing.insights ?? null;
+
+  const [updated] = await db
+    .update(compassSessions)
+    .set({
+      currentScreen: input.currentScreen ?? existing.currentScreen,
+      answers: nextAnswers,
+      status: nextStatus,
+      insights: nextInsights,
+      completedAt:
+        nextStatus === 'completed'
+          ? existing.completedAt ?? new Date()
+          : null,
+      updatedAt: new Date(),
+    })
+    .where(
+      and(
+        eq(compassSessions.userId, userId),
+        eq(compassSessions.id, sessionId),
+      ),
+    )
+    .returning();
+
+  if (completingNow && nextInsights) {
+    const metaRow = await db.query.userAppMeta.findFirst({
+      where: eq(userAppMeta.userId, userId),
+    });
+    const strategicDashboard = applyCompassInsightsToStrategicDashboard(
+      metaRow?.strategicDashboard ?? createDefaultStrategicDashboardState(),
+      updated.planningYear,
+      nextInsights,
+      updated.updatedAt.toISOString(),
+    );
+
+    await db
+      .update(userAppMeta)
+      .set({
+        strategicDashboard,
+        updatedAt: new Date(),
+      })
+      .where(eq(userAppMeta.userId, userId));
+  }
+
+  return mapCompassSessionDetail(updated);
 }
 
 export async function createScheduledSession(userId: string, input: CreateScheduledSessionInput): Promise<ScheduledSession> {

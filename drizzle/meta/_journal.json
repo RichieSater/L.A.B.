@@ -50,6 +50,20 @@
       "when": 1774901518404,
       "tag": "0006_absurd_karen_page",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1775007600000,
+      "tag": "0007_green_starfish",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1775070386368,
+      "tag": "0008_cultured_runaways",
+      "breakpoints": true
     }
   ]
 }

@@ -70,6 +70,8 @@ describe('WeeklyFocusCard', () => {
   it('shows current focus and allows carry-forward and suggestion actions', () => {
     const onAddFocusTask = vi.fn();
     const onRemoveFocusTask = vi.fn();
+    const onOpenAdvisorLane = vi.fn();
+    const currentDate = '2026-03-31';
 
     render(
       <WeeklyFocusCard
@@ -78,6 +80,8 @@ describe('WeeklyFocusCard', () => {
         onRemoveFocusTask={onRemoveFocusTask}
         onSetPlanBucket={vi.fn()}
         onScheduleTask={vi.fn()}
+        onOpenAdvisorLane={onOpenAdvisorLane}
+        currentDate={currentDate}
         schedulingEnabled={false}
       />,
     );
@@ -87,10 +91,12 @@ describe('WeeklyFocusCard', () => {
     expect(screen.getByText('Carry Forward')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Remove focus' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Open Weekly Focus in Weekly LAB' }));
     fireEvent.click(screen.getByRole('button', { name: 'Carry into week' }));
     fireEvent.click(screen.getByRole('button', { name: 'Add to focus' }));
 
     expect(onRemoveFocusTask).toHaveBeenCalledWith('therapist', 'task-1');
+    expect(onOpenAdvisorLane).toHaveBeenCalledWith('therapist', 'weekly_focus');
     expect(onAddFocusTask).toHaveBeenNthCalledWith(1, 'prioritization', 'task-2', '2026-03-22');
     expect(onAddFocusTask).toHaveBeenNthCalledWith(2, 'career', 'task-3');
   });

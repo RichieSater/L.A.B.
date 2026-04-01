@@ -14,6 +14,7 @@ import { buildSchemaSection } from './sections/schema-section';
 import { buildQuickLogSection } from './sections/quick-log-section';
 import { buildIntakeSection } from './sections/intake-section';
 import { buildTherapistNotesSection } from './sections/therapist-notes-section';
+import { buildStrategicContextSection } from './sections/strategic-context-section';
 import { buildStartupProtocol } from './boot-sequence';
 
 export function buildPrompt(
@@ -72,6 +73,11 @@ No previous sessions. This is our first conversation.`);
 
   // Cross-advisor context
   sections.push(buildCrossAdvisorSection(config, sharedMetrics, appState));
+
+  const strategicContext = buildStrategicContextSection(appState);
+  if (strategicContext) {
+    sections.push(strategicContext);
+  }
 
   // Therapist-specific: cross-advisor session notes
   const therapistNotes = buildTherapistNotesSection(config, appState);

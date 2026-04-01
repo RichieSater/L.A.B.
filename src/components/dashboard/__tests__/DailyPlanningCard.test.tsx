@@ -65,6 +65,7 @@ describe('DailyPlanningCard', () => {
     const onCompleteDailyPlan = vi.fn();
     const onSetDailyPlanningField = vi.fn();
     const onSetPlanBucket = vi.fn();
+    const onOpenAdvisorLane = vi.fn();
 
     render(
       <DailyPlanningCard
@@ -75,6 +76,7 @@ describe('DailyPlanningCard', () => {
         onSetPlanBucket={onSetPlanBucket}
         onClearPlanBucket={vi.fn()}
         onScheduleTask={vi.fn()}
+        onOpenAdvisorLane={onOpenAdvisorLane}
         schedulingEnabled={false}
       />,
     );
@@ -89,6 +91,7 @@ describe('DailyPlanningCard', () => {
     });
     fireEvent.click(screen.getByRole('button', { name: 'Mark daily plan done' }));
     fireEvent.click(screen.getAllByRole('button', { name: 'Today' })[0]);
+    fireEvent.click(screen.getByRole('button', { name: 'Open Carry Over in Weekly LAB' }));
 
     expect(onSetDailyPlanningField).toHaveBeenCalledWith(
       '2026-03-31',
@@ -97,5 +100,6 @@ describe('DailyPlanningCard', () => {
     );
     expect(onCompleteDailyPlan).toHaveBeenCalledWith('2026-03-31');
     expect(onSetPlanBucket).toHaveBeenCalledWith('therapist', 'task-1', 'today');
+    expect(onOpenAdvisorLane).toHaveBeenCalledWith('therapist', 'carry_over');
   });
 });

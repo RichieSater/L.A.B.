@@ -6,16 +6,18 @@
 ## Repo Snapshot
 
 - Name: `the-lab`
-- Root: `/Users/richiesater/dev/L.A.B/L.A.B.`
+- Root: `L.A.B.`
 - Stack: Vite + React + TypeScript app
 - Summary: The L.A.B. is a personal "Life Advisory Board" app. It gives the user a set of domain-specific advisors, tracks shared metrics across them, captures quick daily logs, adds an ad...
 
 ## Startup Checklist
 
-1. Read [project-map.md](project-map.md).
-2. Read [workflows.md](workflows.md) before running commands.
-3. Read [verification.md](verification.md) before closing work.
-4. For non-trivial work, create or update a plan in [../exec-plans/active/README.md](../exec-plans/active/README.md).
+1. Read [current-state.md](current-state.md).
+2. Read [roadmap.md](roadmap.md).
+3. Read [project-map.md](project-map.md).
+4. Read the active non-maintenance plans under [../exec-plans/active/README.md](../exec-plans/active/README.md).
+5. Read [workflows.md](workflows.md) before running commands.
+6. Read [verification.md](verification.md) before closing work.
 
 ## Inspect-First Paths
 
@@ -31,6 +33,7 @@
 
 - Use explicit file paths, real commands, and concrete acceptance criteria.
 - Keep durable repo knowledge in this harness pack; keep task-specific notes in `docs/exec-plans/active/`.
+- If `harness validate .` is green and `current-state.md` says maintenance is closed, advance a repo slice instead of choosing harness-only work.
 - Prefer positive instructions and repo facts over generic style advice.
 <!-- harness:end generated -->
 

@@ -1,5 +1,6 @@
 import { SignUp } from '@clerk/react';
 import { Navigate } from 'react-router-dom';
+import { HOME_PATH, LOGIN_PATH, SIGNUP_PATH } from '../constants/routes';
 import { useAuth } from '../auth/auth-context';
 import { AuthPageShell } from '../components/auth/AuthPageShell';
 import { authComponentAppearance } from '../components/auth/auth-component-appearance';
@@ -16,17 +17,17 @@ export function SignupPage() {
   }
 
   if (user) {
-    return <Navigate to="/" replace />;
+    return <Navigate to={HOME_PATH} replace />;
   }
 
   return (
     <AuthPageShell>
       <SignUp
-        path="/signup"
+        path={SIGNUP_PATH}
         routing="path"
-        signInUrl="/login"
-        forceRedirectUrl="/"
-        fallbackRedirectUrl="/"
+        signInUrl={LOGIN_PATH}
+        forceRedirectUrl={HOME_PATH}
+        fallbackRedirectUrl={HOME_PATH}
         appearance={authComponentAppearance}
       />
     </AuthPageShell>
