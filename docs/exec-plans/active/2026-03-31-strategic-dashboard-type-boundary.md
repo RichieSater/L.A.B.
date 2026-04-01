@@ -16,3 +16,7 @@ Fix the current compile regression by restoring the missing shared type and redu
 2. Extend `AppState`, init defaults, action unions, and reducer handling so the strategic planner dispatches against a real state model.
 3. Add the missing API client signature and supporting response types needed for compilation.
 4. Re-run build, tests, lint, and harness validation to confirm the regression is closed.
+
+## Verification
+
+- Verified on 2026-03-31 with `npm run build`, `npm run test`, `npm run lint`, and `harness validate .`.
