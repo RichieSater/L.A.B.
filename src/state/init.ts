@@ -7,6 +7,9 @@ import {
   createDefaultDailyPlanningState,
   normalizeDailyPlanningState,
 } from '../types/daily-planning.js';
+import {
+  createDefaultStrategicDashboardState,
+} from '../types/strategic-dashboard.js';
 import { createDefaultWeeklyFocusState } from '../types/weekly-focus.js';
 import { createDefaultWeeklyReviewState, normalizeWeeklyReviewState } from '../types/weekly-review.js';
 
@@ -72,6 +75,7 @@ export function createDefaultAppState(): AppState {
     dailyPlanning: createDefaultDailyPlanningState(),
     weeklyFocus: createDefaultWeeklyFocusState(),
     weeklyReview: createDefaultWeeklyReviewState(),
+    strategicDashboard: createDefaultStrategicDashboardState(),
     initialized: true,
     schemaVersion: CURRENT_SCHEMA_VERSION,
   };
@@ -110,6 +114,7 @@ export async function loadAppStateFromStorage(
     dailyPlanning: normalizeDailyPlanningState(dailyPlanning ?? createDefaultDailyPlanningState()),
     weeklyFocus: weeklyFocus ?? createDefaultWeeklyFocusState(),
     weeklyReview: normalizeWeeklyReviewState(weeklyReview ?? createDefaultWeeklyReviewState()),
+    strategicDashboard: createDefaultStrategicDashboardState(),
     initialized: true,
     schemaVersion: CURRENT_SCHEMA_VERSION,
   };

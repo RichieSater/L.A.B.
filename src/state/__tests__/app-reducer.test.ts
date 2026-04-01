@@ -4,6 +4,7 @@ import { createDefaultAppState } from '../init';
 import type { AppState } from '../../types/app-state';
 import type { SessionImport } from '../../types/session';
 import { normalizeSessionImport } from '../../parser/import-normalizer';
+import { createStrategicDashboardYear } from '../../types/strategic-dashboard';
 
 function makeSessionImport(overrides: Partial<SessionImport> = {}): SessionImport {
   return {
@@ -269,5 +270,124 @@ describe('appReducer', () => {
     });
 
     expect(result.weeklyFocus.weeks).toEqual([]);
+  });
+
+  it('promotes a strategic goal into a canonical task and links the goal back to it', () => {
+    const planningYear = new Date().getFullYear();
+    const draftedState = createDefaultAppState();
+    draftedState.strategicDashboard.years = [createStrategicDashboardYear(planningYear)];
+
+    const withGoal = appReducer(draftedState, {
+      type: 'SET_STRATEGIC_GOAL_SLOT',
+      payload: {
+        year: planningYear,
+        sectionKey: 'quarterGoals',
+        index: 0,
+        text: 'Lock the quarter priorities',
+      },
+    });
+
+    const promoted = appReducer(withGoal, {
+      type: 'PROMOTE_STRATEGIC_GOAL_TO_TASK',
+      payload: {
+        year: planningYear,
+        sectionKey: 'quarterGoals',
+        index: 0,
+        advisorId: 'prioritization',
+        bucket: 'this_week',
+        addToWeeklyFocusWeekStart: '2026-03-29',
+      },
+    });
+
+    const linkedGoal = promoted.strategicDashboard.years[0]?.sections.quarterGoals.goals[0];
+    expect(linkedGoal?.linkedTask).toEqual(
+      expect.objectContaining({
+        advisorId: 'prioritization',
+      }),
+    );
+
+    const linkedTaskId = linkedGoal?.linkedTask?.taskId;
+    expect(linkedTaskId).toBeTruthy();
+    expect(promoted.advisors.prioritization.tasks).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: linkedTaskId,
+          task: 'Lock the quarter priorities',
+          status: 'open',
+        }),
+      ]),
+    );
+    expect(promoted.taskPlanning[`prioritization:${linkedTaskId}`]).toEqual(
+      expect.objectContaining({
+        bucket: 'this_week',
+      }),
+    );
+    expect(promoted.weeklyFocus.weeks[0]?.items).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          advisorId: 'prioritization',
+          taskId: linkedTaskId,
+        }),
+      ]),
+    );
+  });
+
+  it('re-promotes a linked strategic goal by updating the same canonical task', () => {
+    const planningYear = new Date().getFullYear();
+    const draftedState = createDefaultAppState();
+    draftedState.strategicDashboard.years = [createStrategicDashboardYear(planningYear)];
+
+    const firstPass = appReducer(
+      appReducer(draftedState, {
+        type: 'SET_STRATEGIC_GOAL_SLOT',
+        payload: {
+          year: planningYear,
+          sectionKey: 'monthGoals',
+          index: 0,
+          text: 'Ship the first draft',
+        },
+      }),
+      {
+        type: 'PROMOTE_STRATEGIC_GOAL_TO_TASK',
+        payload: {
+          year: planningYear,
+          sectionKey: 'monthGoals',
+          index: 0,
+          advisorId: 'prioritization',
+          bucket: 'today',
+          addToWeeklyFocusWeekStart: null,
+        },
+      },
+    );
+
+    const linkedTaskId = firstPass.strategicDashboard.years[0]?.sections.monthGoals.goals[0].linkedTask?.taskId;
+    expect(linkedTaskId).toBeTruthy();
+
+    const secondPass = appReducer(
+      appReducer(firstPass, {
+        type: 'SET_STRATEGIC_GOAL_SLOT',
+        payload: {
+          year: planningYear,
+          sectionKey: 'monthGoals',
+          index: 0,
+          text: 'Ship the polished first draft',
+        },
+      }),
+      {
+        type: 'PROMOTE_STRATEGIC_GOAL_TO_TASK',
+        payload: {
+          year: planningYear,
+          sectionKey: 'monthGoals',
+          index: 0,
+          advisorId: 'prioritization',
+          bucket: 'today',
+          addToWeeklyFocusWeekStart: null,
+        },
+      },
+    );
+
+    const matchingTasks = secondPass.advisors.prioritization.tasks.filter(task => task.id === linkedTaskId);
+    expect(matchingTasks).toHaveLength(1);
+    expect(matchingTasks[0]?.task).toBe('Ship the polished first draft');
   });
 });
