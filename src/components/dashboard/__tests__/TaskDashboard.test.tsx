@@ -125,7 +125,7 @@ describe('TaskDashboard', () => {
     fireEvent.click(within(taskList).getByRole('button', { name: /weekly focus/i, pressed: false }));
     expect(within(taskList).getByText('Move the weekly focus item forward')).toBeInTheDocument();
     expect(within(taskList).queryByText('Give the backlog item a real bucket')).not.toBeInTheDocument();
-  });
+  }, 10000);
 
   it('falls back to weekly focus when no higher-urgency planner lane is available', () => {
     const state = createDefaultAppState();

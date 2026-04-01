@@ -31,6 +31,11 @@ function createMockStorage(overrides: Partial<AppPersistence> = {}): AppPersiste
       entries: [],
     }),
     saveWeeklyReview: vi.fn().mockResolvedValue(undefined),
+    loadStrategicDashboard: vi.fn().mockResolvedValue({
+      years: [],
+      latestCompassInsights: null,
+    }),
+    saveStrategicDashboard: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   };
 }
@@ -127,5 +132,6 @@ describe('saveAppStateToStorage', () => {
     expect(mockStorage.saveDailyPlanning).toHaveBeenCalledWith(state.dailyPlanning);
     expect(mockStorage.saveWeeklyFocus).toHaveBeenCalledWith(state.weeklyFocus);
     expect(mockStorage.saveWeeklyReview).toHaveBeenCalledWith(state.weeklyReview);
+    expect(mockStorage.saveStrategicDashboard).toHaveBeenCalledWith(state.strategicDashboard);
   });
 });

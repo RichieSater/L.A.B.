@@ -8,6 +8,10 @@ import {
   createDefaultDailyPlanningState,
   normalizeDailyPlanningState,
 } from '../src/types/daily-planning.js';
+import {
+  createDefaultStrategicDashboardState,
+  normalizeStrategicDashboardState,
+} from '../src/types/strategic-dashboard.js';
 import type {
   BootstrapResponse,
   CreateScheduledSessionInput,
@@ -146,6 +150,7 @@ export async function ensureUserRecords(userId: string): Promise<void> {
         dailyPlanning: createDefaultDailyPlanningState(),
         weeklyFocus: createDefaultWeeklyFocusState(),
         weeklyReview: createDefaultWeeklyReviewState(),
+        strategicDashboard: createDefaultStrategicDashboardState(),
       })
       .onConflictDoNothing(),
   ]);
@@ -194,6 +199,7 @@ async function resetLegacyUserState(userId: string): Promise<void> {
         dailyPlanning: createDefaultDailyPlanningState(),
         weeklyFocus: createDefaultWeeklyFocusState(),
         weeklyReview: createDefaultWeeklyReviewState(),
+        strategicDashboard: createDefaultStrategicDashboardState(),
         updatedAt: new Date(),
       })
       .where(eq(userAppMeta.userId, userId)),
@@ -276,6 +282,7 @@ export async function resetUserData(userId: string): Promise<void> {
         dailyPlanning: createDefaultDailyPlanningState(),
         weeklyFocus: createDefaultWeeklyFocusState(),
         weeklyReview: createDefaultWeeklyReviewState(),
+        strategicDashboard: createDefaultStrategicDashboardState(),
         updatedAt: new Date(),
       })
       .where(eq(userAppMeta.userId, userId)),
@@ -329,6 +336,9 @@ async function loadAppState(userId: string): Promise<AppState> {
   baseState.weeklyFocus = metaRow?.weeklyFocus ?? createDefaultWeeklyFocusState();
   baseState.weeklyReview = normalizeWeeklyReviewState(
     metaRow?.weeklyReview ?? createDefaultWeeklyReviewState(),
+  );
+  baseState.strategicDashboard = normalizeStrategicDashboardState(
+    metaRow?.strategicDashboard ?? createDefaultStrategicDashboardState(),
   );
   baseState.schemaVersion = metaRow?.schemaVersion ?? CURRENT_SCHEMA_VERSION;
   baseState.initialized = true;
@@ -615,6 +625,7 @@ export async function saveAppState(userId: string, appState: AppState): Promise<
         dailyPlanning: appState.dailyPlanning,
         weeklyFocus: appState.weeklyFocus,
         weeklyReview: appState.weeklyReview,
+        strategicDashboard: appState.strategicDashboard,
         updatedAt: new Date(),
       })
       .onConflictDoUpdate({
@@ -624,6 +635,7 @@ export async function saveAppState(userId: string, appState: AppState): Promise<
           dailyPlanning: appState.dailyPlanning,
           weeklyFocus: appState.weeklyFocus,
           weeklyReview: appState.weeklyReview,
+          strategicDashboard: appState.strategicDashboard,
           updatedAt: new Date(),
         },
       }),

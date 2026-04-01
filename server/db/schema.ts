@@ -17,6 +17,7 @@ import type { QuickLogEntry } from '../../src/types/quick-log.js';
 import type { CalendarSyncStatus, ScheduledSessionStatus } from '../../src/types/scheduled-session.js';
 import type { TaskPlanningStore } from '../../src/types/task-planning.js';
 import type { DailyPlanningState } from '../../src/types/daily-planning.js';
+import type { StrategicDashboardState } from '../../src/types/strategic-dashboard.js';
 import type { WeeklyFocusState } from '../../src/types/weekly-focus.js';
 import type { WeeklyReviewState } from '../../src/types/weekly-review.js';
 
@@ -107,6 +108,10 @@ export const userAppMeta = pgTable('user_app_meta', {
     .$type<WeeklyReviewState>()
     .notNull()
     .default(sql`'{"entries":[]}'::jsonb`),
+  strategicDashboard: jsonb('strategic_dashboard')
+    .$type<StrategicDashboardState>()
+    .notNull()
+    .default(sql`'{"years":[],"latestCompassInsights":null}'::jsonb`),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
