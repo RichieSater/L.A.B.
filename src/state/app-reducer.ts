@@ -5,6 +5,13 @@ import type { AppAction } from './actions';
 import type { SharedMetricsStore } from '../types/metrics';
 import { getTaskPlanningKey } from '../types/task-planning';
 import {
+  getStrategicDashboardYear,
+  normalizeStrategicDashboardState,
+  type StrategicDashboardSectionKey,
+  type StrategicDashboardState,
+  type StrategicDashboardYear,
+} from '../types/strategic-dashboard';
+import {
   createDailyPlanningEntry,
   sortDailyPlanningEntries,
   type DailyPlanningEntry,
@@ -22,6 +29,8 @@ import {
 import { applySessionImport, updateTaskStatus } from './advisors/advisor-reducer';
 import { ADVISOR_CONFIGS } from '../advisors/registry';
 import { createDefaultAdvisorState } from './init';
+import { generateId } from '../utils/id';
+import { today } from '../utils/date';
 
 function extractSharedMetrics(
   advisorId: AdvisorId,
@@ -200,10 +209,113 @@ function upsertDailyPlanningEntry(
   };
 }
 
+function sortStrategicYears(years: StrategicDashboardYear[]): StrategicDashboardYear[] {
+  return [...years].sort((a, b) => b.year - a.year);
+}
+
+function upsertStrategicYear(
+  strategicDashboard: StrategicDashboardState,
+  year: number,
+  updateYear: (entry: StrategicDashboardYear) => StrategicDashboardYear,
+): StrategicDashboardState {
+  const existingYear = getStrategicDashboardYear(strategicDashboard, year);
+  const nextYear = updateYear(existingYear);
+  const nextYears = strategicDashboard.years.filter(entry => entry.year !== year);
+  nextYears.push(nextYear);
+
+  return {
+    ...strategicDashboard,
+    years: sortStrategicYears(nextYears),
+  };
+}
+
+function updateStrategicGoal(
+  strategicDashboard: StrategicDashboardState,
+  year: number,
+  sectionKey: StrategicDashboardSectionKey,
+  index: number,
+  updateGoal: (goal: StrategicDashboardYear['sections'][StrategicDashboardSectionKey]['goals'][number]) => StrategicDashboardYear['sections'][StrategicDashboardSectionKey]['goals'][number],
+): StrategicDashboardState {
+  return upsertStrategicYear(strategicDashboard, year, entry => {
+    const section = entry.sections[sectionKey];
+    const goal = section.goals[index];
+
+    if (!goal) {
+      return entry;
+    }
+
+    const nextGoals = section.goals.map((item, goalIndex) =>
+      goalIndex === index ? updateGoal(item) : item,
+    );
+
+    return {
+      ...entry,
+      sections: {
+        ...entry.sections,
+        [sectionKey]: {
+          ...section,
+          goals: nextGoals,
+        },
+      },
+    };
+  });
+}
+
+function updateStrategicWins(
+  strategicDashboard: StrategicDashboardState,
+  year: number,
+  field: 'currentWins' | 'previousWins',
+  index: number,
+  value: string,
+): StrategicDashboardState {
+  return upsertStrategicYear(strategicDashboard, year, entry => {
+    const nextValues = [...entry[field]];
+    if (index < 0 || index >= nextValues.length) {
+      return entry;
+    }
+
+    nextValues[index] = value;
+    return {
+      ...entry,
+      [field]: nextValues,
+    };
+  });
+}
+
+function addWeeklyFocusItem(
+  weeklyFocus: AppState['weeklyFocus'],
+  weekStart: string,
+  advisorId: AdvisorId,
+  taskId: string,
+): AppState['weeklyFocus'] {
+  return upsertWeeklyFocusWeek(weeklyFocus, weekStart, items => {
+    if (items.some(item => item.advisorId === advisorId && item.taskId === taskId)) {
+      return items;
+    }
+
+    if (items.length >= MAX_WEEKLY_FOCUS_ITEMS) {
+      return items;
+    }
+
+    return [
+      ...items,
+      {
+        advisorId,
+        taskId,
+        addedAt: new Date().toISOString(),
+        carriedForwardFromWeekStart: null,
+      },
+    ];
+  });
+}
+
 export function appReducer(state: AppState, action: AppAction): AppState {
   switch (action.type) {
     case 'INITIALIZE':
-      return action.payload;
+      return {
+        ...action.payload,
+        strategicDashboard: normalizeStrategicDashboardState(action.payload.strategicDashboard),
+      };
 
     case 'IMPORT_SESSION': {
       const { advisorId, normalizedImport } = action.payload;
@@ -370,6 +482,143 @@ export function appReducer(state: AppState, action: AppAction): AppState {
           }),
         ),
       };
+
+    case 'SET_STRATEGIC_GOAL_SLOT': {
+      const { year, sectionKey, index, text } = action.payload;
+
+      return {
+        ...state,
+        strategicDashboard: updateStrategicGoal(
+          state.strategicDashboard,
+          year,
+          sectionKey,
+          index,
+          goal => ({
+            ...goal,
+            text,
+          }),
+        ),
+      };
+    }
+
+    case 'TOGGLE_STRATEGIC_GOAL_COMPLETED': {
+      const { year, sectionKey, index } = action.payload;
+
+      return {
+        ...state,
+        strategicDashboard: updateStrategicGoal(
+          state.strategicDashboard,
+          year,
+          sectionKey,
+          index,
+          goal => ({
+            ...goal,
+            completed: !goal.completed,
+          }),
+        ),
+      };
+    }
+
+    case 'SET_STRATEGIC_WIN': {
+      const { year, field, index, value } = action.payload;
+
+      return {
+        ...state,
+        strategicDashboard: updateStrategicWins(
+          state.strategicDashboard,
+          year,
+          field,
+          index,
+          value,
+        ),
+      };
+    }
+
+    case 'PROMOTE_STRATEGIC_GOAL_TO_TASK': {
+      const {
+        year,
+        sectionKey,
+        index,
+        advisorId,
+        bucket,
+        addToWeeklyFocusWeekStart = null,
+      } = action.payload;
+      const currentAdvisorState = state.advisors[advisorId];
+      if (!currentAdvisorState) return state;
+
+      const strategicYear = getStrategicDashboardYear(state.strategicDashboard, year);
+      const goal = strategicYear.sections[sectionKey].goals[index];
+      const nextText = goal?.text.trim() ?? '';
+      if (!nextText) {
+        return state;
+      }
+
+      const linkedTaskId = goal.linkedTask?.advisorId === advisorId ? goal.linkedTask.taskId : null;
+      const existingOpenTask = linkedTaskId
+        ? currentAdvisorState.tasks.find(task => task.id === linkedTaskId && task.status === 'open') ?? null
+        : null;
+      const taskId = existingOpenTask?.id ?? generateId(advisorId.slice(0, 3).toUpperCase());
+
+      const nextTasks = existingOpenTask
+        ? currentAdvisorState.tasks.map(task =>
+            task.id === existingOpenTask.id
+              ? {
+                  ...task,
+                  task: nextText,
+                }
+              : task,
+          )
+        : [
+            ...currentAdvisorState.tasks,
+            {
+              id: taskId,
+              task: nextText,
+              dueDate: 'ongoing',
+              due: 'ongoing',
+              priority: bucket === 'later' ? 'medium' : 'high',
+              status: 'open',
+              createdDate: today(),
+            },
+          ];
+
+      const nextTaskPlanning = {
+        ...state.taskPlanning,
+        [getTaskPlanningKey(advisorId, taskId)]: {
+          advisorId,
+          taskId,
+          bucket,
+          updatedAt: new Date().toISOString(),
+        },
+      };
+
+      return {
+        ...state,
+        advisors: {
+          ...state.advisors,
+          [advisorId]: {
+            ...currentAdvisorState,
+            tasks: nextTasks,
+          },
+        },
+        taskPlanning: nextTaskPlanning,
+        weeklyFocus: addToWeeklyFocusWeekStart
+          ? addWeeklyFocusItem(state.weeklyFocus, addToWeeklyFocusWeekStart, advisorId, taskId)
+          : state.weeklyFocus,
+        strategicDashboard: updateStrategicGoal(
+          state.strategicDashboard,
+          year,
+          sectionKey,
+          index,
+          item => ({
+            ...item,
+            linkedTask: {
+              advisorId,
+              taskId,
+            },
+          }),
+        ),
+      };
+    }
 
     case 'UPDATE_SHARED_METRICS':
       return {

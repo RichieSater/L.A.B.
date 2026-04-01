@@ -270,4 +270,85 @@ describe('appReducer', () => {
 
     expect(result.weeklyFocus.weeks).toEqual([]);
   });
+
+  it('promotes a strategic goal into one canonical advisor task and links it back to the goal', () => {
+    defaultState.strategicDashboard.years[0].sections.quarterGoals.goals[0].text =
+      'Turn the annual direction into a real quarter plan';
+
+    const result = appReducer(defaultState, {
+      type: 'PROMOTE_STRATEGIC_GOAL_TO_TASK',
+      payload: {
+        year: defaultState.strategicDashboard.years[0].year,
+        sectionKey: 'quarterGoals',
+        index: 0,
+        advisorId: 'prioritization',
+        bucket: 'this_week',
+        addToWeeklyFocusWeekStart: '2026-03-29',
+      },
+    });
+
+    const linkedTask = result.advisors.prioritization.tasks.find(
+      item => item.task === 'Turn the annual direction into a real quarter plan',
+    );
+
+    expect(linkedTask).toBeDefined();
+    expect(result.strategicDashboard.years[0].sections.quarterGoals.goals[0]?.linkedTask).toEqual({
+      advisorId: 'prioritization',
+      taskId: linkedTask?.id,
+    });
+    expect(result.taskPlanning[`prioritization:${linkedTask?.id}`]).toEqual(
+      expect.objectContaining({
+        advisorId: 'prioritization',
+        taskId: linkedTask?.id,
+        bucket: 'this_week',
+      }),
+    );
+    expect(result.weeklyFocus.weeks[0]?.items).toEqual([
+      expect.objectContaining({
+        advisorId: 'prioritization',
+        taskId: linkedTask?.id,
+      }),
+    ]);
+  });
+
+  it('re-promotes a linked open strategic task without creating a duplicate', () => {
+    const existingTaskId = 'PRI-EXISTING-1';
+    defaultState.advisors.prioritization.tasks.push({
+      id: existingTaskId,
+      task: 'Old strategy wording',
+      dueDate: 'ongoing',
+      priority: 'medium',
+      status: 'open',
+      createdDate: '2026-03-30',
+    });
+    defaultState.strategicDashboard.years[0].sections.yearGoals.goals[0] = {
+      ...defaultState.strategicDashboard.years[0].sections.yearGoals.goals[0],
+      text: 'Sharper strategy wording',
+      linkedTask: {
+        advisorId: 'prioritization',
+        taskId: existingTaskId,
+      },
+    };
+
+    const result = appReducer(defaultState, {
+      type: 'PROMOTE_STRATEGIC_GOAL_TO_TASK',
+      payload: {
+        year: defaultState.strategicDashboard.years[0].year,
+        sectionKey: 'yearGoals',
+        index: 0,
+        advisorId: 'prioritization',
+        bucket: 'later',
+        addToWeeklyFocusWeekStart: null,
+      },
+    });
+
+    const updatedTasks = result.advisors.prioritization.tasks.filter(item => item.id === existingTaskId);
+    expect(updatedTasks).toHaveLength(1);
+    expect(updatedTasks[0]?.task).toBe('Sharper strategy wording');
+    expect(result.taskPlanning[`prioritization:${existingTaskId}`]).toEqual(
+      expect.objectContaining({
+        bucket: 'later',
+      }),
+    );
+  });
 });

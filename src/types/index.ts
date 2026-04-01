@@ -6,5 +6,7 @@ export * from './metrics';
 export * from './quick-log';
 export * from './schedule';
 export * from './session';
+export * from './compass';
+export * from './strategic-dashboard';
 export * from './weekly-focus';
 export * from './weekly-review';

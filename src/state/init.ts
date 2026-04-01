@@ -9,6 +9,7 @@ import {
 } from '../types/daily-planning.js';
 import { createDefaultWeeklyFocusState } from '../types/weekly-focus.js';
 import { createDefaultWeeklyReviewState, normalizeWeeklyReviewState } from '../types/weekly-review.js';
+import { createDefaultStrategicDashboardState } from '../types/strategic-dashboard.js';
 
 export interface AppPersistence {
   loadAdvisorState(id: AdvisorId): Promise<AdvisorState | null>;
@@ -72,6 +73,7 @@ export function createDefaultAppState(): AppState {
     dailyPlanning: createDefaultDailyPlanningState(),
     weeklyFocus: createDefaultWeeklyFocusState(),
     weeklyReview: createDefaultWeeklyReviewState(),
+    strategicDashboard: createDefaultStrategicDashboardState(),
     initialized: true,
     schemaVersion: CURRENT_SCHEMA_VERSION,
   };
@@ -110,6 +112,7 @@ export async function loadAppStateFromStorage(
     dailyPlanning: normalizeDailyPlanningState(dailyPlanning ?? createDefaultDailyPlanningState()),
     weeklyFocus: weeklyFocus ?? createDefaultWeeklyFocusState(),
     weeklyReview: normalizeWeeklyReviewState(weeklyReview ?? createDefaultWeeklyReviewState()),
+    strategicDashboard: createDefaultStrategicDashboardState(),
     initialized: true,
     schemaVersion: CURRENT_SCHEMA_VERSION,
   };
