@@ -1,6 +1,7 @@
 import type { AdvisorId } from './advisor';
 
-export type DashboardTab = 'week' | 'advisors' | 'calendar';
+export type DashboardTab = 'week' | 'advisors' | 'compass' | 'calendar';
+export type DashboardAvailableTabs = readonly DashboardTab[];
 
 export type TaskListPreset =
   | 'all_open'

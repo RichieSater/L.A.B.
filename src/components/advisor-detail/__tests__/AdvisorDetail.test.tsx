@@ -1,6 +1,10 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  GOLDEN_COMPASS_PATH,
+  QUANTUM_PLANNER_PATH,
+} from '../../../constants/routes';
 import { ADVISOR_CONFIGS } from '../../../advisors/registry';
 import { createDefaultAppState } from '../../../state/init';
 import { createStrategicDashboardYear } from '../../../types/strategic-dashboard';
@@ -136,7 +140,7 @@ describe('AdvisorDetail', () => {
     fireEvent.click(
       within(planningCard as HTMLElement).getByRole('button', { name: 'Open Needs Triage in Weekly LAB' }),
     );
-    expect(navigate).toHaveBeenCalledWith('/', {
+    expect(navigate).toHaveBeenCalledWith(QUANTUM_PLANNER_PATH, {
       state: {
         dashboard: {
           tab: 'week',
@@ -149,7 +153,7 @@ describe('AdvisorDetail', () => {
     });
 
     fireEvent.click(screen.getByRole('button', { name: 'Open advisor task list' }));
-    expect(navigate).toHaveBeenCalledWith('/', {
+    expect(navigate).toHaveBeenCalledWith(QUANTUM_PLANNER_PATH, {
       state: {
         dashboard: {
           tab: 'week',
@@ -160,6 +164,9 @@ describe('AdvisorDetail', () => {
       },
     });
 
+    fireEvent.click(screen.getByRole('button', { name: 'Open Compass' }));
+    expect(navigate).toHaveBeenCalledWith(GOLDEN_COMPASS_PATH);
+
     const carryOverTaskRow = container.querySelector('[data-task-id="task-1"]');
     const taskRow = container.querySelector('[data-task-id="task-2"]');
     expect(carryOverTaskRow).not.toBeNull();
@@ -168,7 +175,7 @@ describe('AdvisorDetail', () => {
     fireEvent.click(
       within(carryOverTaskRow as HTMLElement).getByRole('button', { name: 'Open Carry Over in Weekly LAB' }),
     );
-    expect(navigate).toHaveBeenLastCalledWith('/', {
+    expect(navigate).toHaveBeenLastCalledWith(QUANTUM_PLANNER_PATH, {
       state: {
         dashboard: {
           tab: 'week',
@@ -183,7 +190,7 @@ describe('AdvisorDetail', () => {
     fireEvent.click(
       within(taskRow as HTMLElement).getByRole('button', { name: 'Open Needs Triage in Weekly LAB' }),
     );
-    expect(navigate).toHaveBeenLastCalledWith('/', {
+    expect(navigate).toHaveBeenLastCalledWith(QUANTUM_PLANNER_PATH, {
       state: {
         dashboard: {
           tab: 'week',

@@ -1,5 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import {
+  getGoldenCompassSessionPath,
+  GOLDEN_COMPASS_PATH,
+  QUANTUM_PLANNER_PATH,
+} from '../../constants/routes';
 import { ACTIVE_ADVISOR_IDS, ADVISOR_CONFIGS } from '../../advisors/registry';
 import { apiClient } from '../../lib/api';
 import { useAppState } from '../../state/app-context';
@@ -255,7 +260,7 @@ export function StrategicPlannerPanel() {
       },
     };
 
-    navigate('/', { state: dashboardState });
+    navigate(QUANTUM_PLANNER_PATH, { state: dashboardState });
   }
 
   return (
@@ -279,14 +284,14 @@ export function StrategicPlannerPanel() {
               <>
                 <button
                   type="button"
-                  onClick={() => navigate(`/compass/${activeCompassSession.id}`)}
+                  onClick={() => navigate(getGoldenCompassSessionPath(activeCompassSession.id))}
                   className="rounded-full border border-amber-300 bg-amber-50 px-5 py-2.5 text-sm font-semibold text-amber-900 transition hover:border-amber-500 hover:bg-amber-100"
                 >
                   Resume Compass
                 </button>
                 <button
                   type="button"
-                  onClick={() => navigate('/compass')}
+                  onClick={() => navigate(GOLDEN_COMPASS_PATH)}
                   className="rounded-full border border-stone-200 bg-white px-5 py-2.5 text-sm font-semibold text-stone-700 transition hover:border-stone-300 hover:bg-stone-50"
                 >
                   Open Compass Library
@@ -295,7 +300,7 @@ export function StrategicPlannerPanel() {
             ) : (
               <button
                 type="button"
-                onClick={() => navigate('/compass')}
+                onClick={() => navigate(GOLDEN_COMPASS_PATH)}
                 className="rounded-full border border-amber-300 bg-amber-50 px-5 py-2.5 text-sm font-semibold text-amber-900 transition hover:border-amber-500 hover:bg-amber-100"
               >
                 Open Compass
@@ -324,7 +329,7 @@ export function StrategicPlannerPanel() {
               </div>
               <button
                 type="button"
-                onClick={() => navigate(`/compass/${activeCompassSession.id}`)}
+                onClick={() => navigate(getGoldenCompassSessionPath(activeCompassSession.id))}
                 className="rounded-full bg-stone-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-stone-800"
               >
                 Resume

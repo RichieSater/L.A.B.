@@ -20,6 +20,11 @@ import type { DailyPlanningState } from '../../src/types/daily-planning.js';
 import type { StrategicDashboardState } from '../../src/types/strategic-dashboard.js';
 import type { WeeklyFocusState } from '../../src/types/weekly-focus.js';
 import type { WeeklyReviewState } from '../../src/types/weekly-review.js';
+import type {
+  CompassAnswers,
+  CompassInsights,
+  CompassSessionStatus,
+} from '../../src/types/compass.js';
 
 export const scheduledSessionStatusEnum = pgEnum('scheduled_session_status', [
   'scheduled',
@@ -33,6 +38,12 @@ export const calendarSyncStatusEnum = pgEnum('calendar_sync_status', [
   'pending',
   'synced',
   'failed',
+]);
+
+export const compassSessionStatusEnum = pgEnum('compass_session_status', [
+  'in_progress',
+  'completed',
+  'abandoned',
 ]);
 
 export const userProfiles = pgTable('user_profiles', {
@@ -93,6 +104,20 @@ export const scheduledSessions = pgTable('scheduled_sessions', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
+export const compassSessions = pgTable('compass_sessions', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: text('user_id').notNull().references(() => userProfiles.id, { onDelete: 'cascade' }),
+  planningYear: integer('planning_year').notNull(),
+  title: text('title').notNull(),
+  status: compassSessionStatusEnum('status').$type<CompassSessionStatus>().notNull().default('in_progress'),
+  currentScreen: integer('current_screen').notNull().default(0),
+  answers: jsonb('answers').$type<CompassAnswers>().notNull().default(sql`'{}'::jsonb`),
+  insights: jsonb('insights').$type<CompassInsights | null>().default(sql`null`),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  completedAt: timestamp('completed_at', { withTimezone: true }),
+});
+
 export const userAppMeta = pgTable('user_app_meta', {
   userId: text('user_id').primaryKey().references(() => userProfiles.id, { onDelete: 'cascade' }),
   schemaVersion: integer('schema_version').notNull().default(CURRENT_SCHEMA_VERSION),
@@ -134,6 +159,7 @@ export const userProfileRelations = relations(userProfiles, ({ many, one }) => (
     references: [userAppMeta.userId],
   }),
   scheduledSessions: many(scheduledSessions),
+  compassSessions: many(compassSessions),
 }));
 
 export const advisorStateRelations = relations(advisorStates, ({ one }) => ({
@@ -167,6 +193,13 @@ export const taskPlanningAssignmentsRelations = relations(taskPlanningAssignment
 export const scheduledSessionsRelations = relations(scheduledSessions, ({ one }) => ({
   userProfile: one(userProfiles, {
     fields: [scheduledSessions.userId],
+    references: [userProfiles.id],
+  }),
+}));
+
+export const compassSessionsRelations = relations(compassSessions, ({ one }) => ({
+  userProfile: one(userProfiles, {
+    fields: [compassSessions.userId],
     references: [userProfiles.id],
   }),
 }));

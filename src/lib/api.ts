@@ -8,7 +8,12 @@ import type {
   UserProfile,
 } from '../types/api';
 import type { ScheduledSession } from '../types/scheduled-session';
-import type { CompassSessionSummary } from '../types/compass';
+import type {
+  CompassSessionDetail,
+  CompassSessionSummary,
+  CreateCompassSessionInput,
+  UpdateCompassSessionInput,
+} from '../types/compass';
 
 export class ApiClientError extends Error implements ApiError {
   code?: string;
@@ -145,6 +150,24 @@ export const apiClient = {
 
   listCompassSessions(): Promise<CompassSessionSummary[]> {
     return request<CompassSessionSummary[]>('/api/compass-sessions');
+  },
+
+  createCompassSession(input: CreateCompassSessionInput): Promise<CompassSessionDetail> {
+    return request<CompassSessionDetail>('/api/compass-sessions', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    });
+  },
+
+  getCompassSession(id: string): Promise<CompassSessionDetail> {
+    return request<CompassSessionDetail>(`/api/compass-sessions/${id}`);
+  },
+
+  updateCompassSession(id: string, input: UpdateCompassSessionInput): Promise<CompassSessionDetail> {
+    return request<CompassSessionDetail>(`/api/compass-sessions/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(input),
+    });
   },
 };
 

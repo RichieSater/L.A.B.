@@ -222,6 +222,16 @@ function sortStrategicYears(years: StrategicDashboardYear[]): StrategicDashboard
   return [...years].sort((a, b) => b.year - a.year);
 }
 
+function markStrategicYearManualEdit(
+  entry: StrategicDashboardYear,
+  editedAt: string,
+): StrategicDashboardYear {
+  return {
+    ...entry,
+    lastManualEditAt: editedAt,
+  };
+}
+
 function upsertStrategicYear(
   strategicDashboard: StrategicDashboardState,
   year: number,
@@ -247,9 +257,10 @@ function updateStrategicGoal(
   sectionKey: StrategicDashboardSectionKey,
   index: number,
   updateGoal: (goal: StrategicDashboardGoal) => StrategicDashboardGoal,
+  options: { manualEditAt?: string } = {},
 ): StrategicDashboardState {
   return upsertStrategicYear(strategicDashboard, year, entry => ({
-    ...entry,
+    ...(options.manualEditAt ? markStrategicYearManualEdit(entry, options.manualEditAt) : entry),
     sections: {
       ...entry.sections,
       [sectionKey]: {
@@ -268,9 +279,10 @@ function updateStrategicWinList(
   field: StrategicWinField,
   index: number,
   value: string,
+  options: { manualEditAt?: string } = {},
 ): StrategicDashboardState {
   return upsertStrategicYear(strategicDashboard, year, entry => ({
-    ...entry,
+    ...(options.manualEditAt ? markStrategicYearManualEdit(entry, options.manualEditAt) : entry),
     [field]: entry[field].map((item, itemIndex) => (itemIndex === index ? value : item)),
   }));
 }
@@ -475,6 +487,7 @@ export function appReducer(state: AppState, action: AppAction): AppState {
 
     case 'SET_STRATEGIC_GOAL_SLOT': {
       const { year, sectionKey, index, text } = action.payload;
+      const editedAt = new Date().toISOString();
 
       return {
         ...state,
@@ -486,13 +499,16 @@ export function appReducer(state: AppState, action: AppAction): AppState {
           goal => ({
             ...goal,
             text,
+            source: 'manual',
           }),
+          { manualEditAt: editedAt },
         ),
       };
     }
 
     case 'TOGGLE_STRATEGIC_GOAL_COMPLETED': {
       const { year, sectionKey, index } = action.payload;
+      const editedAt = new Date().toISOString();
 
       return {
         ...state,
@@ -504,13 +520,16 @@ export function appReducer(state: AppState, action: AppAction): AppState {
           goal => ({
             ...goal,
             completed: !goal.completed,
+            source: 'manual',
           }),
+          { manualEditAt: editedAt },
         ),
       };
     }
 
     case 'SET_STRATEGIC_WIN': {
       const { year, field, index, value } = action.payload;
+      const editedAt = new Date().toISOString();
 
       return {
         ...state,
@@ -520,6 +539,7 @@ export function appReducer(state: AppState, action: AppAction): AppState {
           field,
           index,
           value,
+          { manualEditAt: editedAt },
         ),
       };
     }

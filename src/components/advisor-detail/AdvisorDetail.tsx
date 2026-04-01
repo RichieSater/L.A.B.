@@ -1,5 +1,11 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import {
+  ADVISORY_BOARD_PATH,
+  getAdvisorSessionPath,
+  GOLDEN_COMPASS_PATH,
+  QUANTUM_PLANNER_PATH,
+} from '../../constants/routes';
 import type { AdvisorId } from '../../types/advisor';
 import type { TaskStatus } from '../../types/action-item';
 import { useAdvisor } from '../../hooks/use-advisor';
@@ -186,17 +192,17 @@ export function AdvisorDetail({ advisorId }: AdvisorDetailProps) {
       },
     };
 
-    navigate('/', { state: dashboardState });
+    navigate(QUANTUM_PLANNER_PATH, { state: dashboardState });
   };
 
   return (
     <div>
       {/* Back link */}
       <button
-        onClick={() => navigate('/')}
+        onClick={() => navigate(ADVISORY_BOARD_PATH)}
         className="text-sm text-gray-500 hover:text-gray-300 mb-4 transition-colors"
       >
-        &larr; Dashboard
+        &larr; Advisory Board
       </button>
 
       {/* Header */}
@@ -218,7 +224,7 @@ export function AdvisorDetail({ advisorId }: AdvisorDetailProps) {
         </div>
         <div className="flex gap-2 self-start">
           <button
-            onClick={() => navigate(`/session/${advisorId}`)}
+            onClick={() => navigate(getAdvisorSessionPath(advisorId))}
             className="px-5 py-2.5 rounded-lg font-medium transition-colors"
             style={{
               backgroundColor: config.domainColor,
@@ -241,7 +247,7 @@ export function AdvisorDetail({ advisorId }: AdvisorDetailProps) {
                 type: 'TOGGLE_ADVISOR_ACTIVATION',
                 payload: { advisorId },
               });
-              navigate('/');
+              navigate(ADVISORY_BOARD_PATH);
             }}
             className="px-4 py-2.5 rounded-lg text-sm text-red-400 hover:text-red-300 hover:bg-red-900/20 transition-colors"
           >
@@ -372,7 +378,7 @@ export function AdvisorDetail({ advisorId }: AdvisorDetailProps) {
                 {recommendedPlannerRoute ? 'Open advisor task list' : 'Open Weekly LAB'}
               </button>
               <button
-                onClick={() => navigate('/compass')}
+                onClick={() => navigate(GOLDEN_COMPASS_PATH)}
                 className="rounded-full border border-amber-700/40 bg-amber-950/40 px-3 py-1.5 text-xs font-medium text-amber-200 transition-colors hover:border-amber-500/60 hover:bg-amber-950/60"
               >
                 Open Compass

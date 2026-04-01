@@ -4,7 +4,10 @@ import { createDefaultAppState } from '../init';
 import type { AppState } from '../../types/app-state';
 import type { SessionImport } from '../../types/session';
 import { normalizeSessionImport } from '../../parser/import-normalizer';
-import { createStrategicDashboardYear } from '../../types/strategic-dashboard';
+import {
+  applyCompassInsightsToStrategicDashboard,
+  createStrategicDashboardYear,
+} from '../../types/strategic-dashboard';
 
 function makeSessionImport(overrides: Partial<SessionImport> = {}): SessionImport {
   return {
@@ -389,5 +392,72 @@ describe('appReducer', () => {
     const matchingTasks = secondPass.advisors.prioritization.tasks.filter(task => task.id === linkedTaskId);
     expect(matchingTasks).toHaveLength(1);
     expect(matchingTasks[0]?.task).toBe('Ship the polished first draft');
+  });
+
+  it('marks manual strategy edits so Compass seeding can respect them', () => {
+    const planningYear = new Date().getFullYear();
+    const draftedState = createDefaultAppState();
+    draftedState.strategicDashboard.years = [createStrategicDashboardYear(planningYear)];
+
+    const result = appReducer(draftedState, {
+      type: 'SET_STRATEGIC_GOAL_SLOT',
+      payload: {
+        year: planningYear,
+        sectionKey: 'yearGoals',
+        index: 0,
+        text: 'Bring Golden Compass into LAB',
+      },
+    });
+
+    expect(result.strategicDashboard.years[0]?.sections.yearGoals.goals[0]).toEqual(
+      expect.objectContaining({
+        text: 'Bring Golden Compass into LAB',
+        source: 'manual',
+      }),
+    );
+    expect(result.strategicDashboard.years[0]?.lastManualEditAt).toBeTruthy();
+  });
+
+  it('seeds untouched year goals from Compass insights but leaves manually edited years alone', () => {
+    const planningYear = new Date().getFullYear();
+    const untouchedState = createDefaultAppState().strategicDashboard;
+    const touchedState = {
+      years: [
+        {
+          ...createStrategicDashboardYear(planningYear),
+          lastManualEditAt: '2026-04-01T10:00:00.000Z',
+        },
+      ],
+      latestCompassInsights: null,
+    };
+
+    const insights = {
+      annualGoals: ['Ship Golden Compass', 'Use LAB weekly', 'Keep long-term direction visible'],
+      dailyRituals: ['Plan first'],
+      supportPeople: ['Coach'],
+    };
+
+    const seeded = applyCompassInsightsToStrategicDashboard(
+      untouchedState,
+      planningYear,
+      insights,
+      '2026-04-01T12:00:00.000Z',
+    );
+    const protectedState = applyCompassInsightsToStrategicDashboard(
+      touchedState,
+      planningYear,
+      insights,
+      '2026-04-01T12:00:00.000Z',
+    );
+
+    expect(seeded.latestCompassInsights).toEqual(insights);
+    expect(seeded.years[0]?.sections.yearGoals.goals[0]).toEqual(
+      expect.objectContaining({
+        text: 'Ship Golden Compass',
+        source: 'compass',
+      }),
+    );
+    expect(protectedState.latestCompassInsights).toEqual(insights);
+    expect(protectedState.years[0]?.sections.yearGoals.goals[0]?.text).toBe('');
   });
 });

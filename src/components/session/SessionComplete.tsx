@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom';
+import { ADVISORY_BOARD_PATH } from '../../constants/routes';
 
 interface SessionCompleteProps {
   advisorName: string;
@@ -18,10 +19,10 @@ export function SessionComplete({ advisorName, onNewSession }: SessionCompletePr
 
       <div className="flex gap-4 justify-center">
         <button
-          onClick={() => navigate('/')}
+          onClick={() => navigate(ADVISORY_BOARD_PATH)}
           className="px-6 py-2.5 bg-gray-800 hover:bg-gray-700 text-gray-200 rounded-lg font-medium transition-colors"
         >
-          Back to Dashboard
+          Back to Advisory Board
         </button>
         <button
           onClick={onNewSession}

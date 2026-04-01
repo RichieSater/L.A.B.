@@ -1,5 +1,10 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  getGoldenCompassSessionPath,
+  GOLDEN_COMPASS_PATH,
+  QUANTUM_PLANNER_PATH,
+} from '../../../constants/routes';
 import { createDefaultAppState } from '../../../state/init';
 import { createStrategicDashboardYear } from '../../../types/strategic-dashboard';
 import { StrategicPlannerPanel } from '../StrategicPlannerPanel';
@@ -139,7 +144,7 @@ describe('StrategicPlannerPanel', () => {
     });
 
     fireEvent.click(within(row as HTMLElement).getByRole('button', { name: 'Open Weekly Focus in Weekly LAB' }));
-    expect(navigate).toHaveBeenCalledWith('/', {
+    expect(navigate).toHaveBeenCalledWith(QUANTUM_PLANNER_PATH, {
       state: {
         dashboard: {
           tab: 'week',
@@ -166,7 +171,7 @@ describe('StrategicPlannerPanel', () => {
     });
 
     fireEvent.click(screen.getByRole('button', { name: 'Open Compass' }));
-    expect(navigate).toHaveBeenCalledWith('/compass');
+    expect(navigate).toHaveBeenCalledWith(GOLDEN_COMPASS_PATH);
   });
 
   it('falls back to the advisor-scoped task list when a linked task has no special weekly lane', async () => {
@@ -221,7 +226,7 @@ describe('StrategicPlannerPanel', () => {
     expect(row).not.toBeNull();
 
     fireEvent.click(within(row as HTMLElement).getByRole('button', { name: 'Open advisor task list' }));
-    expect(navigate).toHaveBeenCalledWith('/', {
+    expect(navigate).toHaveBeenCalledWith(QUANTUM_PLANNER_PATH, {
       state: {
         dashboard: {
           tab: 'week',
@@ -265,13 +270,13 @@ describe('StrategicPlannerPanel', () => {
     expect(screen.getByText(/14 answers captured/i)).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Resume Compass' }));
-    expect(navigate).toHaveBeenCalledWith('/compass/compass-session-1');
+    expect(navigate).toHaveBeenCalledWith(getGoldenCompassSessionPath('compass-session-1'));
 
     fireEvent.click(screen.getByRole('button', { name: 'Resume' }));
-    expect(navigate).toHaveBeenCalledWith('/compass/compass-session-1');
+    expect(navigate).toHaveBeenCalledWith(getGoldenCompassSessionPath('compass-session-1'));
 
     fireEvent.click(screen.getByRole('button', { name: 'Open Compass Library' }));
-    expect(navigate).toHaveBeenCalledWith('/compass');
+    expect(navigate).toHaveBeenCalledWith(GOLDEN_COMPASS_PATH);
 
     await waitFor(() => {
       expect(apiClient.listCompassSessions).toHaveBeenCalledTimes(1);

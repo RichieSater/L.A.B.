@@ -1,5 +1,5 @@
 import { Dashboard } from '../components/dashboard/Dashboard';
 
 export function DashboardPage() {
-  return <Dashboard />;
+  return <Dashboard forcedInitialTab="week" availableTabs={['week', 'calendar']} />;
 }

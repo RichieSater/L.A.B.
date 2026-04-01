@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { QUANTUM_PLANNER_PATH } from '../../constants/routes';
 import { useAuth } from '../../auth/auth-context';
 import { useAppState } from '../../state/app-context';
 import {
@@ -11,6 +12,7 @@ import {
 import { ADVISOR_CONFIGS } from '../../advisors/registry';
 import type { AdvisorId } from '../../types/advisor';
 import type {
+  DashboardAvailableTabs,
   DashboardNavigationState,
   DashboardTab,
   TaskDashboardNavigationRequest,
@@ -19,18 +21,50 @@ import { AdvisorCardGrid } from './AdvisorCardGrid';
 import { AdvisorAttentionPanel } from './AdvisorAttentionPanel';
 import { TaskDashboard } from './TaskDashboard';
 import { CalendarView } from './CalendarView';
+import { CompassDashboard } from './CompassDashboard';
 import { DailyLogButton } from './DailyLogButton';
 import { StrategicPlannerPanel } from './StrategicPlannerPanel';
 
-export function Dashboard() {
+const TAB_LABELS: Record<DashboardTab, string> = {
+  week: 'Week',
+  advisors: 'Advisors',
+  compass: 'Compass',
+  calendar: 'Calendar',
+};
+
+const TAB_DESCRIPTIONS: Record<DashboardTab, string> = {
+  week: 'Weekly LAB',
+  advisors: 'Advisor attention and domain routing',
+  compass: 'Golden Compass',
+  calendar: 'Session calendar',
+};
+
+const TAB_SUBTITLES: Record<DashboardTab, string> = {
+  week: 'Plan the week, route work, and keep strategy visible',
+  advisors: 'See which advisors need the next meaningful action',
+  compass: 'Run a yearly reset, resume in-progress sessions, and review past compasses',
+  calendar: 'Review scheduled advisory sessions across the week',
+};
+
+const DEFAULT_AVAILABLE_TABS: DashboardAvailableTabs = ['week', 'advisors', 'compass', 'calendar'];
+
+export function Dashboard({
+  forcedInitialTab,
+  availableTabs = DEFAULT_AVAILABLE_TABS,
+}: {
+  forcedInitialTab?: DashboardTab;
+  availableTabs?: DashboardAvailableTabs;
+} = {}) {
   const location = useLocation();
   const navigationState = location.state as DashboardNavigationState | null;
   const dashboard = navigationState?.dashboard;
+  const requestedInitialTab = dashboard?.tab ?? forcedInitialTab;
 
   return (
     <DashboardView
       key={location.key}
-      initialActiveTab={dashboard?.tab ?? 'week'}
+      availableTabs={availableTabs}
+      initialActiveTab={resolveInitialTab(requestedInitialTab, availableTabs)}
       initialTaskNavigationRequest={
         dashboard?.taskList
           ? {
@@ -44,12 +78,15 @@ export function Dashboard() {
 }
 
 function DashboardView({
+  availableTabs,
   initialActiveTab,
   initialTaskNavigationRequest,
 }: {
+  availableTabs: DashboardAvailableTabs;
   initialActiveTab: DashboardTab;
   initialTaskNavigationRequest: TaskDashboardNavigationRequest | null;
 }) {
+  const navigate = useNavigate();
   const { profile } = useAuth();
   const { state, dispatch } = useAppState();
   const [activeTab, setActiveTab] = useState<DashboardTab>(initialActiveTab);
@@ -61,10 +98,23 @@ function DashboardView({
   const allOpenItems = selectAllOpenTasks(state);
   const attention = selectAdvisorAttentionSummary(state);
   const schedulingEnabled = profile?.schedulingEnabled ?? false;
+  const canOpenWeekLocally = availableTabs.includes('week');
 
   const handleOpenTasks = (
     request?: Omit<TaskDashboardNavigationRequest, 'requestKey'>,
   ) => {
+    if (!canOpenWeekLocally) {
+      navigate(QUANTUM_PLANNER_PATH, {
+        state: {
+          dashboard: {
+            tab: 'week',
+            ...(request ? { taskList: request } : {}),
+          },
+        },
+      });
+      return;
+    }
+
     setActiveTab('week');
 
     if (!request) {
@@ -84,28 +134,32 @@ function DashboardView({
       {/* Section header */}
       <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
         <div>
-          <h2 className="text-lg font-semibold text-gray-100">Weekly LAB</h2>
+          <h2 className="text-lg font-semibold text-gray-100">{TAB_DESCRIPTIONS[activeTab]}</h2>
           <p className="text-sm text-gray-500 mt-0.5">
-            {allOpenItems.length} open tasks across all domains
+            {activeTab === 'week'
+              ? `${allOpenItems.length} open tasks across all domains`
+              : TAB_SUBTITLES[activeTab]}
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <DailyLogButton />
-          <div className="flex gap-1 bg-gray-900 rounded-lg p-1">
-            {(['week', 'advisors', 'calendar'] as DashboardTab[]).map(tab => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                  activeTab === tab
-                    ? 'bg-gray-700 text-gray-200'
-                    : 'text-gray-500 hover:text-gray-300'
-                }`}
-              >
-                {tab === 'week' ? 'Week' : tab === 'advisors' ? 'Advisors' : 'Calendar'}
-              </button>
-            ))}
-          </div>
+          {activeTab !== 'compass' && <DailyLogButton />}
+          {availableTabs.length > 1 && (
+            <div className="flex gap-1 bg-gray-900 rounded-lg p-1">
+              {availableTabs.map(tab => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                    activeTab === tab
+                      ? 'bg-gray-700 text-gray-200'
+                      : 'text-gray-500 hover:text-gray-300'
+                  }`}
+                >
+                  {TAB_LABELS[tab]}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
@@ -158,9 +212,21 @@ function DashboardView({
           )}
         </>
       )}
+      {activeTab === 'compass' && <CompassDashboard />}
       {activeTab === 'calendar' && <CalendarView />}
     </div>
   );
+}
+
+function resolveInitialTab(
+  requestedTab: DashboardTab | undefined,
+  availableTabs: DashboardAvailableTabs,
+): DashboardTab {
+  if (requestedTab && availableTabs.includes(requestedTab)) {
+    return requestedTab;
+  }
+
+  return availableTabs[0] ?? 'week';
 }
 
 function InactiveAdvisorCard({

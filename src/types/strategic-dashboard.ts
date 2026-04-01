@@ -37,6 +37,7 @@ export interface StrategicDashboardYear {
   sections: Record<StrategicDashboardSectionKey, StrategicDashboardSection>;
   currentWins: string[];
   previousWins: string[];
+  lastManualEditAt: string | null;
   updatedAt: string;
 }
 
@@ -118,6 +119,7 @@ export function createStrategicDashboardYear(year: number): StrategicDashboardYe
     },
     currentWins: ['', '', ''],
     previousWins: ['', '', ''],
+    lastManualEditAt: null,
     updatedAt: new Date().toISOString(),
   };
 }
@@ -144,6 +146,7 @@ export function normalizeStrategicDashboardYear(
     },
     currentWins: [...baseYear.currentWins].map((value, index) => year.currentWins?.[index] ?? value),
     previousWins: [...baseYear.previousWins].map((value, index) => year.previousWins?.[index] ?? value),
+    lastManualEditAt: year.lastManualEditAt ?? baseYear.lastManualEditAt,
     updatedAt: year.updatedAt ?? baseYear.updatedAt,
   };
 }
@@ -169,4 +172,48 @@ export function getStrategicDashboardYear(
 ): StrategicDashboardYear {
   const existing = state.years.find(entry => entry.year === year);
   return normalizeStrategicDashboardYear(existing, year);
+}
+
+export function applyCompassInsightsToStrategicDashboard(
+  state: StrategicDashboardState,
+  planningYear: number,
+  insights: CompassInsights,
+  updatedAt: string,
+): StrategicDashboardState {
+  const nextState = normalizeStrategicDashboardState(state);
+  const currentYear = getStrategicDashboardYear(nextState, planningYear);
+
+  const nextYear =
+    currentYear.lastManualEditAt === null
+      ? {
+          ...currentYear,
+          sections: {
+            ...currentYear.sections,
+            yearGoals: {
+              ...currentYear.sections.yearGoals,
+              goals: currentYear.sections.yearGoals.goals.map((goal, index) => {
+                const nextText = insights.annualGoals[index] ?? '';
+
+                return {
+                  ...goal,
+                  text: nextText,
+                  source: nextText ? 'compass' : goal.source,
+                };
+              }),
+            },
+          },
+        }
+      : currentYear;
+
+  const nextYears = nextState.years.filter(entry => entry.year !== planningYear);
+  nextYears.push({
+    ...nextYear,
+    updatedAt,
+  });
+
+  return {
+    ...nextState,
+    latestCompassInsights: insights,
+    years: nextYears.sort((a, b) => b.year - a.year),
+  };
 }
