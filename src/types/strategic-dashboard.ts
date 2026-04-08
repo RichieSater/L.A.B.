@@ -1,5 +1,5 @@
-import type { AdvisorId } from './advisor';
-import type { CompassInsights } from './compass';
+import type { AdvisorId } from './advisor.js';
+import type { CompassInsights } from './compass.js';
 
 export const STRATEGIC_DASHBOARD_SECTION_KEYS = [
   'biggestGoals',

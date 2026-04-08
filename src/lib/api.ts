@@ -115,7 +115,7 @@ export const apiClient = {
   },
 
   updateAdminUserTier(userId: string, input: UpdateAdminUserTierInput): Promise<AdminUserSummary> {
-    return request<AdminUserSummary>(`/api/admin/users/${userId}`, {
+    return request<AdminUserSummary>(`/api/admin/users?userId=${encodeURIComponent(userId)}`, {
       method: 'PATCH',
       body: JSON.stringify(input),
     });

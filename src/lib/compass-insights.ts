@@ -1,4 +1,4 @@
-import type { CompassAnswers, CompassInsights } from '../types/compass';
+import type { CompassAnswers, CompassInsights } from '../types/compass.js';
 
 function collectValues(record: Record<string, string> | undefined, keys: string[]): string[] {
   return keys
@@ -11,7 +11,7 @@ function uniqueValues(values: string[]): string[] {
 }
 
 export function countCompassAnswers(answers: CompassAnswers): number {
-  return Object.values(answers).reduce((count, record) => {
+  return Object.values(answers).reduce<number>((count, record) => {
     return (
       count +
       Object.values(record).filter(value => {

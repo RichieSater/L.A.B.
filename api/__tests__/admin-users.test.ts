@@ -30,7 +30,7 @@ describe('admin user APIs', () => {
   });
 
   it('rejects non-admin access to the user list', async () => {
-    const handler = (await import('../admin/users/index')).default;
+    const handler = (await import('../admin/users')).default;
     requireUser.mockResolvedValue({ userId: 'user_123' });
     getUserAccountTier.mockResolvedValue('premium');
 
@@ -40,7 +40,7 @@ describe('admin user APIs', () => {
   });
 
   it('returns the admin user list for admins', async () => {
-    const handler = (await import('../admin/users/index')).default;
+    const handler = (await import('../admin/users')).default;
     requireUser.mockResolvedValue({ userId: 'user_admin' });
     getUserAccountTier.mockResolvedValue('admin');
     listAdminUsers.mockResolvedValue([
@@ -67,7 +67,7 @@ describe('admin user APIs', () => {
   });
 
   it('rejects admin-tier edits through the management endpoint', async () => {
-    const handler = (await import('../admin/users/[userId]')).default;
+    const handler = (await import('../admin/users')).default;
     requireUser.mockResolvedValue({ userId: 'user_admin' });
     getUserAccountTier.mockResolvedValue('admin');
     readJsonBody.mockReturnValue({ accountTier: 'premium' });

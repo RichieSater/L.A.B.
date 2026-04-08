@@ -1,4 +1,4 @@
-import type { AdvisorId } from './advisor';
+import type { AdvisorId } from './advisor.js';
 
 export const MAX_WEEKLY_FOCUS_ITEMS = 3;
 export const MAX_WEEKLY_FOCUS_HISTORY_WEEKS = 8;

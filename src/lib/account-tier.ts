@@ -1,4 +1,4 @@
-import type { AccountTier, ManagedAccountTier } from '../types/api';
+import type { AccountTier, ManagedAccountTier } from '../types/api.js';
 
 const ACCOUNT_TIER_RANK: Record<AccountTier, number> = {
   free: 0,
