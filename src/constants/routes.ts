@@ -2,6 +2,7 @@ export const HOME_PATH = '/';
 export const LOGIN_PATH = '/login';
 export const SIGNUP_PATH = '/signup';
 export const SETTINGS_PATH = '/settings';
+export const ADMIN_DASHBOARD_PATH = '/admin';
 
 export const QUANTUM_PLANNER_PATH = '/quantum-planner';
 export const ADVISORY_BOARD_PATH = '/advisory-board';

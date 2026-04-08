@@ -1,8 +1,10 @@
 import { Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { EntitledRoute } from './auth/EntitledRoute';
 import { AuthProvider } from './auth/auth-context';
 import { ErrorBoundary } from './components/shared/ErrorBoundary';
 import {
+  ADMIN_DASHBOARD_PATH,
   ADVISOR_ROUTE,
   ADVISORY_BOARD_PATH,
   GOLDEN_COMPASS_PATH,
@@ -16,6 +18,12 @@ import {
   SETTINGS_PATH,
   SIGNUP_PATH,
 } from './constants/routes';
+import {
+  ADMIN_DASHBOARD_MINIMUM_TIER,
+  ADVISORY_BOARD_MINIMUM_TIER,
+  GOLDEN_COMPASS_MINIMUM_TIER,
+  QUANTUM_PLANNER_MINIMUM_TIER,
+} from './modules/module-entitlements';
 
 const DashboardPage = lazy(() =>
   import('./pages/DashboardPage').then(module => ({ default: module.DashboardPage })),
@@ -37,6 +45,9 @@ const AdvisorPage = lazy(() =>
 );
 const AdvisoryBoardPage = lazy(() =>
   import('./pages/AdvisoryBoardPage').then(module => ({ default: module.AdvisoryBoardPage })),
+);
+const AdminDashboardPage = lazy(() =>
+  import('./pages/AdminDashboardPage').then(module => ({ default: module.AdminDashboardPage })),
 );
 const CompassPage = lazy(() =>
   import('./pages/CompassPage').then(module => ({ default: module.CompassPage })),
@@ -79,14 +90,15 @@ function App() {
               {/* Protected routes */}
               <Route element={<ProtectedRoute><ProtectedLayout /></ProtectedRoute>}>
                 <Route path={HOME_PATH} element={<ModuleHubPage />} />
-                <Route path={QUANTUM_PLANNER_PATH} element={<DashboardPage />} />
-                <Route path={ADVISORY_BOARD_PATH} element={<AdvisoryBoardPage />} />
-                <Route path={GOLDEN_COMPASS_PATH} element={<CompassPage />} />
-                <Route path={LEGACY_GOLDEN_COMPASS_PATH} element={<CompassPage />} />
-                <Route path={GOLDEN_COMPASS_SESSION_ROUTE} element={<CompassSessionPage />} />
-                <Route path={LEGACY_GOLDEN_COMPASS_SESSION_ROUTE} element={<CompassSessionPage />} />
-                <Route path={SESSION_ROUTE} element={<SessionPage />} />
-                <Route path={ADVISOR_ROUTE} element={<AdvisorPage />} />
+                <Route path={QUANTUM_PLANNER_PATH} element={<EntitledRoute requiredTier={QUANTUM_PLANNER_MINIMUM_TIER}><DashboardPage /></EntitledRoute>} />
+                <Route path={ADVISORY_BOARD_PATH} element={<EntitledRoute requiredTier={ADVISORY_BOARD_MINIMUM_TIER}><AdvisoryBoardPage /></EntitledRoute>} />
+                <Route path={GOLDEN_COMPASS_PATH} element={<EntitledRoute requiredTier={GOLDEN_COMPASS_MINIMUM_TIER}><CompassPage /></EntitledRoute>} />
+                <Route path={LEGACY_GOLDEN_COMPASS_PATH} element={<EntitledRoute requiredTier={GOLDEN_COMPASS_MINIMUM_TIER}><CompassPage /></EntitledRoute>} />
+                <Route path={GOLDEN_COMPASS_SESSION_ROUTE} element={<EntitledRoute requiredTier={GOLDEN_COMPASS_MINIMUM_TIER}><CompassSessionPage /></EntitledRoute>} />
+                <Route path={LEGACY_GOLDEN_COMPASS_SESSION_ROUTE} element={<EntitledRoute requiredTier={GOLDEN_COMPASS_MINIMUM_TIER}><CompassSessionPage /></EntitledRoute>} />
+                <Route path={SESSION_ROUTE} element={<EntitledRoute requiredTier={ADVISORY_BOARD_MINIMUM_TIER}><SessionPage /></EntitledRoute>} />
+                <Route path={ADVISOR_ROUTE} element={<EntitledRoute requiredTier={ADVISORY_BOARD_MINIMUM_TIER}><AdvisorPage /></EntitledRoute>} />
+                <Route path={ADMIN_DASHBOARD_PATH} element={<EntitledRoute requiredTier={ADMIN_DASHBOARD_MINIMUM_TIER}><AdminDashboardPage /></EntitledRoute>} />
                 <Route path={SETTINGS_PATH} element={<SettingsPage />} />
               </Route>
 

@@ -84,6 +84,7 @@ describe('auth recovery', () => {
           schedulingEnabled: false,
           googleCalendarConnected: false,
           googleCalendarEmail: null,
+          accountTier: 'premium',
         },
         appState: {} as never,
         scheduledSessions: [],

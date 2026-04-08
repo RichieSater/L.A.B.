@@ -41,6 +41,7 @@ vi.mock('../db/client', () => ({
 vi.mock('../env', () => ({
   env: {
     buildVersion: 'test-build',
+    labAdminEmails: null,
   },
 }));
 
@@ -93,6 +94,8 @@ describe('Google Calendar lifecycle sync', () => {
     const existingProfile = {
       id: 'user_123',
       displayName: 'Test User',
+      primaryEmail: 'test@example.com',
+      accountTier: 'premium' as const,
       schedulingEnabled: true,
       googleCalendarConnected: false,
       googleCalendarEmail: null,
@@ -134,6 +137,7 @@ describe('Google Calendar lifecycle sync', () => {
       schedulingEnabled: true,
       googleCalendarConnected: true,
       googleCalendarEmail: 'lab@example.com',
+      accountTier: 'premium',
     });
 
     expect(exchangeGoogleCalendarCode).toHaveBeenCalledWith('auth-code');
@@ -159,6 +163,8 @@ describe('Google Calendar lifecycle sync', () => {
     const connectedProfile = {
       id: 'user_123',
       displayName: 'Test User',
+      primaryEmail: 'test@example.com',
+      accountTier: 'premium' as const,
       schedulingEnabled: true,
       googleCalendarConnected: true,
       googleCalendarEmail: 'lab@example.com',
@@ -199,6 +205,7 @@ describe('Google Calendar lifecycle sync', () => {
       schedulingEnabled: true,
       googleCalendarConnected: false,
       googleCalendarEmail: null,
+      accountTier: 'premium',
     });
 
     expect(deleteCalendarEvent).toHaveBeenCalledWith('refresh-token', 'google-event-a');

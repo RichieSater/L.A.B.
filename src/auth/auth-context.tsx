@@ -9,7 +9,13 @@ import {
 } from 'react';
 import { useClerk, useUser } from '@clerk/react';
 import { apiClient, isApiClientError, type ApiClientError } from '../lib/api';
-import type { ApiError, BootstrapResponse, AuthUser, UserProfile } from '../types/api';
+import type {
+  ApiError,
+  BootstrapResponse,
+  AuthUser,
+  UpdateUserProfileInput,
+  UserProfile,
+} from '../types/api';
 import { APP_BUILD_VERSION } from '../constants/build';
 
 interface AuthContextValue {
@@ -19,7 +25,7 @@ interface AuthContextValue {
   bootstrapError: Error | ApiClientError | ApiError | null;
   loading: boolean;
   signOut: () => Promise<void>;
-  updateProfile: (updates: Partial<UserProfile>) => Promise<void>;
+  updateProfile: (updates: UpdateUserProfileInput) => Promise<void>;
   refreshBootstrap: () => Promise<void>;
   retryBootstrap: () => Promise<void>;
 }
@@ -113,7 +119,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
   }, [isLoaded, clerkUser, retryBootstrap]);
 
-  const updateProfile = useCallback(async (updates: Partial<UserProfile>) => {
+  const updateProfile = useCallback(async (updates: UpdateUserProfileInput) => {
     const profile = await apiClient.updateProfile(updates);
     setBootstrapData(prev => {
       if (!prev) {

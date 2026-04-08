@@ -14,11 +14,16 @@ import {
   normalizeStrategicDashboardState,
 } from '../src/types/strategic-dashboard.js';
 import type {
+  AccountTier,
+  AdminUserSummary,
   BootstrapResponse,
   CreateScheduledSessionInput,
+  ManagedAccountTier,
+  UpdateUserProfileInput,
   UpdateScheduledSessionInput,
   UserProfile,
 } from '../src/types/api.js';
+import { isManagedAccountTier } from '../src/lib/account-tier.js';
 import type { ScheduledSession } from '../src/types/scheduled-session.js';
 import type {
   CompassSessionDetail,
@@ -53,12 +58,27 @@ import {
   userProfiles,
 } from './db/schema.js';
 
-function mapProfile(row: typeof userProfiles.$inferSelect | undefined): UserProfile {
+type UserProfileRow = typeof userProfiles.$inferSelect;
+
+const PLAYWRIGHT_PREMIUM_METADATA_KEY = 'labPlaywrightUser';
+
+function mapProfile(row: UserProfileRow | undefined): UserProfile {
   return {
     displayName: row?.displayName ?? null,
     schedulingEnabled: row?.schedulingEnabled ?? false,
     googleCalendarConnected: row?.googleCalendarConnected ?? false,
     googleCalendarEmail: row?.googleCalendarEmail ?? null,
+    accountTier: row?.accountTier ?? 'free',
+  };
+}
+
+function mapAdminUserSummary(row: UserProfileRow): AdminUserSummary {
+  return {
+    id: row.id,
+    displayName: row.displayName ?? null,
+    primaryEmail: row.primaryEmail ?? null,
+    accountTier: row.accountTier,
+    createdAt: row.createdAt.toISOString(),
   };
 }
 
@@ -102,8 +122,8 @@ function mapCompassSessionDetail(
 }
 
 function hasUsableGoogleCalendarProfile(
-  profile: typeof userProfiles.$inferSelect | undefined,
-): profile is typeof userProfiles.$inferSelect & { googleCalendarRefreshToken: string } {
+  profile: UserProfileRow | undefined,
+): profile is UserProfileRow & { googleCalendarRefreshToken: string } {
   return !!(
     profile?.googleCalendarConnected &&
     profile.googleCalendarRefreshToken &&
@@ -111,53 +131,164 @@ function hasUsableGoogleCalendarProfile(
   );
 }
 
-async function deriveDisplayName(userId: string): Promise<string | null> {
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? { ...(value as Record<string, unknown>) }
+    : {};
+}
+
+function normalizeEmail(value: string | null | undefined): string | null {
+  const normalized = value?.trim().toLowerCase() ?? '';
+  return normalized.length > 0 ? normalized : null;
+}
+
+function getAdminEmailAllowlist(): Set<string> {
+  return new Set(
+    (env.labAdminEmails ?? '')
+      .split(',')
+      .map(email => normalizeEmail(email))
+      .filter((email): email is string => Boolean(email)),
+  );
+}
+
+function resolveDisplayName(
+  fullName: string,
+  primaryEmail: string | null,
+): string | null {
+  if (fullName) {
+    return fullName;
+  }
+
+  return primaryEmail?.split('@')[0] ?? null;
+}
+
+function resolveAccountTier(
+  existingTier: AccountTier | null | undefined,
+  primaryEmail: string | null,
+  defaultTier: AccountTier,
+): AccountTier {
+  if (primaryEmail && getAdminEmailAllowlist().has(primaryEmail)) {
+    return 'admin';
+  }
+
+  if (defaultTier === 'premium' && existingTier !== 'admin') {
+    return 'premium';
+  }
+
+  return existingTier ?? defaultTier;
+}
+
+async function loadClerkIdentity(userId: string): Promise<{
+  displayName: string | null;
+  primaryEmail: string | null;
+  defaultTier: AccountTier;
+}> {
   try {
     const user = await clerkClient.users.getUser(userId);
+    const primaryEmail = normalizeEmail(user.primaryEmailAddress?.emailAddress ?? null);
     const fullName = [user.firstName, user.lastName].filter(Boolean).join(' ').trim();
+    const privateMetadata = asRecord(user.privateMetadata);
+    const defaultTier =
+      privateMetadata[PLAYWRIGHT_PREMIUM_METADATA_KEY] === true
+        ? 'premium'
+        : 'free';
 
-    if (fullName) {
-      return fullName;
-    }
-
-    return user.primaryEmailAddress?.emailAddress?.split('@')[0] ?? null;
+    return {
+      displayName: resolveDisplayName(fullName, primaryEmail),
+      primaryEmail,
+      defaultTier,
+    };
   } catch (error) {
-    console.error('[bootstrap] Failed to derive display name from Clerk.', {
+    console.error('[bootstrap] Failed to sync Clerk identity.', {
       userId,
       error: error instanceof Error ? error.message : String(error),
     });
-    return null;
+
+    return {
+      displayName: null,
+      primaryEmail: null,
+      defaultTier: 'free',
+    };
   }
 }
 
-export async function ensureUserRecords(userId: string): Promise<void> {
-  const existingProfile = await db.query.userProfiles.findFirst({
+async function syncUserProfileIdentity(
+  userId: string,
+  existingProfile?: UserProfileRow,
+): Promise<UserProfileRow> {
+  const profile = existingProfile ?? await db.query.userProfiles.findFirst({
     where: eq(userProfiles.id, userId),
   });
+  const clerkIdentity = await loadClerkIdentity(userId);
+  const nextDisplayName = clerkIdentity.displayName ?? profile?.displayName ?? null;
+  const nextPrimaryEmail = clerkIdentity.primaryEmail ?? profile?.primaryEmail ?? null;
+  const nextAccountTier = resolveAccountTier(
+    profile?.accountTier,
+    nextPrimaryEmail,
+    clerkIdentity.defaultTier,
+  );
 
-  if (!existingProfile) {
-    const displayName = await deriveDisplayName(userId);
-
+  if (!profile) {
     await db
       .insert(userProfiles)
       .values({
         id: userId,
-        displayName,
+        displayName: nextDisplayName,
+        primaryEmail: nextPrimaryEmail,
+        accountTier: nextAccountTier,
       })
       .onConflictDoNothing();
-  } else if (!existingProfile.displayName) {
-    const displayName = await deriveDisplayName(userId);
 
-    if (displayName) {
-      await db
-        .update(userProfiles)
-        .set({
-          displayName,
-          updatedAt: new Date(),
-        })
-        .where(eq(userProfiles.id, userId));
+    const insertedProfile = await db.query.userProfiles.findFirst({
+      where: eq(userProfiles.id, userId),
+    });
+
+    if (!insertedProfile) {
+      throw new Error(`Failed to create user profile for ${userId}.`);
     }
+
+    return insertedProfile;
   }
+
+  const nextValues: Partial<typeof userProfiles.$inferInsert> = {};
+
+  if (nextDisplayName !== profile.displayName) {
+    nextValues.displayName = nextDisplayName;
+  }
+
+  if (nextPrimaryEmail !== profile.primaryEmail) {
+    nextValues.primaryEmail = nextPrimaryEmail;
+  }
+
+  if (nextAccountTier !== profile.accountTier) {
+    nextValues.accountTier = nextAccountTier;
+  }
+
+  if (Object.keys(nextValues).length === 0) {
+    return profile;
+  }
+
+  await db
+    .update(userProfiles)
+    .set({
+      ...nextValues,
+      updatedAt: new Date(),
+    })
+    .where(eq(userProfiles.id, userId));
+
+  const updatedProfile = await db.query.userProfiles.findFirst({
+    where: eq(userProfiles.id, userId),
+  });
+
+  if (!updatedProfile) {
+    throw new Error(`Failed to reload user profile for ${userId}.`);
+  }
+
+  return updatedProfile;
+}
+
+export async function ensureUserRecords(userId: string): Promise<void> {
+  await syncUserProfileIdentity(userId);
 
   await Promise.all([
     db
@@ -563,12 +694,18 @@ export async function buildBootstrapResponse(userId: string): Promise<BootstrapR
   };
 }
 
-export async function updateUserProfile(userId: string, updates: Partial<UserProfile>): Promise<UserProfile> {
+export async function getUserAccountTier(userId: string): Promise<AccountTier> {
+  const profile = await syncUserProfileIdentity(userId);
+  return profile.accountTier;
+}
+
+export async function updateUserProfile(
+  userId: string,
+  updates: UpdateUserProfileInput,
+): Promise<UserProfile> {
   await ensureUserRecords(userId);
 
-  const nextValues: Partial<typeof userProfiles.$inferInsert> = {
-    updatedAt: new Date(),
-  };
+  const nextValues: Partial<typeof userProfiles.$inferInsert> = {};
 
   if (updates.displayName !== undefined) {
     nextValues.displayName = updates.displayName;
@@ -578,9 +715,20 @@ export async function updateUserProfile(userId: string, updates: Partial<UserPro
     nextValues.schedulingEnabled = updates.schedulingEnabled;
   }
 
+  if (Object.keys(nextValues).length === 0) {
+    const existingProfile = await db.query.userProfiles.findFirst({
+      where: eq(userProfiles.id, userId),
+    });
+
+    return mapProfile(existingProfile);
+  }
+
   await db
     .update(userProfiles)
-    .set(nextValues)
+    .set({
+      ...nextValues,
+      updatedAt: new Date(),
+    })
     .where(eq(userProfiles.id, userId));
 
   const updated = await db.query.userProfiles.findFirst({
@@ -588,6 +736,83 @@ export async function updateUserProfile(userId: string, updates: Partial<UserPro
   });
 
   return mapProfile(updated);
+}
+
+async function hydrateAdminUserIdentity(row: UserProfileRow): Promise<UserProfileRow> {
+  if (row.primaryEmail) {
+    const nextAccountTier = resolveAccountTier(row.accountTier, row.primaryEmail, row.accountTier);
+
+    if (nextAccountTier === row.accountTier) {
+      return row;
+    }
+
+    await db
+      .update(userProfiles)
+      .set({
+        accountTier: nextAccountTier,
+        updatedAt: new Date(),
+      })
+      .where(eq(userProfiles.id, row.id));
+
+    return {
+      ...row,
+      accountTier: nextAccountTier,
+      updatedAt: new Date(),
+    };
+  }
+
+  return syncUserProfileIdentity(row.id, row);
+}
+
+export async function listAdminUsers(): Promise<AdminUserSummary[]> {
+  const rows = await db
+    .select()
+    .from(userProfiles)
+    .orderBy(desc(userProfiles.createdAt));
+
+  const hydratedRows = await Promise.all(rows.map(hydrateAdminUserIdentity));
+  return hydratedRows.map(mapAdminUserSummary);
+}
+
+export async function updateAdminUserTier(
+  userId: string,
+  accountTier: ManagedAccountTier,
+): Promise<AdminUserSummary | null> {
+  if (!isManagedAccountTier(accountTier)) {
+    throw new Error('INVALID_ACCOUNT_TIER');
+  }
+
+  const existingProfile = await db.query.userProfiles.findFirst({
+    where: eq(userProfiles.id, userId),
+  });
+
+  if (!existingProfile) {
+    return null;
+  }
+
+  const hydratedProfile = await hydrateAdminUserIdentity(existingProfile);
+
+  if (hydratedProfile.accountTier === 'admin') {
+    throw new Error('ADMIN_ACCOUNT_TIER_LOCKED');
+  }
+
+  await db
+    .update(userProfiles)
+    .set({
+      accountTier,
+      updatedAt: new Date(),
+    })
+    .where(eq(userProfiles.id, userId));
+
+  const updatedProfile = await db.query.userProfiles.findFirst({
+    where: eq(userProfiles.id, userId),
+  });
+
+  if (!updatedProfile) {
+    return null;
+  }
+
+  return mapAdminUserSummary(updatedProfile);
 }
 
 export async function saveAppState(userId: string, appState: AppState): Promise<void> {

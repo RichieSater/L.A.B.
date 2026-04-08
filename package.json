@@ -9,11 +9,14 @@
     "bundle:check": "node ./scripts/check-bundle-budgets.js",
     "lint": "eslint .",
     "preview": "vite preview",
-    "db:generate": "drizzle-kit generate",
+    "db:generate": "node --import tsx ./node_modules/drizzle-kit/bin.cjs generate",
     "db:migrate": "drizzle-kit migrate",
     "test": "vitest run",
     "test:dev-api": "vitest run scripts/__tests__/vite-dev-api.test.ts scripts/__tests__/vite-dev-api-server.test.ts scripts/__tests__/vite-env.test.ts",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "e2e:provision-user": "tsx ./scripts/ensure-playwright-user.ts",
+    "test:e2e": "npm run e2e:provision-user && playwright test",
+    "test:e2e:headed": "npm run e2e:provision-user && playwright test --headed"
   },
   "dependencies": {
     "@clerk/backend": "^3.2.0",
@@ -25,7 +28,9 @@
     "react-router-dom": "^7.13.1"
   },
   "devDependencies": {
+    "@clerk/testing": "^2.0.8",
     "@eslint/js": "^9.39.1",
+    "@playwright/test": "^1.59.1",
     "@tailwindcss/vite": "^4.2.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
@@ -42,6 +47,7 @@
     "globals": "^16.5.0",
     "jsdom": "^28.1.0",
     "tailwindcss": "^4.2.1",
+    "tsx": "^4.21.0",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.48.0",
     "vite": "^7.3.1",

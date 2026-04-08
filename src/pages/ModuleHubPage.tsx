@@ -1,6 +1,12 @@
 import type { CSSProperties } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LAB_MODULES, type LabModuleDefinition, type LabModuleTone } from '../modules/module-registry';
+import { useAuth } from '../auth/auth-context';
+import {
+  canAccessLabModule,
+  getVisibleLabModules,
+  type LabModuleDefinition,
+  type LabModuleTone,
+} from '../modules/module-registry';
 
 const DOT_GRID_STYLE: CSSProperties = {
   backgroundImage: 'radial-gradient(rgba(148, 163, 184, 0.18) 1px, transparent 1px)',
@@ -52,9 +58,12 @@ const MODULE_TONE_STYLES: Record<LabModuleTone, {
 };
 
 export function ModuleHubPage() {
+  const { profile } = useAuth();
   const navigate = useNavigate();
-  const liveModuleCount = LAB_MODULES.filter(module => module.availability === 'available').length;
-  const comingSoonCount = LAB_MODULES.length - liveModuleCount;
+  const modules = getVisibleLabModules(profile?.accountTier);
+  const liveModuleCount = modules.filter(module => module.availability === 'available').length;
+  const comingSoonCount = modules.length - liveModuleCount;
+  const freeTier = profile?.accountTier === 'free';
 
   return (
     <div className="flex min-h-[calc(100dvh-8.5rem)] items-center py-4 sm:py-8">
@@ -72,8 +81,9 @@ export function ModuleHubPage() {
               The System
             </h1>
             <p className="mt-5 max-w-2xl text-base leading-7 text-stone-300 sm:text-lg">
-              Choose the module you want to enter. Quantum Planner runs the week, Advisory Board keeps domain
-              pressure visible, and Golden Compass recalibrates the year behind it all.
+              {freeTier
+                ? 'Golden Compass is open now. Premium unlocks Advisory Board and Quantum Planner so the full LAB operating system comes online around it.'
+                : 'Choose the module you want to enter. Quantum Planner runs the week, Advisory Board keeps domain pressure visible, and Golden Compass recalibrates the year behind it all.'}
             </p>
           </div>
 
@@ -87,7 +97,7 @@ export function ModuleHubPage() {
           </div>
 
           <div className="mt-10 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-            {LAB_MODULES.map(module => (
+            {modules.map(module => (
               <ModuleCard
                 key={module.id}
                 module={module}
@@ -113,13 +123,24 @@ function ModuleCard({
   onOpen: () => void;
 }) {
   const tone = MODULE_TONE_STYLES[module.tone];
-  const isAvailable = module.availability === 'available';
+  const { profile } = useAuth();
+  const hasAccess = canAccessLabModule(profile?.accountTier, module);
+  const isAvailable = module.availability === 'available' && hasAccess;
+  const isLocked = module.availability === 'available' && !hasAccess;
+  const ariaLabel = isAvailable
+    ? `Open ${module.label}`
+    : isLocked
+      ? `${module.label} premium only`
+      : `${module.label} coming soon`;
+  const summary = isLocked && module.lockedSummary
+    ? module.lockedSummary
+    : module.summary;
 
   return (
     <button
       type="button"
       aria-disabled={!isAvailable}
-      aria-label={isAvailable ? `Open ${module.label}` : `${module.label} coming soon`}
+      aria-label={ariaLabel}
       onClick={() => {
         if (isAvailable) {
           onOpen();
@@ -135,7 +156,7 @@ function ModuleCard({
       <div className="relative">
         <div className="flex items-start justify-between gap-3">
           <span className={`rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] ${tone.pill}`}>
-            {isAvailable ? 'Available now' : 'Coming soon'}
+            {isAvailable ? 'Available now' : isLocked ? 'Premium only' : 'Coming soon'}
           </span>
           <span className={`text-[11px] font-semibold uppercase tracking-[0.22em] ${tone.text}`}>
             Module
@@ -146,16 +167,16 @@ function ModuleCard({
           {module.label}
         </h2>
         <p className="mt-4 max-w-xs text-sm leading-6 text-stone-300">
-          {module.summary}
+          {summary}
         </p>
       </div>
 
       <div className="relative flex items-center justify-between gap-3 border-t border-white/8 pt-5">
         <span className="text-sm font-semibold text-stone-200">
-          {isAvailable ? 'Enter module' : 'Awaiting wiring'}
+          {isAvailable ? 'Enter module' : isLocked ? 'Upgrade required' : 'Awaiting wiring'}
         </span>
         <span className={`text-sm font-semibold uppercase tracking-[0.18em] ${isAvailable ? 'text-white' : 'text-stone-500'}`}>
-          {isAvailable ? 'Open' : 'Soon'}
+          {isAvailable ? 'Open' : isLocked ? 'Locked' : 'Soon'}
         </span>
       </div>
     </button>

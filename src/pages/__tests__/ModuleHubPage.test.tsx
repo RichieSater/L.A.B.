@@ -2,14 +2,16 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  ADMIN_DASHBOARD_PATH,
   ADVISORY_BOARD_PATH,
   GOLDEN_COMPASS_PATH,
   QUANTUM_PLANNER_PATH,
 } from '../../constants/routes';
 import { ModuleHubPage } from '../ModuleHubPage';
 
-const { useNavigate } = vi.hoisted(() => ({
+const { useNavigate, useAuth } = vi.hoisted(() => ({
   useNavigate: vi.fn(),
+  useAuth: vi.fn(),
 }));
 
 vi.mock('react-router-dom', async () => {
@@ -20,14 +22,23 @@ vi.mock('react-router-dom', async () => {
   };
 });
 
+vi.mock('../../auth/auth-context', () => ({
+  useAuth,
+}));
+
 describe('ModuleHubPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('shows all modules and routes only the live ones', () => {
+  it('shows all modules and routes only the live ones for premium users', () => {
     const navigate = vi.fn();
     useNavigate.mockReturnValue(navigate);
+    useAuth.mockReturnValue({
+      profile: {
+        accountTier: 'premium',
+      },
+    });
 
     render(
       <MemoryRouter>
@@ -42,6 +53,7 @@ describe('ModuleHubPage', () => {
     expect(screen.getByText('Bonfire')).toBeInTheDocument();
     expect(screen.getByText('Morning Ship')).toBeInTheDocument();
     expect(screen.getByText('Scorecard')).toBeInTheDocument();
+    expect(screen.queryByText('Admin Dashboard')).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Open Quantum Planner' }));
     fireEvent.click(screen.getByRole('button', { name: 'Open Advisory Board' }));
@@ -64,5 +76,57 @@ describe('ModuleHubPage', () => {
     fireEvent.click(scorecard);
 
     expect(navigate).toHaveBeenCalledTimes(3);
+  });
+
+  it('shows locked premium cards to free users and still lets them open Golden Compass', () => {
+    const navigate = vi.fn();
+    useNavigate.mockReturnValue(navigate);
+    useAuth.mockReturnValue({
+      profile: {
+        accountTier: 'free',
+      },
+    });
+
+    render(
+      <MemoryRouter>
+        <ModuleHubPage />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByRole('button', { name: 'Open Golden Compass' })).toBeInTheDocument();
+
+    const planner = screen.getByRole('button', { name: 'Quantum Planner premium only' });
+    const advisory = screen.getByRole('button', { name: 'Advisory Board premium only' });
+
+    expect(planner).toHaveAttribute('aria-disabled', 'true');
+    expect(advisory).toHaveAttribute('aria-disabled', 'true');
+    expect(screen.queryByText('Admin Dashboard')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open Golden Compass' }));
+    fireEvent.click(planner);
+    fireEvent.click(advisory);
+
+    expect(navigate).toHaveBeenCalledTimes(1);
+    expect(navigate).toHaveBeenCalledWith(GOLDEN_COMPASS_PATH);
+  });
+
+  it('shows the admin dashboard card only to admins', () => {
+    const navigate = vi.fn();
+    useNavigate.mockReturnValue(navigate);
+    useAuth.mockReturnValue({
+      profile: {
+        accountTier: 'admin',
+      },
+    });
+
+    render(
+      <MemoryRouter>
+        <ModuleHubPage />
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open Admin Dashboard' }));
+
+    expect(navigate).toHaveBeenCalledWith(ADMIN_DASHBOARD_PATH);
   });
 });

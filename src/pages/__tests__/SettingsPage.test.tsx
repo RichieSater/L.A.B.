@@ -29,6 +29,7 @@ describe('SettingsPage', () => {
         schedulingEnabled: false,
         googleCalendarConnected: false,
         googleCalendarEmail: null,
+        accountTier: 'premium',
       },
       updateProfile: vi.fn(),
       refreshBootstrap: vi.fn(),

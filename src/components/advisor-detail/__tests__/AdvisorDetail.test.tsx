@@ -119,6 +119,7 @@ describe('AdvisorDetail', () => {
     useAuth.mockReturnValue({
       profile: {
         schedulingEnabled: true,
+        accountTier: 'premium',
       },
     });
 

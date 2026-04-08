@@ -725,7 +725,7 @@ describe('selectAdvisorAttentionSummary', () => {
     initialState.advisors.therapist.nextDueDate = '2026-03-20';
 
     initialState.advisors.prioritization.lastSessionDate = '2026-03-28';
-    initialState.advisors.prioritization.nextDueDate = '2026-04-06';
+    initialState.advisors.prioritization.nextDueDate = '2028-04-06';
     const prioritizationTask = initialState.advisors.prioritization.tasks[0];
 
     if (!prioritizationTask) {
@@ -735,7 +735,7 @@ describe('selectAdvisorAttentionSummary', () => {
     prioritizationTask.priority = 'high';
 
     initialState.advisors.fitness.lastSessionDate = '2026-03-29';
-    initialState.advisors.fitness.nextDueDate = '2026-04-06';
+    initialState.advisors.fitness.nextDueDate = '2028-04-06';
     initialState.advisors.fitness.tasks.forEach(task => {
       task.status = 'completed';
       task.completedDate = '2026-03-29';

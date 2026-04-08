@@ -26,9 +26,9 @@
 - [index.html](../../index.html) — top-level project area
 - [package-lock.json](../../package-lock.json) — top-level project area
 - [package.json](../../package.json) — scripts, dependencies, and package metadata
-- [public/](../../public) — static assets served as-is
-- [README.md](../../README.md) — repo overview and entrypoint documentation
-- [scripts/](../../scripts) — automation, generators, or developer tooling
+- [playwright/](../../playwright) — top-level project area
+- [playwright-report/](../../playwright-report) — top-level project area
+- [playwright.config.ts](../../playwright.config.ts) — top-level project area
 <!-- harness:end generated -->
 
 ## Repo Notes

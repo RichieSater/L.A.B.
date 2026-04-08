@@ -3,6 +3,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const getUser = vi.fn();
 const findUserProfile = vi.fn();
 const insertCalls: Array<{ table: unknown; payload: unknown }> = [];
+const mockEnv = {
+  buildVersion: 'test-build',
+  labAdminEmails: null as string | null,
+};
 const updateWhere = vi.fn().mockResolvedValue(undefined);
 const updateSet = vi.fn(() => ({ where: updateWhere }));
 const update = vi.fn(() => ({ set: updateSet }));
@@ -39,9 +43,7 @@ vi.mock('../db/client', () => ({
 }));
 
 vi.mock('../env', () => ({
-  env: {
-    buildVersion: 'test-build',
-  },
+  env: mockEnv,
 }));
 
 vi.mock('../google-calendar', () => ({
@@ -55,13 +57,27 @@ describe('ensureUserRecords', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     insertCalls.length = 0;
-    findUserProfile.mockResolvedValue(undefined);
+    mockEnv.labAdminEmails = null;
     getUser.mockRejectedValue(new Error('Clerk unavailable'));
   });
 
   it('creates default rows when Clerk lookup fails for a new user', async () => {
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
     const { ensureUserRecords } = await import('../data');
+    findUserProfile
+      .mockResolvedValueOnce(undefined)
+      .mockResolvedValueOnce({
+        id: 'user_123',
+        displayName: null,
+        primaryEmail: null,
+        accountTier: 'free',
+        schedulingEnabled: false,
+        googleCalendarConnected: false,
+        googleCalendarEmail: null,
+        googleCalendarRefreshToken: null,
+        createdAt: new Date('2026-04-05T12:00:00.000Z'),
+        updatedAt: new Date('2026-04-05T12:00:00.000Z'),
+      });
 
     await expect(ensureUserRecords('user_123')).resolves.toBeUndefined();
 
@@ -70,6 +86,8 @@ describe('ensureUserRecords', () => {
     expect(insertCalls[0]?.payload).toEqual({
       id: 'user_123',
       displayName: null,
+      primaryEmail: null,
+      accountTier: 'free',
     });
     expect(insertCalls.slice(1).map(call => call.payload)).toEqual([
       { userId: 'user_123', metrics: {} },
@@ -95,5 +113,40 @@ describe('ensureUserRecords', () => {
     ]);
 
     consoleError.mockRestore();
+  });
+
+  it('promotes allowlisted emails to admin when Clerk returns identity details', async () => {
+    mockEnv.labAdminEmails = 'richiesater@gmail.com';
+    getUser.mockResolvedValue({
+      firstName: 'Ritchie',
+      lastName: 'Sater',
+      primaryEmailAddress: { emailAddress: 'richiesater@gmail.com' },
+      privateMetadata: {},
+    });
+    findUserProfile
+      .mockResolvedValueOnce(undefined)
+      .mockResolvedValueOnce({
+        id: 'user_admin',
+        displayName: 'Ritchie Sater',
+        primaryEmail: 'richiesater@gmail.com',
+        accountTier: 'admin',
+        schedulingEnabled: false,
+        googleCalendarConnected: false,
+        googleCalendarEmail: null,
+        googleCalendarRefreshToken: null,
+        createdAt: new Date('2026-04-05T12:00:00.000Z'),
+        updatedAt: new Date('2026-04-05T12:00:00.000Z'),
+      });
+
+    const { ensureUserRecords } = await import('../data');
+
+    await expect(ensureUserRecords('user_admin')).resolves.toBeUndefined();
+
+    expect(insertCalls[0]?.payload).toEqual({
+      id: 'user_admin',
+      displayName: 'Ritchie Sater',
+      primaryEmail: 'richiesater@gmail.com',
+      accountTier: 'admin',
+    });
   });
 });

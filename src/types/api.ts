@@ -2,11 +2,15 @@ import type { AppState } from './app-state';
 import type { ScheduledSession, ScheduledSessionStatus } from './scheduled-session';
 import type { AdvisorId } from './advisor';
 
+export type AccountTier = 'free' | 'premium' | 'admin';
+export type ManagedAccountTier = Exclude<AccountTier, 'admin'>;
+
 export interface UserProfile {
   displayName: string | null;
   schedulingEnabled: boolean;
   googleCalendarConnected: boolean;
   googleCalendarEmail: string | null;
+  accountTier: AccountTier;
 }
 
 export interface ApiError {
@@ -28,6 +32,11 @@ export interface BootstrapResponse {
   buildVersion: string;
 }
 
+export interface UpdateUserProfileInput {
+  displayName?: string | null;
+  schedulingEnabled?: boolean;
+}
+
 export interface CreateScheduledSessionInput {
   advisorId: AdvisorId;
   scheduledAt: string;
@@ -44,4 +53,16 @@ export interface GoogleCalendarConnection {
   connected: boolean;
   email: string | null;
   authUrl?: string | null;
+}
+
+export interface AdminUserSummary {
+  id: string;
+  displayName: string | null;
+  primaryEmail: string | null;
+  accountTier: AccountTier;
+  createdAt: string;
+}
+
+export interface UpdateAdminUserTierInput {
+  accountTier: ManagedAccountTier;
 }

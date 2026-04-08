@@ -20,6 +20,7 @@ import type { DailyPlanningState } from '../../src/types/daily-planning.js';
 import type { StrategicDashboardState } from '../../src/types/strategic-dashboard.js';
 import type { WeeklyFocusState } from '../../src/types/weekly-focus.js';
 import type { WeeklyReviewState } from '../../src/types/weekly-review.js';
+import type { AccountTier } from '../../src/types/api.js';
 import type {
   CompassAnswers,
   CompassInsights,
@@ -46,9 +47,17 @@ export const compassSessionStatusEnum = pgEnum('compass_session_status', [
   'abandoned',
 ]);
 
+export const accountTierEnum = pgEnum('account_tier', [
+  'free',
+  'premium',
+  'admin',
+]);
+
 export const userProfiles = pgTable('user_profiles', {
   id: text('id').primaryKey(),
   displayName: text('display_name'),
+  primaryEmail: text('primary_email'),
+  accountTier: accountTierEnum('account_tier').$type<AccountTier>().notNull().default('free'),
   schedulingEnabled: boolean('scheduling_enabled').notNull().default(false),
   googleCalendarConnected: boolean('google_calendar_connected').notNull().default(false),
   googleCalendarEmail: text('google_calendar_email'),

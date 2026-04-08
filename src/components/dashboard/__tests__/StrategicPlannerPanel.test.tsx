@@ -7,6 +7,7 @@ import {
 } from '../../../constants/routes';
 import { createDefaultAppState } from '../../../state/init';
 import { createStrategicDashboardYear } from '../../../types/strategic-dashboard';
+import { startOfWeek, today } from '../../../utils/date';
 import { StrategicPlannerPanel } from '../StrategicPlannerPanel';
 
 const { useAppState, apiClient } = vi.hoisted(() => ({
@@ -48,6 +49,7 @@ describe('StrategicPlannerPanel', () => {
     const currentYear = new Date().getFullYear();
     const appState = createDefaultAppState();
     const linkedTaskId = 'PRI-LINKED-1';
+    const currentWeekStart = startOfWeek(today());
 
     appState.advisors.prioritization.activated = true;
     appState.advisors.prioritization.tasks = [
@@ -68,7 +70,7 @@ describe('StrategicPlannerPanel', () => {
     };
     appState.weeklyFocus.weeks = [
       {
-        weekStart: '2026-03-29',
+        weekStart: currentWeekStart,
         items: [
           {
             advisorId: 'prioritization',
@@ -139,7 +141,7 @@ describe('StrategicPlannerPanel', () => {
       payload: {
         advisorId: 'prioritization',
         taskId: linkedTaskId,
-        weekStart: '2026-03-29',
+        weekStart: currentWeekStart,
       },
     });
 

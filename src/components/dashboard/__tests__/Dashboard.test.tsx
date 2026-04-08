@@ -80,6 +80,7 @@ describe('Dashboard', () => {
     useAuth.mockReturnValue({
       profile: {
         schedulingEnabled: false,
+        accountTier: 'premium',
       },
     });
   });

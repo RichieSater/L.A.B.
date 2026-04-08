@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import type { UserProfile } from '../src/types/api.js';
+import type { UpdateUserProfileInput } from '../src/types/api.js';
 import { requireUser } from '../server/auth.js';
 import { updateUserProfile } from '../server/data.js';
 import { json, methodNotAllowed, readJsonBody } from '../server/http.js';
@@ -15,7 +15,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     return json(res, 401, { error: 'Unauthorized' });
   }
 
-  const body = readJsonBody<Partial<UserProfile>>(req);
+  const body = readJsonBody<UpdateUserProfileInput>(req);
   const profile = await updateUserProfile(auth.userId, body);
   return json(res, 200, profile);
 }

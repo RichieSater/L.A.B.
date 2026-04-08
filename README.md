@@ -34,6 +34,7 @@ VITE_CLERK_PUBLISHABLE_KEY=...
 CLERK_PUBLISHABLE_KEY=...
 CLERK_SECRET_KEY=...
 DATABASE_URL=...
+LAB_ADMIN_EMAILS=richiesater@gmail.com
 ```
 
 3. Optional calendar integration variables:
@@ -45,7 +46,17 @@ OAUTH_STATE_SECRET=...
 APP_URL=http://localhost:5173
 ```
 
-4. Start the client:
+4. Optional Playwright E2E variables:
+
+```bash
+PLAYWRIGHT_TEST_PASSWORD=...
+PLAYWRIGHT_TEST_EMAIL=lab-playwright+clerk_test@example.com
+PLAYWRIGHT_BASE_URL=http://127.0.0.1:5173
+```
+
+`PLAYWRIGHT_TEST_PASSWORD` is required for `npm run e2e:provision-user` and `npm run test:e2e`. The Playwright user is a durable Clerk dev account; LAB data can be reset between tests through the existing authenticated reset endpoint instead of deleting the account.
+
+5. Start the client:
 
 ```bash
 npm run dev
@@ -59,8 +70,16 @@ npm run test
 npm run test:dev-api
 npm run build
 npm run bundle:check
+npm run e2e:provision-user
+npm run test:e2e
 npm run db:generate
 npm run db:migrate
+```
+
+Install the browser once before the first local Playwright run:
+
+```bash
+npx playwright install chromium
 ```
 
 ## Verification baseline

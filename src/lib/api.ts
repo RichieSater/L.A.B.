@@ -1,10 +1,13 @@
 import type { AppState } from '../types/app-state';
 import type {
+  AdminUserSummary,
   ApiError,
   BootstrapResponse,
   CreateScheduledSessionInput,
   GoogleCalendarConnection,
+  UpdateAdminUserTierInput,
   UpdateScheduledSessionInput,
+  UpdateUserProfileInput,
   UserProfile,
 } from '../types/api';
 import type { ScheduledSession } from '../types/scheduled-session';
@@ -100,10 +103,21 @@ export const apiClient = {
     return request<BootstrapResponse>('/api/bootstrap');
   },
 
-  updateProfile(updates: Partial<UserProfile>): Promise<UserProfile> {
+  updateProfile(updates: UpdateUserProfileInput): Promise<UserProfile> {
     return request<UserProfile>('/api/profile', {
       method: 'PATCH',
       body: JSON.stringify(updates),
+    });
+  },
+
+  listAdminUsers(): Promise<AdminUserSummary[]> {
+    return request<AdminUserSummary[]>('/api/admin/users');
+  },
+
+  updateAdminUserTier(userId: string, input: UpdateAdminUserTierInput): Promise<AdminUserSummary> {
+    return request<AdminUserSummary>(`/api/admin/users/${userId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(input),
     });
   },
 

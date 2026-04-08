@@ -11,6 +11,10 @@ node_modules
 dist
 dist-ssr
 *.local
+playwright/.clerk
+playwright-report
+test-results
+blob-report
 
 # Claude Code
 .claude/

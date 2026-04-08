@@ -24,7 +24,7 @@ describe('TaskDashboard', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     useAuth.mockReturnValue({
-      profile: { schedulingEnabled: false },
+      profile: { schedulingEnabled: false, accountTier: 'premium' },
     });
   });
 
