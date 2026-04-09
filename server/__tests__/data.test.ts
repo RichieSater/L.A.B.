@@ -108,6 +108,7 @@ describe('ensureUserRecords', () => {
         strategicDashboard: {
           years: [],
           latestCompassInsights: null,
+          latestCompassAdvisorContext: null,
         },
       },
     ]);

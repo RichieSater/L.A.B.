@@ -38,6 +38,7 @@ import {
   countCompassAnswers,
   createCompassSessionTitle,
   deriveCompassInsights,
+  extractCompassAdvisorContext,
 } from '../src/lib/compass-insights.js';
 import { clerkClient } from './auth.js';
 import { db } from './db/client.js';
@@ -516,6 +517,60 @@ async function loadAppState(userId: string): Promise<AppState> {
   return baseState;
 }
 
+async function loadLatestCompletedCompassSession(
+  userId: string,
+): Promise<typeof compassSessions.$inferSelect | null> {
+  const rows = await db
+    .select()
+    .from(compassSessions)
+    .where(
+      and(
+        eq(compassSessions.userId, userId),
+        eq(compassSessions.status, 'completed'),
+      ),
+    )
+    .orderBy(desc(compassSessions.completedAt), desc(compassSessions.updatedAt))
+    .limit(1);
+
+  return rows[0] ?? null;
+}
+
+async function hydrateCompassAdvisorContext(
+  userId: string,
+  appState: AppState,
+): Promise<AppState> {
+  const strategicDashboard = normalizeStrategicDashboardState(appState.strategicDashboard);
+
+  if (strategicDashboard.latestCompassAdvisorContext) {
+    return {
+      ...appState,
+      strategicDashboard,
+    };
+  }
+
+  const latestCompletedSession = await loadLatestCompletedCompassSession(userId);
+
+  if (!latestCompletedSession?.completedAt) {
+    return {
+      ...appState,
+      strategicDashboard,
+    };
+  }
+
+  return {
+    ...appState,
+    strategicDashboard: {
+      ...strategicDashboard,
+      latestCompassAdvisorContext: extractCompassAdvisorContext({
+        sessionId: latestCompletedSession.id,
+        planningYear: latestCompletedSession.planningYear,
+        completedAt: latestCompletedSession.completedAt.toISOString(),
+        answers: latestCompletedSession.answers ?? {},
+      }),
+    },
+  };
+}
+
 async function syncScheduledSessionCalendarForProfile(
   profile: typeof userProfiles.$inferSelect | undefined,
   row: typeof scheduledSessions.$inferSelect,
@@ -685,10 +740,11 @@ export async function buildBootstrapResponse(userId: string): Promise<BootstrapR
       )
       .orderBy(scheduledSessions.scheduledAt),
   ]);
+  const hydratedAppState = await hydrateCompassAdvisorContext(userId, appState);
 
   return {
     profile: mapProfile(profileRow),
-    appState,
+    appState: hydratedAppState,
     scheduledSessions: sessionRows.map(mapScheduledSession),
     buildVersion: env.buildVersion,
   };
@@ -1028,11 +1084,18 @@ export async function updateCompassSession(
     const metaRow = await db.query.userAppMeta.findFirst({
       where: eq(userAppMeta.userId, userId),
     });
+    const advisorContext = extractCompassAdvisorContext({
+      sessionId: updated.id,
+      planningYear: updated.planningYear,
+      completedAt: (updated.completedAt ?? updated.updatedAt).toISOString(),
+      answers: updated.answers ?? {},
+    });
     const strategicDashboard = applyCompassInsightsToStrategicDashboard(
       metaRow?.strategicDashboard ?? createDefaultStrategicDashboardState(),
       updated.planningYear,
       nextInsights,
       updated.updatedAt.toISOString(),
+      advisorContext,
     );
 
     await db

@@ -1583,7 +1583,7 @@ export function selectAdvisorAttentionSummary(
 
       return openTasks.some(task => task.id === ref.taskId);
     }).length;
-    const sessionStatus = selectAdvisorStatus(state, advisorId);
+    const sessionStatus = selectAdvisorStatus(state, advisorId, todayDate);
     const supportsQuickLog = selectSupportsQuickLog(advisorId);
     const needsSchedule =
       !advisorState.lastSessionDate || sessionStatus === 'overdue' || sessionStatus === 'due';
@@ -1745,16 +1745,16 @@ export function selectAdvisorAttentionSummary(
 export function selectAdvisorStatus(
   state: AppState,
   advisorId: AdvisorId,
+  todayDate: string = today(),
 ): 'due' | 'overdue' | 'upcoming' | 'completed' {
   const advisor = state.advisors[advisorId];
   const config = ADVISOR_CONFIGS[advisorId];
 
   if (!advisor.lastSessionDate) return 'due';
 
-  const now = today();
   if (!advisor.nextDueDate) return 'due';
 
-  const daysUntil = daysBetween(now, advisor.nextDueDate);
+  const daysUntil = daysBetween(todayDate, advisor.nextDueDate);
 
   if (daysUntil < -config.defaultCadence.windowDays) return 'overdue';
   if (daysUntil <= 0) return 'due';

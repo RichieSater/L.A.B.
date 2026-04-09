@@ -145,7 +145,7 @@ export const userAppMeta = pgTable('user_app_meta', {
   strategicDashboard: jsonb('strategic_dashboard')
     .$type<StrategicDashboardState>()
     .notNull()
-    .default(sql`'{"years":[],"latestCompassInsights":null}'::jsonb`),
+    .default(sql`'{"years":[],"latestCompassInsights":null,"latestCompassAdvisorContext":null}'::jsonb`),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
 

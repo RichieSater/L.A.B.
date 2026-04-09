@@ -429,6 +429,7 @@ describe('appReducer', () => {
         },
       ],
       latestCompassInsights: null,
+      latestCompassAdvisorContext: null,
     };
 
     const insights = {
@@ -436,21 +437,42 @@ describe('appReducer', () => {
       dailyRituals: ['Plan first'],
       supportPeople: ['Coach'],
     };
+    const advisorContext = {
+      sessionId: 'compass-1',
+      planningYear,
+      completedAt: '2026-04-01T12:00:00.000Z',
+      past: {
+        highlights: ['Closed the old chapter'],
+        proud: 'I kept going.',
+        challenges: '',
+        lessons: '',
+        selfForgiveness: '',
+      },
+      perfectDay: {
+        overview: 'A calm day.',
+        body: '',
+        work: '',
+        relationships: '',
+      },
+    };
 
     const seeded = applyCompassInsightsToStrategicDashboard(
       untouchedState,
       planningYear,
       insights,
       '2026-04-01T12:00:00.000Z',
+      advisorContext,
     );
     const protectedState = applyCompassInsightsToStrategicDashboard(
       touchedState,
       planningYear,
       insights,
       '2026-04-01T12:00:00.000Z',
+      advisorContext,
     );
 
     expect(seeded.latestCompassInsights).toEqual(insights);
+    expect(seeded.latestCompassAdvisorContext).toEqual(advisorContext);
     expect(seeded.years[0]?.sections.yearGoals.goals[0]).toEqual(
       expect.objectContaining({
         text: 'Ship Golden Compass',
@@ -458,6 +480,7 @@ describe('appReducer', () => {
       }),
     );
     expect(protectedState.latestCompassInsights).toEqual(insights);
+    expect(protectedState.latestCompassAdvisorContext).toEqual(advisorContext);
     expect(protectedState.years[0]?.sections.yearGoals.goals[0]?.text).toBe('');
   });
 });

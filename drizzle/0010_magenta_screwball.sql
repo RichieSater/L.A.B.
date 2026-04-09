@@ -1,0 +1,1 @@
+ALTER TABLE "user_app_meta" ALTER COLUMN "strategic_dashboard" SET DEFAULT '{"years":[],"latestCompassInsights":null,"latestCompassAdvisorContext":null}'::jsonb;

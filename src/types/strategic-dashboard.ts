@@ -1,5 +1,5 @@
 import type { AdvisorId } from './advisor.js';
-import type { CompassInsights } from './compass.js';
+import type { CompassAdvisorContext, CompassInsights } from './compass.js';
 
 export const STRATEGIC_DASHBOARD_SECTION_KEYS = [
   'biggestGoals',
@@ -44,6 +44,7 @@ export interface StrategicDashboardYear {
 export interface StrategicDashboardState {
   years: StrategicDashboardYear[];
   latestCompassInsights: CompassInsights | null;
+  latestCompassAdvisorContext: CompassAdvisorContext | null;
 }
 
 const SECTION_TEMPLATES: Record<
@@ -104,6 +105,7 @@ export function createDefaultStrategicDashboardState(): StrategicDashboardState 
   return {
     years: [],
     latestCompassInsights: null,
+    latestCompassAdvisorContext: null,
   };
 }
 
@@ -163,6 +165,7 @@ export function normalizeStrategicDashboardState(
       .map(year => normalizeStrategicDashboardYear(year, year?.year ?? new Date().getFullYear()))
       .sort((a, b) => b.year - a.year),
     latestCompassInsights: state.latestCompassInsights ?? null,
+    latestCompassAdvisorContext: state.latestCompassAdvisorContext ?? null,
   };
 }
 
@@ -179,6 +182,7 @@ export function applyCompassInsightsToStrategicDashboard(
   planningYear: number,
   insights: CompassInsights,
   updatedAt: string,
+  advisorContext?: CompassAdvisorContext | null,
 ): StrategicDashboardState {
   const nextState = normalizeStrategicDashboardState(state);
   const currentYear = getStrategicDashboardYear(nextState, planningYear);
@@ -214,6 +218,7 @@ export function applyCompassInsightsToStrategicDashboard(
   return {
     ...nextState,
     latestCompassInsights: insights,
+    latestCompassAdvisorContext: advisorContext ?? nextState.latestCompassAdvisorContext ?? null,
     years: nextYears.sort((a, b) => b.year - a.year),
   };
 }

@@ -71,6 +71,13 @@
       "when": 1775445297474,
       "tag": "0009_new_mephisto",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1775755512756,
+      "tag": "0010_magenta_screwball",
+      "breakpoints": true
     }
   ]
 }

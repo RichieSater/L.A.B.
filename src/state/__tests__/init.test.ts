@@ -34,6 +34,7 @@ function createMockStorage(overrides: Partial<AppPersistence> = {}): AppPersiste
     loadStrategicDashboard: vi.fn().mockResolvedValue({
       years: [],
       latestCompassInsights: null,
+      latestCompassAdvisorContext: null,
     }),
     saveStrategicDashboard: vi.fn().mockResolvedValue(undefined),
     ...overrides,
@@ -69,6 +70,7 @@ describe('createDefaultAppState', () => {
     expect(state.strategicDashboard).toEqual({
       years: [],
       latestCompassInsights: null,
+      latestCompassAdvisorContext: null,
     });
   });
 });
@@ -95,6 +97,7 @@ describe('loadAppStateFromStorage', () => {
     expect(state.strategicDashboard).toEqual({
       years: [],
       latestCompassInsights: null,
+      latestCompassAdvisorContext: null,
     });
   });
 

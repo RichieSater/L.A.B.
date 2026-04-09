@@ -4,6 +4,29 @@ export interface CompassInsights {
   supportPeople: string[];
 }
 
+export interface CompassAdvisorPastContext {
+  highlights: string[];
+  proud: string;
+  challenges: string;
+  lessons: string;
+  selfForgiveness: string;
+}
+
+export interface CompassAdvisorPerfectDayContext {
+  overview: string;
+  body: string;
+  work: string;
+  relationships: string;
+}
+
+export interface CompassAdvisorContext {
+  sessionId: string;
+  planningYear: number;
+  completedAt: string;
+  past: CompassAdvisorPastContext;
+  perfectDay: CompassAdvisorPerfectDayContext;
+}
+
 export type CompassSessionStatus = 'in_progress' | 'completed' | 'abandoned';
 
 export type CompassScreenType =
