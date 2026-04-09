@@ -1,7 +1,9 @@
 {
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/$1" },
-    { "source": "/(.*)", "destination": "/index.html" }
+    { "source": "/api/compass-sessions/:id", "destination": "/api/compass-sessions/[id]?id=:id" },
+    { "source": "/api/scheduled-sessions/:id", "destination": "/api/scheduled-sessions/[id]?id=:id" },
+    { "source": "/api/:path*", "destination": "/api/:path*" },
+    { "source": "/:path*", "destination": "/index.html" }
   ],
   "headers": [
     {
