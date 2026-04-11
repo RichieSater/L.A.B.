@@ -1,7 +1,8 @@
 import { expect, type ConsoleMessage, type Page, type Response } from '@playwright/test';
 import { QUANTUM_PLANNER_PATH } from '../../src/constants/routes';
 import { getAllCompassScreens } from '../../src/lib/compass-flow';
-import { COMPASS_TEST_SCREEN_VALUES, getCompassScreenIndex } from '../../src/testing/compass-test-data';
+import { getCompassScreenIndex, getCompassTestAnswerRecord } from '../../src/testing/compass-test-data';
+import type { CompassPromptDefinition } from '../../src/types/compass';
 
 type CompassScreen = ReturnType<typeof getAllCompassScreens>[number];
 
@@ -121,79 +122,98 @@ export async function resumeCompassFromPlanner(page: Page) {
 }
 
 async function expectCompassScreen(page: Page, screen: CompassScreen) {
-  const primaryCopy = screen.questionText ?? screen.headline ?? screen.sectionTitle;
+  const primaryCopy = screen.headline ?? screen.prompts?.[0]?.label ?? screen.sectionTitle;
   await expect(page.getByText(primaryCopy, { exact: true })).toBeVisible();
 }
 
 async function fillCompassScreen(page: Page, screen: CompassScreen) {
-  const value = COMPASS_TEST_SCREEN_VALUES[screen.id];
+  const answers = getCompassTestAnswerRecord(screen.id);
 
-  switch (screen.type) {
-    case 'animation':
-    case 'interstitial':
-    case 'ritual':
-      return;
+  for (const prompt of screen.prompts ?? []) {
+    await fillCompassPrompt(page, prompt, answers);
+  }
+}
+
+async function fillCompassPrompt(
+  page: Page,
+  prompt: CompassPromptDefinition,
+  answers: Record<string, string>,
+) {
+  switch (prompt.type) {
     case 'checklist':
-      for (const item of screen.checklistItems ?? []) {
+      for (const item of prompt.checklistItems ?? []) {
         const checkbox = page.getByLabel(item.label);
         await expect(checkbox).toBeVisible();
         await checkbox.check();
       }
       return;
     case 'short-text': {
-      const input = page.getByRole('textbox');
+      const input = page.getByRole('textbox', { name: prompt.label });
       await input.scrollIntoViewIfNeeded();
-      await input.fill(String(value));
+      await input.fill(answers[prompt.key] ?? '');
       return;
     }
     case 'textarea': {
-      const input = page.getByRole('textbox');
+      const input = page.getByRole('textbox', { name: prompt.label });
       await input.scrollIntoViewIfNeeded();
-      await input.fill(String(value));
+      await input.fill(answers[prompt.key] ?? '');
       return;
     }
     case 'multi-short-text':
     case 'multi-textarea': {
-      const inputs = value as Record<string, string>;
+      for (const inputDefinition of prompt.inputs ?? []) {
+        const fieldLabel = inputDefinition.label ?? inputDefinition.placeholder;
+        if (!fieldLabel) {
+          continue;
+        }
 
-      for (const inputDefinition of screen.inputs ?? []) {
-        const field = inputDefinition.placeholder
-          ? page.getByPlaceholder(inputDefinition.placeholder)
-          : page.getByRole('textbox').nth(0);
+        const field = page.getByLabel(fieldLabel);
         await field.scrollIntoViewIfNeeded();
-        await field.fill(inputs[inputDefinition.key] ?? '');
+        await field.fill(answers[inputDefinition.key] ?? '');
       }
       return;
     }
     case 'multi-input': {
-      const items = value as string[];
+      const items = parseItems(answers[prompt.key]);
 
       for (let index = 0; index < items.length; index += 1) {
         if (index > 0) {
-          const addItemButton = page.getByRole('button', { name: 'Add item' });
+          const addItemButton = page.getByRole('button', { name: `Add item for ${prompt.label}` });
           await addItemButton.scrollIntoViewIfNeeded();
           await addItemButton.click();
         }
 
-        const input = page.getByRole('textbox', { name: `Compass item ${index + 1}` });
+        const input = page.getByRole('textbox', { name: `${prompt.label} ${index + 1}` });
         await input.scrollIntoViewIfNeeded();
         await input.fill(items[index]);
       }
       return;
     }
     case 'signature': {
-      const signature = value as Record<string, string>;
-      const nameInput = page.getByPlaceholder('Your name');
-      const signatureInput = page.getByPlaceholder('Type your signature or commitment line');
+      const nameInput = page.getByRole('textbox', { name: 'Your name' });
+      const signatureInput = page.getByRole('textbox', { name: 'Your signature' });
 
       await nameInput.scrollIntoViewIfNeeded();
-      await nameInput.fill(signature.name ?? '');
+      await nameInput.fill(answers.name ?? '');
       await signatureInput.scrollIntoViewIfNeeded();
-      await signatureInput.fill(signature.signature ?? '');
+      await signatureInput.fill(answers.signature ?? '');
       return;
     }
     default:
       return;
+  }
+}
+
+function parseItems(value: string | undefined): string[] {
+  if (!value) {
+    return [];
+  }
+
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed.map(item => String(item)) : [];
+  } catch {
+    return [];
   }
 }
 

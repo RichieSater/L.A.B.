@@ -5,10 +5,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { GOLDEN_COMPASS_PATH } from '../../../constants/routes';
 import {
   COMPASS_TEST_INSIGHTS,
-  COMPASS_TEST_SCREEN_VALUES,
   createCompassTestAnswers,
   createCompassTestSession,
   getCompassScreenIndex,
+  getCompassTestAnswerRecord,
 } from '../../../testing/compass-test-data';
 import { CompassSessionRunner } from '../CompassSessionRunner';
 
@@ -83,17 +83,19 @@ describe('CompassSessionRunner', () => {
       label: 'multi-input',
       screenId: 'bonfire-write',
       assertValues: () => {
-        expect(screen.getByRole('textbox', { name: 'Compass item 1' })).toHaveValue(
-          (COMPASS_TEST_SCREEN_VALUES['bonfire-write'] as string[])[0],
+        expect(
+          screen.getByRole('textbox', { name: 'What is causing discomfort in your life right now? 1' }),
+        ).toHaveValue(
+          JSON.parse(getCompassTestAnswerRecord('bonfire-write').items ?? '[]')[0],
         );
       },
     },
     {
       label: 'textarea',
-      screenId: 'past-proud',
+      screenId: 'past-compassion-box',
       assertValues: () => {
         expect(screen.getByRole('textbox')).toHaveValue(
-          String(COMPASS_TEST_SCREEN_VALUES['past-proud']),
+          getCompassTestAnswerRecord('past-compassion-box').main ?? '',
         );
       },
     },
@@ -102,7 +104,7 @@ describe('CompassSessionRunner', () => {
       screenId: 'movie-title',
       assertValues: () => {
         expect(screen.getByRole('textbox')).toHaveValue(
-          String(COMPASS_TEST_SCREEN_VALUES['movie-title']),
+          getCompassTestAnswerRecord('movie-title').main ?? '',
         );
       },
     },
@@ -151,7 +153,10 @@ describe('CompassSessionRunner', () => {
     const continueButton = screen.getByRole('button', { name: 'Continue' });
     expect(continueButton).toBeDisabled();
 
-    await user.type(screen.getByRole('textbox', { name: 'Compass item 1' }), 'Clear the noise first');
+    await user.type(
+      screen.getByRole('textbox', { name: 'What is causing discomfort in your life right now? 1' }),
+      'Clear the noise first',
+    );
 
     expect(continueButton).toBeEnabled();
     apiClient.updateCompassSession.mockClear();
@@ -160,10 +165,10 @@ describe('CompassSessionRunner', () => {
 
     await waitFor(() => {
       expect(apiClient.updateCompassSession).toHaveBeenCalledWith(initialSession.id, {
-        currentScreen: getCompassScreenIndex('bonfire-complete'),
+        currentScreen: getCompassScreenIndex('bonfire-release'),
       });
     });
-    expect(screen.getByText('Leave It Here')).toBeInTheDocument();
+    expect(screen.getByText('How would it feel to mentally let go of everything that’s in the box?')).toBeInTheDocument();
 
     await act(async () => {
       await new Promise(resolve => window.setTimeout(resolve, 950));
@@ -176,7 +181,7 @@ describe('CompassSessionRunner', () => {
         currentScreen: getCompassScreenIndex('bonfire-write'),
       });
     });
-    expect(screen.getByText("What's weighing on your mind right now?")).toBeInTheDocument();
+    expect(screen.getByText('What is causing discomfort in your life right now?')).toBeInTheDocument();
     expect(navigate).not.toHaveBeenCalled();
   });
 
@@ -186,7 +191,7 @@ describe('CompassSessionRunner', () => {
     useNavigate.mockReturnValue(navigate);
 
     const initialSession = createCompassTestSession({
-      currentScreen: getCompassScreenIndex('past-proud'),
+      currentScreen: getCompassScreenIndex('past-compassion-box'),
       answers: {},
       answerCount: 0,
     });
@@ -202,11 +207,11 @@ describe('CompassSessionRunner', () => {
     await waitFor(() => {
       expect(apiClient.updateCompassSession).toHaveBeenCalledWith(initialSession.id, {
         answers: {
-          'past-proud': {
+          'past-compassion-box': {
             main: proudAnswer,
           },
         },
-        currentScreen: getCompassScreenIndex('past-proud'),
+        currentScreen: getCompassScreenIndex('past-compassion-box'),
       });
     });
     expect(navigate).toHaveBeenCalledWith(GOLDEN_COMPASS_PATH);

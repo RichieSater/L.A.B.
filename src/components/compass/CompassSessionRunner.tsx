@@ -4,13 +4,16 @@ import {
   GOLDEN_COMPASS_PATH,
   QUANTUM_PLANNER_PATH,
 } from '../../constants/routes';
+import { useAuth } from '../../auth/auth-context';
 import { apiClient } from '../../lib/api';
 import { COMPASS_FLOW, getAllCompassScreens } from '../../lib/compass-flow';
-import { useAuth } from '../../auth/auth-context';
 import { MultiInputEditor } from './MultiInputEditor';
 import type {
   CompassAnswerRecord,
   CompassAnswers,
+  CompassChecklistItem,
+  CompassContentBlock,
+  CompassPromptDefinition,
   CompassScreenDefinition,
   CompassSessionDetail,
 } from '../../types/compass';
@@ -26,9 +29,7 @@ export function CompassSessionRunner({
   const { refreshBootstrap } = useAuth();
   const allScreens = useMemo(() => getAllCompassScreens(), []);
   const totalScreens = allScreens.length;
-  const [currentIndex, setCurrentIndex] = useState(
-    Math.min(initialSession.currentScreen, totalScreens - 1),
-  );
+  const [currentIndex, setCurrentIndex] = useState(() => resolveInitialCompassIndex(initialSession, allScreens));
   const [answers, setAnswers] = useState<CompassAnswers>(initialSession.answers ?? {});
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
   const [session, setSession] = useState(initialSession);
@@ -45,24 +46,10 @@ export function CompassSessionRunner({
   }, []);
 
   const screen = allScreens[currentIndex];
-
-  const screenAnswers = useMemo<CompassAnswerRecord>(() => {
-    const current = answers[screen.id] ?? {};
-
-    if (screen.prefillFrom && Object.keys(current).length === 0) {
-      const source = answers[screen.prefillFrom];
-
-      if (source) {
-        const values = Object.values(source).filter(Boolean);
-        if (values.length > 0) {
-          return { main: values.join('\n') };
-        }
-      }
-    }
-
-    return current;
-  }, [answers, screen.id, screen.prefillFrom]);
-
+  const screenAnswers = useMemo(
+    () => resolveScreenAnswers(screen, answers),
+    [answers, screen],
+  );
   const currentSection = COMPASS_FLOW.find(section => section.key === screen.sectionKey) ?? COMPASS_FLOW[0];
   const progress = Math.round(((currentIndex + 1) / totalScreens) * 100);
 
@@ -137,45 +124,8 @@ export function CompassSessionRunner({
     });
   }
 
-  function setMultiInputItems(items: string[]) {
-    updateAnswer('items', JSON.stringify(items.filter(item => item.trim().length > 0)));
-  }
-
-  function canProceed(currentScreenDefinition: CompassScreenDefinition): boolean {
-    if (currentScreenDefinition.type === 'interstitial' || currentScreenDefinition.type === 'animation' || currentScreenDefinition.type === 'ritual') {
-      return true;
-    }
-
-    if (currentScreenDefinition.type === 'checklist' && currentScreenDefinition.requireAllChecked) {
-      return (currentScreenDefinition.checklistItems ?? []).every(item => screenAnswers[item.key] === 'true');
-    }
-
-    if (!currentScreenDefinition.isRequired) {
-      return true;
-    }
-
-    if (currentScreenDefinition.type === 'textarea' || currentScreenDefinition.type === 'short-text') {
-      return (screenAnswers.main ?? '').trim().length > 0;
-    }
-
-    if (currentScreenDefinition.type === 'multi-short-text' || currentScreenDefinition.type === 'multi-textarea') {
-      return (currentScreenDefinition.inputs ?? []).every(input => (screenAnswers[input.key] ?? '').trim().length > 0);
-    }
-
-    if (currentScreenDefinition.type === 'multi-input') {
-      try {
-        const items = JSON.parse(screenAnswers.items ?? '[]');
-        return Array.isArray(items) && items.length > 0;
-      } catch {
-        return false;
-      }
-    }
-
-    if (currentScreenDefinition.type === 'signature') {
-      return (screenAnswers.name ?? '').trim().length > 0 && (screenAnswers.signature ?? '').trim().length > 0;
-    }
-
-    return true;
+  function setMultiInputItems(key: string, items: string[]) {
+    updateAnswer(key, JSON.stringify(items.filter(item => item.trim().length > 0)));
   }
 
   async function moveTo(nextIndex: number) {
@@ -184,7 +134,7 @@ export function CompassSessionRunner({
   }
 
   async function handleNext() {
-    if (!canProceed(screen) || completing) {
+    if (!canProceed(screen, screenAnswers) || completing) {
       return;
     }
 
@@ -264,18 +214,63 @@ export function CompassSessionRunner({
         {screen.narrativeText ? (
           <p className="mt-3 whitespace-pre-line text-base leading-7 text-gray-300">{screen.narrativeText}</p>
         ) : null}
-        {screen.questionText ? (
-          <h2 className="mt-5 text-2xl font-semibold text-gray-100">{screen.questionText}</h2>
+
+        {screen.contentBlocks?.length ? (
+          <div className="mt-5 space-y-4">
+            {screen.contentBlocks.map((block, index) => (
+              <ContentBlockView key={`${screen.id}-content-${index}`} block={block} />
+            ))}
+          </div>
         ) : null}
 
-        <div className="mt-8">
-          <CompassFieldRenderer
-            screen={screen}
-            answers={screenAnswers}
-            onAnswerChange={updateAnswer}
-            onMultiInputChange={setMultiInputItems}
-          />
-        </div>
+        {screen.type === 'ritual' ? (
+          <RitualPreview items={extractCompassionItems(answers)} />
+        ) : null}
+
+        {screen.prompts?.length ? (
+          <div className="mt-8 space-y-6">
+            {screen.prompts.map((prompt, promptIndex) => (
+              <div
+                key={`${screen.id}-${prompt.key}-${promptIndex}`}
+                className="space-y-4 rounded-3xl border border-gray-800/80 bg-gray-950/40 p-5"
+              >
+                <div className="space-y-2">
+                  <h2 className="text-xl font-semibold text-gray-100">{prompt.label}</h2>
+                  {prompt.description ? (
+                    <p className="text-sm leading-6 text-gray-400">{prompt.description}</p>
+                  ) : null}
+                  {prompt.copyLines?.length ? (
+                    <div className="rounded-2xl border border-amber-300/20 bg-amber-500/10 p-4">
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-200/80">
+                        Copy these lines
+                      </p>
+                      <div className="mt-3 space-y-2 text-sm leading-6 text-amber-50">
+                        {prompt.copyLines.map(line => (
+                          <p key={line}>{line}</p>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+                <CompassPromptField
+                  screenId={screen.id}
+                  prompt={prompt}
+                  answers={screenAnswers}
+                  onAnswerChange={updateAnswer}
+                  onMultiInputChange={setMultiInputItems}
+                />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="mt-8">
+            <p className="text-sm leading-7 text-gray-400">
+              {screen.type === 'animation'
+                ? 'Pause here, then complete the workbook when you are ready.'
+                : "Continue when you're ready."}
+            </p>
+          </div>
+        )}
 
         <div className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-gray-800 pt-6">
           <div className="flex gap-3">
@@ -299,7 +294,7 @@ export function CompassSessionRunner({
           <button
             type="button"
             onClick={() => void handleNext()}
-            disabled={!canProceed(screen) || completing}
+            disabled={!canProceed(screen, screenAnswers) || completing}
             className="rounded-full border border-amber-300 bg-amber-50 px-5 py-2.5 text-sm font-semibold text-amber-950 transition hover:border-amber-200 hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {completing ? 'Completing...' : currentIndex === totalScreens - 1 ? 'Complete Compass' : 'Continue'}
@@ -310,139 +305,186 @@ export function CompassSessionRunner({
   );
 }
 
-function CompassFieldRenderer({
-  screen,
+function ContentBlockView({ block }: { block: CompassContentBlock }) {
+  const isHighlighted = block.tone === 'callout' || block.tone === 'quote';
+
+  return (
+    <div
+      className={
+        isHighlighted
+          ? 'rounded-2xl border border-gray-800 bg-gray-950/60 p-4'
+          : 'space-y-3'
+      }
+    >
+      {block.title ? (
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">{block.title}</p>
+      ) : null}
+      {block.paragraphs?.map(paragraph => (
+        <p
+          key={paragraph}
+          className={`text-sm leading-7 ${block.tone === 'quote' ? 'italic text-gray-200' : 'text-gray-300'}`}
+        >
+          {paragraph}
+        </p>
+      ))}
+      {block.bullets?.length ? (
+        <ul className="space-y-2 pl-5 text-sm leading-7 text-gray-300">
+          {block.bullets.map(item => (
+            <li key={item} className="list-disc">
+              {item}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      {block.numberedItems?.length ? (
+        <ol className="space-y-2 pl-5 text-sm leading-7 text-gray-300">
+          {block.numberedItems.map(item => (
+            <li key={item} className="list-decimal">
+              {item}
+            </li>
+          ))}
+        </ol>
+      ) : null}
+      {block.attribution ? (
+        <p className="text-xs uppercase tracking-[0.18em] text-gray-500">{block.attribution}</p>
+      ) : null}
+    </div>
+  );
+}
+
+function RitualPreview({ items }: { items: string[] }) {
+  if (items.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="mt-8 rounded-2xl border border-gray-800 bg-gray-950/50 p-4">
+      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">From the compassion box</p>
+      <ul className="mt-3 space-y-2 text-sm text-gray-300">
+        {items.map(item => (
+          <li key={item}>{item}</li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function CompassPromptField({
+  screenId,
+  prompt,
   answers,
   onAnswerChange,
   onMultiInputChange,
 }: {
-  screen: CompassScreenDefinition;
+  screenId: string;
+  prompt: CompassPromptDefinition;
   answers: CompassAnswerRecord;
   onAnswerChange: (key: string, value: string) => void;
-  onMultiInputChange: (items: string[]) => void;
+  onMultiInputChange: (key: string, items: string[]) => void;
 }) {
-  if (screen.type === 'interstitial' || screen.type === 'animation') {
-    return <p className="text-sm leading-7 text-gray-400">Continue when you're ready.</p>;
-  }
+  if (prompt.type === 'textarea') {
+    const fieldId = `${screenId}-${prompt.key}`;
 
-  if (screen.type === 'ritual') {
-    const priorItems = (answers.main ?? '')
-      .split('\n')
-      .map(item => item.trim())
-      .filter(Boolean);
-
-    return (
-      <div className="space-y-4">
-        <p className="text-sm leading-7 text-gray-300">
-          Pause here and consciously release the items you wrote. This step is about direction, not self-punishment.
-        </p>
-        {priorItems.length > 0 ? (
-          <div className="rounded-2xl border border-gray-800 bg-gray-950/50 p-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">From the compassion box</p>
-            <ul className="mt-3 space-y-2 text-sm text-gray-300">
-              {priorItems.map(item => (
-                <li key={item}>{item}</li>
-              ))}
-            </ul>
-          </div>
-        ) : null}
-      </div>
-    );
-  }
-
-  if (screen.type === 'textarea') {
     return (
       <textarea
-        value={answers.main ?? ''}
-        onChange={event => onAnswerChange('main', event.target.value)}
-        placeholder={screen.placeholder ?? 'Write here...'}
+        id={fieldId}
+        aria-label={prompt.label}
+        value={answers[prompt.key] ?? ''}
+        onChange={event => onAnswerChange(prompt.key, event.target.value)}
+        placeholder={prompt.placeholder ?? 'Write here...'}
         rows={8}
         className="w-full rounded-3xl border border-gray-800 bg-gray-950/70 px-4 py-4 text-sm leading-7 text-gray-100 placeholder:text-gray-500 focus:border-amber-300/50 focus:outline-none focus:ring-1 focus:ring-amber-300/20"
       />
     );
   }
 
-  if (screen.type === 'short-text') {
+  if (prompt.type === 'short-text') {
+    const fieldId = `${screenId}-${prompt.key}`;
+
     return (
       <input
+        id={fieldId}
+        aria-label={prompt.label}
         type="text"
-        value={answers.main ?? ''}
-        onChange={event => onAnswerChange('main', event.target.value)}
-        placeholder={screen.placeholder ?? 'Write here...'}
+        value={answers[prompt.key] ?? ''}
+        onChange={event => onAnswerChange(prompt.key, event.target.value)}
+        placeholder={prompt.placeholder ?? 'Write here...'}
         className="w-full rounded-full border border-gray-800 bg-gray-950/70 px-4 py-3 text-sm text-gray-100 placeholder:text-gray-500 focus:border-amber-300/50 focus:outline-none focus:ring-1 focus:ring-amber-300/20"
       />
     );
   }
 
-  if (screen.type === 'multi-short-text' || screen.type === 'multi-textarea') {
+  if (prompt.type === 'multi-short-text' || prompt.type === 'multi-textarea') {
     return (
-      <div className="space-y-3">
-        {(screen.inputs ?? []).map(input => {
-          const isLong = screen.type === 'multi-textarea' || input.type === 'long';
-
-          return isLong ? (
-            <textarea
-              key={input.key}
-              value={answers[input.key] ?? ''}
-              onChange={event => onAnswerChange(input.key, event.target.value)}
-              placeholder={input.placeholder ?? 'Write here...'}
-              rows={4}
-              className="w-full rounded-3xl border border-gray-800 bg-gray-950/70 px-4 py-4 text-sm leading-7 text-gray-100 placeholder:text-gray-500 focus:border-amber-300/50 focus:outline-none focus:ring-1 focus:ring-amber-300/20"
-            />
-          ) : (
-            <input
-              key={input.key}
-              type="text"
-              value={answers[input.key] ?? ''}
-              onChange={event => onAnswerChange(input.key, event.target.value)}
-              placeholder={input.placeholder ?? 'Write here...'}
-              className="w-full rounded-full border border-gray-800 bg-gray-950/70 px-4 py-3 text-sm text-gray-100 placeholder:text-gray-500 focus:border-amber-300/50 focus:outline-none focus:ring-1 focus:ring-amber-300/20"
-            />
-          );
-        })}
-      </div>
-    );
-  }
-
-  if (screen.type === 'checklist') {
-    return (
-      <div className="space-y-3">
-        {(screen.checklistItems ?? []).map(item => {
-          const checked = answers[item.key] === 'true';
+      <div className="space-y-4">
+        {(prompt.inputs ?? []).map((input, index) => {
+          const inputId = `${screenId}-${input.key}`;
+          const inputLabel = input.label ?? input.placeholder ?? `Field ${index + 1}`;
+          const isLong = prompt.type === 'multi-textarea' || input.type === 'long';
 
           return (
-            <label
-              key={item.key}
-              className="flex items-start gap-3 rounded-2xl border border-gray-800 bg-gray-950/50 px-4 py-3 text-sm text-gray-200"
-            >
-              <input
-                type="checkbox"
-                checked={checked}
-                onChange={event => onAnswerChange(item.key, String(event.target.checked))}
-                className="mt-1 h-4 w-4 rounded border-gray-700 bg-gray-900 text-amber-300"
-              />
-              <span>{item.label}</span>
-            </label>
+            <div key={input.key} className="space-y-2">
+              <label htmlFor={inputId} className="block text-sm font-medium text-gray-200">
+                {inputLabel}
+              </label>
+              {isLong ? (
+                <textarea
+                  id={inputId}
+                  aria-label={inputLabel}
+                  value={answers[input.key] ?? ''}
+                  onChange={event => onAnswerChange(input.key, event.target.value)}
+                  placeholder={input.placeholder ?? 'Write here...'}
+                  rows={4}
+                  className="w-full rounded-3xl border border-gray-800 bg-gray-950/70 px-4 py-4 text-sm leading-7 text-gray-100 placeholder:text-gray-500 focus:border-amber-300/50 focus:outline-none focus:ring-1 focus:ring-amber-300/20"
+                />
+              ) : (
+                <input
+                  id={inputId}
+                  aria-label={inputLabel}
+                  type="text"
+                  value={answers[input.key] ?? ''}
+                  onChange={event => onAnswerChange(input.key, event.target.value)}
+                  placeholder={input.placeholder ?? 'Write here...'}
+                  className="w-full rounded-full border border-gray-800 bg-gray-950/70 px-4 py-3 text-sm text-gray-100 placeholder:text-gray-500 focus:border-amber-300/50 focus:outline-none focus:ring-1 focus:ring-amber-300/20"
+                />
+              )}
+            </div>
           );
         })}
       </div>
     );
   }
 
-  if (screen.type === 'multi-input') {
-    const items = parseMultiInputItems(answers.items);
+  if (prompt.type === 'checklist') {
+    return (
+      <div className="space-y-3">
+        {(prompt.checklistItems ?? []).map(item => (
+          <ChecklistRow
+            key={item.key}
+            item={item}
+            screenId={screenId}
+            checked={answers[item.key] === 'true'}
+            onChange={value => onAnswerChange(item.key, value)}
+          />
+        ))}
+      </div>
+    );
+  }
 
+  if (prompt.type === 'multi-input') {
     return (
       <MultiInputEditor
-        key={screen.id}
-        items={items}
-        placeholder={screen.placeholder ?? 'Add an item...'}
-        onChange={onMultiInputChange}
+        key={`${screenId}-${prompt.key}`}
+        items={parseMultiInputItems(answers[prompt.key])}
+        placeholder={prompt.placeholder ?? 'Add an item...'}
+        inputLabelPrefix={prompt.label}
+        addItemLabel={`Add item for ${prompt.label}`}
+        onChange={items => onMultiInputChange(prompt.key, items)}
       />
     );
   }
 
-  if (screen.type === 'signature') {
+  if (prompt.type === 'signature') {
     const date = answers.date ?? new Date().toLocaleDateString();
     const time = answers.time ?? new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
 
@@ -450,12 +492,14 @@ function CompassFieldRenderer({
       <div className="space-y-4">
         <input
           type="text"
+          aria-label="Your name"
           value={answers.name ?? ''}
           onChange={event => onAnswerChange('name', event.target.value)}
           placeholder="Your name"
           className="w-full rounded-full border border-gray-800 bg-gray-950/70 px-4 py-3 text-sm text-gray-100 placeholder:text-gray-500 focus:border-amber-300/50 focus:outline-none focus:ring-1 focus:ring-amber-300/20"
         />
         <textarea
+          aria-label="Your signature"
           value={answers.signature ?? ''}
           onChange={event => onAnswerChange('signature', event.target.value)}
           placeholder="Type your signature or commitment line"
@@ -473,6 +517,36 @@ function CompassFieldRenderer({
   return null;
 }
 
+function ChecklistRow({
+  item,
+  screenId,
+  checked,
+  onChange,
+}: {
+  item: CompassChecklistItem;
+  screenId: string;
+  checked: boolean;
+  onChange: (value: string) => void;
+}) {
+  const fieldId = `${screenId}-${item.key}`;
+
+  return (
+    <label
+      htmlFor={fieldId}
+      className="flex items-start gap-3 rounded-2xl border border-gray-800 bg-gray-950/50 px-4 py-3 text-sm text-gray-200"
+    >
+      <input
+        id={fieldId}
+        type="checkbox"
+        checked={checked}
+        onChange={event => onChange(String(event.target.checked))}
+        className="mt-1 h-4 w-4 rounded border-gray-700 bg-gray-900 text-amber-300"
+      />
+      <span>{item.label}</span>
+    </label>
+  );
+}
+
 function ReadOnlyField({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-2xl border border-gray-800 bg-gray-950/60 px-4 py-3">
@@ -481,6 +555,88 @@ function ReadOnlyField({ label, value }: { label: string; value: string }) {
     </div>
   );
 }
+
+function resolveInitialCompassIndex(
+  session: CompassSessionDetail,
+  screens: CompassScreenDefinition[],
+): number {
+  const storedIndex = Math.min(Math.max(session.currentScreen, 0), screens.length - 1);
+  const hasEarlierAnswers = screens
+    .slice(0, storedIndex)
+    .some(screen => Object.values(session.answers?.[screen.id] ?? {}).some(value => value?.trim().length > 0));
+
+  if (!hasEarlierAnswers) {
+    return storedIndex;
+  }
+
+  for (let index = 0; index <= storedIndex; index += 1) {
+    const screen = screens[index];
+    if (!canProceed(screen, resolveScreenAnswers(screen, session.answers ?? {}))) {
+      return index;
+    }
+  }
+
+  return storedIndex;
+}
+
+function resolveScreenAnswers(screen: CompassScreenDefinition, answers: CompassAnswers): CompassAnswerRecord {
+  const current = answers[screen.id] ?? {};
+
+  if (screen.prefillFrom && Object.keys(current).length === 0) {
+    const source = answers[screen.prefillFrom];
+
+    if (source) {
+      const values = Object.values(source).filter(Boolean);
+      if (values.length > 0) {
+        return { main: values.join('\n') };
+      }
+    }
+  }
+
+  return current;
+}
+
+function canProceed(screen: CompassScreenDefinition, answers: CompassAnswerRecord): boolean {
+  if (!screen.prompts?.length) {
+    return true;
+  }
+
+  return screen.prompts.every(prompt => {
+    if (!prompt.isRequired) {
+      return true;
+    }
+
+    if (prompt.type === 'checklist' && prompt.requireAllChecked) {
+      return (prompt.checklistItems ?? []).every(item => answers[item.key] === 'true');
+    }
+
+    if (prompt.type === 'textarea' || prompt.type === 'short-text') {
+      return (answers[prompt.key] ?? '').trim().length > 0;
+    }
+
+    if (prompt.type === 'multi-short-text' || prompt.type === 'multi-textarea') {
+      return (prompt.inputs ?? []).every(input => (answers[input.key] ?? '').trim().length > 0);
+    }
+
+    if (prompt.type === 'multi-input') {
+      return parseMultiInputItems(answers[prompt.key]).length > 0;
+    }
+
+    if (prompt.type === 'signature') {
+      return (answers.name ?? '').trim().length > 0 && (answers.signature ?? '').trim().length > 0;
+    }
+
+    return true;
+  });
+}
+
+function extractCompassionItems(answers: CompassAnswers): string[] {
+  return (answers['past-compassion-box']?.main ?? '')
+    .split('\n')
+    .map(item => item.trim())
+    .filter(Boolean);
+}
+
 function parseMultiInputItems(value: string | undefined): string[] {
   if (!value) {
     return [];
@@ -511,7 +667,7 @@ function CompletedCompassSummary({
         <p className="text-xs font-semibold uppercase tracking-[0.24em] text-emerald-300/80">Compass Completed</p>
         <h1 className="mt-2 text-3xl font-semibold tracking-tight text-gray-100">{session.title}</h1>
         <p className="mt-3 text-sm leading-6 text-gray-300">
-          LAB stored the latest Compass insights and used them to refresh the strategic layer for this planning year.
+          LAB stored the latest Compass insights and richer workbook context so the rest of the system can use what you captured here.
         </p>
       </div>
 

@@ -1,5 +1,5 @@
 import { test, expect } from '../fixtures/lab';
-import { COMPASS_TEST_SCREEN_VALUES } from '../../src/testing/compass-test-data';
+import { getCompassTestAnswerRecord } from '../../src/testing/compass-test-data';
 import {
   advanceCompassUntilScreen,
   assertCompassAuditClean,
@@ -19,17 +19,18 @@ async function runGoldenCompassRegression(page: Parameters<typeof startCompassAu
 
     await advanceCompassUntilScreen(page, 'bonfire-write');
 
-    const bonfireItems = COMPASS_TEST_SCREEN_VALUES['bonfire-write'] as string[];
-    const firstBonfireInput = page.getByRole('textbox', { name: 'Compass item 1' });
+    const bonfireItems = JSON.parse(getCompassTestAnswerRecord('bonfire-write').items ?? '[]') as string[];
+    const bonfireLabel = 'What is causing discomfort in your life right now?';
+    const firstBonfireInput = page.getByRole('textbox', { name: `${bonfireLabel} 1` });
     await firstBonfireInput.click();
     await firstBonfireInput.pressSequentially(bonfireItems[0]);
     await expect(firstBonfireInput).toHaveValue(bonfireItems[0]);
     await expect(firstBonfireInput).toBeFocused();
 
-    const addItemButton = page.getByRole('button', { name: 'Add item' });
+    const addItemButton = page.getByRole('button', { name: `Add item for ${bonfireLabel}` });
     await addItemButton.scrollIntoViewIfNeeded();
     await addItemButton.click();
-    const secondBonfireInput = page.getByRole('textbox', { name: 'Compass item 2' });
+    const secondBonfireInput = page.getByRole('textbox', { name: `${bonfireLabel} 2` });
     await secondBonfireInput.pressSequentially(bonfireItems[1]);
     await expect(secondBonfireInput).toHaveValue(bonfireItems[1]);
 
@@ -37,11 +38,13 @@ async function runGoldenCompassRegression(page: Parameters<typeof startCompassAu
     await continueFromBonfire.scrollIntoViewIfNeeded();
     await continueFromBonfire.click();
 
-    await advanceCompassUntilScreen(page, 'past-proud', 'bonfire-complete');
+    await advanceCompassUntilScreen(page, 'past-compassion-box', 'bonfire-release');
 
-    const pastProudAnswer = String(COMPASS_TEST_SCREEN_VALUES['past-proud']);
-    const pastProudInput = page.getByRole('textbox');
-    await pastProudInput.fill(pastProudAnswer);
+    const compassionAnswer = 'I am ready to stop hiding from the hard thing.';
+    const compassionInput = page.getByRole('textbox', {
+      name: 'What are you ready to forgive yourself for?',
+    });
+    await compassionInput.fill(compassionAnswer);
     const saveAndExitButton = page.getByRole('button', { name: 'Save and Exit' });
     await saveAndExitButton.scrollIntoViewIfNeeded();
     await saveAndExitButton.click();
@@ -52,10 +55,12 @@ async function runGoldenCompassRegression(page: Parameters<typeof startCompassAu
     await expect
       .poll(() => new URL(page.url()).pathname)
       .toBe(`/golden-compass/${sessionId}`);
-    await expect(page.getByText('What are you most proud of from the past year?')).toBeVisible();
-    await expect(page.locator('textarea').first()).toHaveValue(pastProudAnswer);
+    await expect(page.getByText('What are you ready to forgive yourself for?')).toBeVisible();
+    await expect(
+      page.getByRole('textbox', { name: 'What are you ready to forgive yourself for?' }),
+    ).toHaveValue(compassionAnswer);
 
-    await completeCompassFromScreen(page, 'past-proud');
+    await completeCompassFromScreen(page, 'past-compassion-box');
 
     await expect(page.getByText('Compass Completed')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Back to Weekly LAB' })).toBeVisible();

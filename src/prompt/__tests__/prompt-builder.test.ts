@@ -56,18 +56,92 @@ describe('buildPrompt', () => {
       sessionId: 'compass-1',
       planningYear: new Date().getFullYear(),
       completedAt: '2026-04-09T12:00:00.000Z',
+      bonfire: {
+        items: ['Burnout', 'Money pressure'],
+        releaseFeeling: 'Lighter.',
+        releaseWords: ['clear', 'steady', 'lighter'],
+      },
       past: {
         highlights: ['Moved through a hard transition', 'Started shipping L.A.B.'],
+        yearSnapshot: {
+          workLife: 'Work got simpler when I stopped pretending every bet was urgent.',
+          relationships: '',
+          health: '',
+        },
+        bestThing: '',
+        biggestLesson: 'I need simpler systems.',
         proud: 'I stayed in the fight.',
-        challenges: 'I kept overcommitting.',
-        lessons: 'I need simpler systems.',
+        yearWords: ['revealing', 'hard', 'clarifying'],
+        goldenMoments: '',
+        biggestChallenges: ['I kept overcommitting.'],
+        challengeSupport: '',
+        challengeLessons: 'I need simpler systems.',
+        notProud: '',
         selfForgiveness: 'How long I waited to ask for help.',
       },
+      future: {
+        perfectDayBrainstorm: 'A calm day with deep work and no frantic context switching.',
+        nextYearSummary: {
+          workLife: '',
+          relationships: '',
+          health: '',
+        },
+      },
       perfectDay: {
-        overview: 'A calm day with deep work and no frantic context switching.',
-        body: 'Strong, rested, and physically present.',
-        work: 'Building useful things for long enough to matter.',
-        relationships: 'Close, warm, and genuinely available.',
+        wakeTime: '6:18 AM',
+        bodyFeeling: 'Strong, rested, and physically present.',
+        firstThoughts: '',
+        morningView: '',
+        location: '',
+        salesMessage: '',
+        autonomyFeeling: '',
+        workPlans: 'Building useful things for long enough to matter.',
+        funPlans: '',
+        mirrorView: '',
+        selfImageFeeling: '',
+        outfit: '',
+        outfitFeeling: '',
+        breakfast: '',
+        dayNarrative: 'A calm day with deep work and no frantic context switching.',
+        spendingAccount: '',
+        financialFreedomFeeling: '',
+        charity: '',
+        givingBack: '',
+        weekendTrip: '',
+        weekendActivities: '',
+        weekendFood: '',
+        homeAtmosphere: '',
+        windowView: '',
+        houseHighlights: '',
+        garageHighlights: '',
+        specialSomeoneMessage: '',
+        nightClose: 'Close, warm, and genuinely available.',
+        gratitude: ['Family', 'Health', 'Direction'],
+        compassFeeling: 'Aligned.',
+      },
+      lightingPath: {
+        environmentJoy: ['Morning light'],
+        financialSupport: '',
+        healthSupport: '',
+        relationshipSupport: '',
+        lettingGo: ['Overcomplication'],
+        sayingNo: [],
+        guiltFreeEnjoyment: [],
+        supportPeople: ['Therapist'],
+        placesToVisit: [],
+        lovedOnes: [],
+        selfRewards: [],
+      },
+      goldenPath: {
+        pointA: 'Scattered momentum.',
+        pointB: 'A calmer year.',
+        obstacles: ['Overcommitment'],
+        pleasurableProcess: '',
+        fasterHelp: '',
+        finalNotes: '',
+        movieTitle: 'The Quiet Rebuild',
+        timeCapsuleLocation: '',
+        timeCapsuleFeeling: '',
       },
     };
 
@@ -80,12 +154,18 @@ describe('buildPrompt', () => {
     );
 
     expect(prompt).toContain('[LATEST GOLDEN COMPASS CONTEXT]');
+    expect(prompt).toContain('The Bonfire:');
+    expect(prompt).toContain('Burnout');
     expect(prompt).toContain('The Past:');
     expect(prompt).toContain('Moved through a hard transition');
-    expect(prompt).toContain('What challenged me most:');
+    expect(prompt).toContain('Biggest challenges from the last year:');
     expect(prompt).toContain('I kept overcommitting.');
+    expect(prompt).toContain('The Future:');
+    expect(prompt).toContain('A calm day with deep work and no frantic context switching.');
     expect(prompt).toContain('The Perfect Day:');
     expect(prompt).toContain('Building useful things for long enough to matter.');
+    expect(prompt).toContain('Lighting The Path:');
+    expect(prompt).toContain('The Golden Path:');
     expect(prompt.indexOf('[LATEST GOLDEN COMPASS CONTEXT]')).toBeGreaterThan(
       prompt.indexOf('[STRATEGIC CONTEXT]'),
     );

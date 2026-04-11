@@ -28,10 +28,14 @@ function normalizePersistedItems(items: string[]): string[] {
 export function MultiInputEditor({
   items,
   placeholder,
+  inputLabelPrefix = 'Compass item',
+  addItemLabel = 'Add item',
   onChange,
 }: {
   items: string[];
   placeholder: string;
+  inputLabelPrefix?: string;
+  addItemLabel?: string;
   onChange: (items: string[]) => void;
 }) {
   const [rows, setRows] = useState<MultiInputRow[]>(() =>
@@ -69,7 +73,7 @@ export function MultiInputEditor({
             value={row.value}
             onChange={event => updateItem(row.id, event.target.value)}
             placeholder={placeholder}
-            aria-label={`Compass item ${index + 1}`}
+            aria-label={`${inputLabelPrefix} ${index + 1}`}
             className="flex-1 rounded-full border border-gray-800 bg-gray-950/70 px-4 py-3 text-sm text-gray-100 placeholder:text-gray-500 focus:border-amber-300/50 focus:outline-none focus:ring-1 focus:ring-amber-300/20"
           />
           <button
@@ -85,6 +89,7 @@ export function MultiInputEditor({
       <button
         type="button"
         onClick={addItem}
+        aria-label={addItemLabel}
         className="rounded-full border border-amber-300/30 bg-amber-500/10 px-4 py-2 text-sm font-semibold text-amber-100 transition hover:border-amber-200/50 hover:bg-amber-500/20"
       >
         Add item
