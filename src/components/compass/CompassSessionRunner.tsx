@@ -7,6 +7,10 @@ import {
 import { useAuth } from '../../auth/auth-context';
 import { apiClient } from '../../lib/api';
 import { COMPASS_FLOW, getAllCompassScreens } from '../../lib/compass-flow';
+import {
+  getCompassPastMonthNames,
+  getDefaultCompassPastMonthsIncludeCurrentMonth,
+} from '../../utils/date';
 import { MultiInputEditor } from './MultiInputEditor';
 import type {
   CompassAnswerRecord,
@@ -19,6 +23,17 @@ import type {
 } from '../../types/compass';
 
 type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
+type CompassPastMonthsStateSource = 'saved' | 'legacy' | 'default';
+
+interface CompassPastMonthsState {
+  includeCurrentMonth: boolean;
+  monthNames: string[];
+  source: CompassPastMonthsStateSource;
+}
+
+const PAST_MONTHS_SCREEN_ID = 'past-months';
+const PAST_MONTHS_INCLUDE_CURRENT_KEY = 'includeCurrentMonth';
+const LEGACY_PAST_MONTH_KEYS = Array.from({ length: 12 }, (_, index) => `month${index + 1}`);
 
 export function CompassSessionRunner({
   initialSession,
@@ -28,6 +43,7 @@ export function CompassSessionRunner({
   const navigate = useNavigate();
   const { refreshBootstrap } = useAuth();
   const allScreens = useMemo(() => getAllCompassScreens(), []);
+  const sessionCreatedAt = useMemo(() => new Date(initialSession.createdAt), [initialSession.createdAt]);
   const totalScreens = allScreens.length;
   const [currentIndex, setCurrentIndex] = useState(() => resolveInitialCompassIndex(initialSession, allScreens));
   const [answers, setAnswers] = useState<CompassAnswers>(initialSession.answers ?? {});
@@ -46,9 +62,16 @@ export function CompassSessionRunner({
   }, []);
 
   const screen = allScreens[currentIndex];
+  const pastMonthsState = useMemo(
+    () =>
+      screen.id === PAST_MONTHS_SCREEN_ID
+        ? resolvePastMonthsState(answers[PAST_MONTHS_SCREEN_ID], sessionCreatedAt)
+        : null,
+    [answers, screen.id, sessionCreatedAt],
+  );
   const screenAnswers = useMemo(
-    () => resolveScreenAnswers(screen, answers),
-    [answers, screen],
+    () => resolveScreenAnswers(screen, answers, sessionCreatedAt),
+    [answers, screen, sessionCreatedAt],
   );
   const currentSection = COMPASS_FLOW.find(section => section.key === screen.sectionKey) ?? COMPASS_FLOW[0];
   const progress = Math.round(((currentIndex + 1) / totalScreens) * 100);
@@ -104,8 +127,10 @@ export function CompassSessionRunner({
       saveTimerRef.current = null;
     }
 
+    const nextAnswers = prepareAnswersForPersistence();
+
     await persist({
-      answers: pendingAnswersRef.current,
+      answers: nextAnswers,
       currentScreen: currentIndex,
     });
   }
@@ -128,8 +153,51 @@ export function CompassSessionRunner({
     updateAnswer(key, JSON.stringify(items.filter(item => item.trim().length > 0)));
   }
 
+  function setPastMonthsIncludeCurrentMonth(includeCurrentMonth: boolean) {
+    const nextRecord = {
+      [PAST_MONTHS_INCLUDE_CURRENT_KEY]: String(includeCurrentMonth),
+    };
+
+    setAnswers(previous => {
+      const nextAnswers = {
+        ...previous,
+        [PAST_MONTHS_SCREEN_ID]: nextRecord,
+      };
+      scheduleAnswerSave(nextAnswers);
+      return nextAnswers;
+    });
+  }
+
+  function prepareAnswersForPersistence(): CompassAnswers {
+    const nextAnswers = normalizeAnswersForCurrentScreenPersistence(
+      screen,
+      pendingAnswersRef.current,
+      sessionCreatedAt,
+    );
+
+    pendingAnswersRef.current = nextAnswers;
+    setAnswers(previous => (previous === nextAnswers ? previous : nextAnswers));
+
+    return nextAnswers;
+  }
+
   async function moveTo(nextIndex: number) {
     setCurrentIndex(nextIndex);
+
+    if (screen.id === PAST_MONTHS_SCREEN_ID) {
+      if (saveTimerRef.current) {
+        clearTimeout(saveTimerRef.current);
+        saveTimerRef.current = null;
+      }
+
+      const nextAnswers = prepareAnswersForPersistence();
+      await persist({
+        answers: nextAnswers,
+        currentScreen: nextIndex,
+      });
+      return;
+    }
+
     await persist({ currentScreen: nextIndex });
   }
 
@@ -227,7 +295,13 @@ export function CompassSessionRunner({
           <RitualPreview items={extractCompassionItems(answers)} />
         ) : null}
 
-        {screen.prompts?.length ? (
+        {screen.id === PAST_MONTHS_SCREEN_ID && pastMonthsState ? (
+          <PastMonthsToggle
+            includeCurrentMonth={pastMonthsState.includeCurrentMonth}
+            monthNames={pastMonthsState.monthNames}
+            onToggle={setPastMonthsIncludeCurrentMonth}
+          />
+        ) : screen.prompts?.length ? (
           <div className="mt-8 space-y-6">
             {screen.prompts.map((prompt, promptIndex) => (
               <div
@@ -517,6 +591,55 @@ function CompassPromptField({
   return null;
 }
 
+function PastMonthsToggle({
+  includeCurrentMonth,
+  monthNames,
+  onToggle,
+}: {
+  includeCurrentMonth: boolean;
+  monthNames: string[];
+  onToggle: (includeCurrentMonth: boolean) => void;
+}) {
+  return (
+    <div className="mt-8 rounded-3xl border border-gray-800/80 bg-gray-950/40 p-5">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="max-w-2xl space-y-2">
+          <h2 className="text-xl font-semibold text-gray-100">The previous 12 months</h2>
+          <p className="text-sm leading-6 text-gray-400">
+            This list is read-only. Toggle whether the current month is part of the past-year window for this session.
+          </p>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-200/80">
+            {includeCurrentMonth ? 'Current month included' : 'Using the last full 12 completed months'}
+          </p>
+        </div>
+        <button
+          type="button"
+          aria-pressed={includeCurrentMonth}
+          onClick={() => onToggle(!includeCurrentMonth)}
+          className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
+            includeCurrentMonth
+              ? 'border-amber-300 bg-amber-50 text-amber-950 hover:border-amber-200 hover:bg-amber-100'
+              : 'border-gray-700 bg-gray-950/80 text-gray-200 hover:border-gray-500 hover:text-white'
+          }`}
+        >
+          Include current month
+        </button>
+      </div>
+
+      <ul className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3" aria-label="Previous 12 months">
+        {monthNames.map(monthName => (
+          <li
+            key={monthName}
+            className="rounded-2xl border border-gray-800 bg-gray-900/80 px-4 py-3 text-sm font-medium text-gray-100"
+          >
+            {monthName}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 function ChecklistRow({
   item,
   screenId,
@@ -560,6 +683,7 @@ function resolveInitialCompassIndex(
   session: CompassSessionDetail,
   screens: CompassScreenDefinition[],
 ): number {
+  const sessionCreatedAt = new Date(session.createdAt);
   const storedIndex = Math.min(Math.max(session.currentScreen, 0), screens.length - 1);
   const hasEarlierAnswers = screens
     .slice(0, storedIndex)
@@ -571,7 +695,7 @@ function resolveInitialCompassIndex(
 
   for (let index = 0; index <= storedIndex; index += 1) {
     const screen = screens[index];
-    if (!canProceed(screen, resolveScreenAnswers(screen, session.answers ?? {}))) {
+    if (!canProceed(screen, resolveScreenAnswers(screen, session.answers ?? {}, sessionCreatedAt))) {
       return index;
     }
   }
@@ -579,7 +703,18 @@ function resolveInitialCompassIndex(
   return storedIndex;
 }
 
-function resolveScreenAnswers(screen: CompassScreenDefinition, answers: CompassAnswers): CompassAnswerRecord {
+function resolveScreenAnswers(
+  screen: CompassScreenDefinition,
+  answers: CompassAnswers,
+  sessionCreatedAt: Date,
+): CompassAnswerRecord {
+  if (screen.id === PAST_MONTHS_SCREEN_ID) {
+    const state = resolvePastMonthsState(answers[PAST_MONTHS_SCREEN_ID], sessionCreatedAt);
+    return {
+      [PAST_MONTHS_INCLUDE_CURRENT_KEY]: String(state.includeCurrentMonth),
+    };
+  }
+
   const current = answers[screen.id] ?? {};
 
   if (screen.prefillFrom && Object.keys(current).length === 0) {
@@ -650,6 +785,94 @@ function parseMultiInputItems(value: string | undefined): string[] {
   } catch {
     return [];
   }
+}
+
+function normalizeMonthName(value: string): string {
+  return value.trim().toLowerCase();
+}
+
+function collectLegacyPastMonthNames(record: CompassAnswerRecord | undefined): string[] {
+  return LEGACY_PAST_MONTH_KEYS.map(key => record?.[key]?.trim() ?? '').filter(Boolean);
+}
+
+function matchesMonthWindow(savedMonths: string[], generatedMonths: string[]): boolean {
+  return (
+    savedMonths.length === generatedMonths.length &&
+    savedMonths.every((month, index) => normalizeMonthName(month) === normalizeMonthName(generatedMonths[index] ?? ''))
+  );
+}
+
+function resolvePastMonthsState(
+  record: CompassAnswerRecord | undefined,
+  sessionCreatedAt: Date,
+): CompassPastMonthsState {
+  const explicitMode = record?.[PAST_MONTHS_INCLUDE_CURRENT_KEY];
+  if (explicitMode === 'true' || explicitMode === 'false') {
+    const includeCurrentMonth = explicitMode === 'true';
+
+    return {
+      includeCurrentMonth,
+      monthNames: getCompassPastMonthNames(sessionCreatedAt, includeCurrentMonth),
+      source: 'saved',
+    };
+  }
+
+  const legacyMonths = collectLegacyPastMonthNames(record);
+  if (legacyMonths.length === LEGACY_PAST_MONTH_KEYS.length) {
+    const includeCurrentMonthMonths = getCompassPastMonthNames(sessionCreatedAt, true);
+    if (matchesMonthWindow(legacyMonths, includeCurrentMonthMonths)) {
+      return {
+        includeCurrentMonth: true,
+        monthNames: includeCurrentMonthMonths,
+        source: 'legacy',
+      };
+    }
+
+    const lastFullMonths = getCompassPastMonthNames(sessionCreatedAt, false);
+    if (matchesMonthWindow(legacyMonths, lastFullMonths)) {
+      return {
+        includeCurrentMonth: false,
+        monthNames: lastFullMonths,
+        source: 'legacy',
+      };
+    }
+  }
+
+  const includeCurrentMonth = getDefaultCompassPastMonthsIncludeCurrentMonth(sessionCreatedAt);
+  return {
+    includeCurrentMonth,
+    monthNames: getCompassPastMonthNames(sessionCreatedAt, includeCurrentMonth),
+    source: 'default',
+  };
+}
+
+function normalizeAnswersForCurrentScreenPersistence(
+  screen: CompassScreenDefinition,
+  answers: CompassAnswers,
+  sessionCreatedAt: Date,
+): CompassAnswers {
+  if (screen.id !== PAST_MONTHS_SCREEN_ID) {
+    return answers;
+  }
+
+  const state = resolvePastMonthsState(answers[PAST_MONTHS_SCREEN_ID], sessionCreatedAt);
+  const normalizedRecord = {
+    [PAST_MONTHS_INCLUDE_CURRENT_KEY]: String(state.includeCurrentMonth),
+  };
+  const currentRecord = answers[PAST_MONTHS_SCREEN_ID];
+
+  if (
+    currentRecord &&
+    Object.keys(currentRecord).length === 1 &&
+    currentRecord[PAST_MONTHS_INCLUDE_CURRENT_KEY] === normalizedRecord[PAST_MONTHS_INCLUDE_CURRENT_KEY]
+  ) {
+    return answers;
+  }
+
+  return {
+    ...answers,
+    [PAST_MONTHS_SCREEN_ID]: normalizedRecord,
+  };
 }
 
 function CompletedCompassSummary({

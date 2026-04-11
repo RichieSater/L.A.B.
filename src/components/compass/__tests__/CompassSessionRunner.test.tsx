@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -51,6 +51,12 @@ function renderRunner(initialSession = createCompassTestSession()) {
   );
 
   return initialSession;
+}
+
+function getPastMonthsListItems(): string[] {
+  return within(screen.getByRole('list', { name: 'Previous 12 months' }))
+    .getAllByRole('listitem')
+    .map(item => item.textContent ?? '');
 }
 
 describe('CompassSessionRunner', () => {
@@ -220,6 +226,193 @@ describe('CompassSessionRunner', () => {
       await new Promise(resolve => window.setTimeout(resolve, 1100));
     });
     expect(apiClient.updateCompassSession).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows a read-only month list and defaults to including the current month after the 10th day', () => {
+    renderRunner(
+      createCompassTestSession({
+        currentScreen: getCompassScreenIndex('past-months'),
+        answers: {},
+        answerCount: 0,
+        createdAt: '2026-04-11T12:00:00.000Z',
+      }),
+    );
+
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Continue' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Include current month' })).toHaveAttribute('aria-pressed', 'true');
+    expect(getPastMonthsListItems()).toEqual([
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
+      'January',
+      'February',
+      'March',
+      'April',
+    ]);
+  });
+
+  it('defaults to the last full 12 completed months on the 10th day or earlier and persists that mode on continue', async () => {
+    const user = userEvent.setup();
+
+    const initialSession = createCompassTestSession({
+      currentScreen: getCompassScreenIndex('past-months'),
+      answers: {},
+      answerCount: 0,
+      createdAt: '2026-04-10T12:00:00.000Z',
+    });
+
+    renderRunner(initialSession);
+
+    expect(screen.getByRole('button', { name: 'Include current month' })).toHaveAttribute('aria-pressed', 'false');
+    expect(getPastMonthsListItems()).toEqual([
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
+      'January',
+      'February',
+      'March',
+    ]);
+
+    await user.click(screen.getByRole('button', { name: 'Continue' }));
+
+    await waitFor(() => {
+      expect(apiClient.updateCompassSession).toHaveBeenCalledWith(initialSession.id, {
+        answers: {
+          'past-months': {
+            includeCurrentMonth: 'false',
+          },
+        },
+        currentScreen: getCompassScreenIndex('past-highlights'),
+      });
+    });
+  });
+
+  it('toggles whether the current month is included and persists only the toggle choice', async () => {
+    const user = userEvent.setup();
+
+    const initialSession = createCompassTestSession({
+      currentScreen: getCompassScreenIndex('past-months'),
+      answers: {},
+      answerCount: 0,
+      createdAt: '2026-04-10T12:00:00.000Z',
+    });
+
+    renderRunner(initialSession);
+
+    const toggle = screen.getByRole('button', { name: 'Include current month' });
+    expect(toggle).toHaveAttribute('aria-pressed', 'false');
+
+    await user.click(toggle);
+
+    expect(toggle).toHaveAttribute('aria-pressed', 'true');
+    expect(getPastMonthsListItems()).toEqual([
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
+      'January',
+      'February',
+      'March',
+      'April',
+    ]);
+
+    apiClient.updateCompassSession.mockClear();
+    await user.click(screen.getByRole('button', { name: 'Continue' }));
+
+    await waitFor(() => {
+      expect(apiClient.updateCompassSession).toHaveBeenCalledWith(initialSession.id, {
+        answers: {
+          'past-months': {
+            includeCurrentMonth: 'true',
+          },
+        },
+        currentScreen: getCompassScreenIndex('past-highlights'),
+      });
+    });
+  });
+
+  it('does not jump backward on resume when past-months has no stored answer yet', () => {
+    renderRunner(
+      createCompassTestSession({
+        currentScreen: getCompassScreenIndex('past-highlights'),
+      }),
+    );
+
+    expect(screen.getByText('The Snapshot Of Your Past Year')).toBeInTheDocument();
+    expect(screen.queryByRole('list', { name: 'Previous 12 months' })).not.toBeInTheDocument();
+  });
+
+  it('maps legacy stored month names back to the matching toggle mode before persisting the new answer shape', async () => {
+    const user = userEvent.setup();
+
+    const initialSession = createCompassTestSession({
+      currentScreen: getCompassScreenIndex('past-months'),
+      answers: {
+        'past-months': {
+          month1: 'April',
+          month2: 'May',
+          month3: 'June',
+          month4: 'July',
+          month5: 'August',
+          month6: 'September',
+          month7: 'October',
+          month8: 'November',
+          month9: 'December',
+          month10: 'January',
+          month11: 'February',
+          month12: 'March',
+        },
+      },
+      answerCount: 1,
+      createdAt: '2026-04-11T12:00:00.000Z',
+    });
+
+    renderRunner(initialSession);
+
+    expect(screen.getByRole('button', { name: 'Include current month' })).toHaveAttribute('aria-pressed', 'false');
+    expect(getPastMonthsListItems()).toEqual([
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
+      'January',
+      'February',
+      'March',
+    ]);
+
+    await user.click(screen.getByRole('button', { name: 'Continue' }));
+
+    await waitFor(() => {
+      expect(apiClient.updateCompassSession).toHaveBeenCalledWith(initialSession.id, {
+        answers: {
+          'past-months': {
+            includeCurrentMonth: 'false',
+          },
+        },
+        currentScreen: getCompassScreenIndex('past-highlights'),
+      });
+    });
   });
 
   it('completes the Compass session, refreshes bootstrap, and shows the completion summary', async () => {

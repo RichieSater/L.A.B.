@@ -93,13 +93,13 @@ export function countCompassAnswers(answers: CompassAnswers): number {
   return Object.values(answers).reduce<number>((count, record) => {
     return (
       count +
-      Object.values(record).filter(value => {
+      Object.entries(record).filter(([key, value]) => {
         if (!value) {
           return false;
         }
 
         if (value === 'true' || value === 'false') {
-          return value === 'true';
+          return key === 'includeCurrentMonth' ? true : value === 'true';
         }
 
         try {

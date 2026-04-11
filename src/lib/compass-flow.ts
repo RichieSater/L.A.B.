@@ -5,11 +5,6 @@ import type {
   CompassSectionDefinition,
 } from '../types/compass';
 
-const PREVIOUS_MONTH_INPUTS = Array.from({ length: 12 }, (_, index) => ({
-  key: `month${index + 1}`,
-  placeholder: `Month ${index + 1}`,
-}));
-
 const THREE_WORD_INPUTS = [
   { key: 'word1', placeholder: 'Word 1' },
   { key: 'word2', placeholder: 'Word 2' },
@@ -65,9 +60,10 @@ const preflightScreens: CompassScreenDefinition[] = [
     headline: 'What Is “The Golden Compass” Exercise?',
     contentBlocks: [
       paragraphBlock(
-        'You hold in your hands one of the most powerful and profound activities for creating an exciting future for yourself.',
-        'This workbook will help you plan and achieve the best year of your life just like it has for thousands of others around the world.',
+        'What’s on your screen right now is one of the most powerful and profound activities for creating an exciting future for yourself.',
+        'This application will help you plan and achieve the best year of your life just like it has for thousands of others around the world.',
         'Variations of this exercise have been proven successful by entrepreneurs, elite athletes and high achievers from all walks of life.',
+        'This is the most advanced version yet.',
         'Use this tool to strip away all the noise and set the direction for your life in a very powerful way that produces reliable and remarkable results.',
         'Many people report an instant “flash” of clarity and peace as they go through this exercise.',
         'And at the end of this exercise, you will have a concrete plan so you can finally achieve your best year ever.',
@@ -251,15 +247,6 @@ const pastScreens: CompassScreenDefinition[] = [
         'Open up your calendar for this past year and note any events that had a significant impact on your life.',
         'In the blank space, write the names of the previous 12 months.',
       ),
-    ],
-    prompts: [
-      {
-        key: 'months',
-        type: 'multi-short-text',
-        label: 'The previous 12 months',
-        inputs: PREVIOUS_MONTH_INPUTS,
-        isRequired: true,
-      },
     ],
   }),
   screen({

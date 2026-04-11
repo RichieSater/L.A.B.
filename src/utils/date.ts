@@ -32,6 +32,20 @@ export function formatTimeInputValue(date: Date): string {
   return `${padDatePart(date.getHours())}:${padDatePart(date.getMinutes())}`;
 }
 
+export function getDefaultCompassPastMonthsIncludeCurrentMonth(anchorDate: Date): boolean {
+  return anchorDate.getDate() > 10;
+}
+
+export function getCompassPastMonthNames(anchorDate: Date, includeCurrentMonth: boolean): string[] {
+  const endMonthOffset = includeCurrentMonth ? 0 : -1;
+  const endMonth = new Date(anchorDate.getFullYear(), anchorDate.getMonth() + endMonthOffset, 1);
+
+  return Array.from({ length: 12 }, (_, index) => {
+    const monthDate = new Date(endMonth.getFullYear(), endMonth.getMonth() - (11 - index), 1);
+    return monthDate.toLocaleDateString('en-US', { month: 'long' });
+  });
+}
+
 export function daysAgo(dateStr: string): number {
   const date = new Date(dateStr + 'T00:00:00');
   const now = new Date();
