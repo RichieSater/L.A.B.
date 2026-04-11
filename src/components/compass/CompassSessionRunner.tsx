@@ -7,6 +7,7 @@ import {
 import { apiClient } from '../../lib/api';
 import { COMPASS_FLOW, getAllCompassScreens } from '../../lib/compass-flow';
 import { useAuth } from '../../auth/auth-context';
+import { MultiInputEditor } from './MultiInputEditor';
 import type {
   CompassAnswerRecord,
   CompassAnswers,
@@ -433,6 +434,7 @@ function CompassFieldRenderer({
 
     return (
       <MultiInputEditor
+        key={screen.id}
         items={items}
         placeholder={screen.placeholder ?? 'Add an item...'}
         onChange={onMultiInputChange}
@@ -479,68 +481,6 @@ function ReadOnlyField({ label, value }: { label: string; value: string }) {
     </div>
   );
 }
-
-function MultiInputEditor({
-  items,
-  placeholder,
-  onChange,
-}: {
-  items: string[];
-  placeholder: string;
-  onChange: (items: string[]) => void;
-}) {
-  const normalizedItems = items.length > 0 ? items : [''];
-
-  function updateItem(index: number, value: string) {
-    const next = [...normalizedItems];
-    next[index] = value;
-    onChange(next);
-  }
-
-  function addItem() {
-    onChange([...normalizedItems, '']);
-  }
-
-  function removeItem(index: number) {
-    if (normalizedItems.length === 1) {
-      onChange(['']);
-      return;
-    }
-
-    onChange(normalizedItems.filter((_, itemIndex) => itemIndex !== index));
-  }
-
-  return (
-    <div className="space-y-3">
-      {normalizedItems.map((item, index) => (
-        <div key={`${index}-${item}`} className="flex items-center gap-3">
-          <input
-            type="text"
-            value={item}
-            onChange={event => updateItem(index, event.target.value)}
-            placeholder={placeholder}
-            className="flex-1 rounded-full border border-gray-800 bg-gray-950/70 px-4 py-3 text-sm text-gray-100 placeholder:text-gray-500 focus:border-amber-300/50 focus:outline-none focus:ring-1 focus:ring-amber-300/20"
-          />
-          <button
-            type="button"
-            onClick={() => removeItem(index)}
-            className="rounded-full border border-gray-700 px-3 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-gray-300 transition hover:border-gray-500 hover:text-white"
-          >
-            Remove
-          </button>
-        </div>
-      ))}
-      <button
-        type="button"
-        onClick={addItem}
-        className="rounded-full border border-amber-300/30 bg-amber-500/10 px-4 py-2 text-sm font-semibold text-amber-100 transition hover:border-amber-200/50 hover:bg-amber-500/20"
-      >
-        Add item
-      </button>
-    </div>
-  );
-}
-
 function parseMultiInputItems(value: string | undefined): string[] {
   if (!value) {
     return [];
@@ -548,7 +488,9 @@ function parseMultiInputItems(value: string | undefined): string[] {
 
   try {
     const parsed = JSON.parse(value);
-    return Array.isArray(parsed) ? parsed.map(String) : [];
+    return Array.isArray(parsed)
+      ? parsed.map(item => String(item).trim()).filter(Boolean)
+      : [];
   } catch {
     return [];
   }
