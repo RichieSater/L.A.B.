@@ -16,6 +16,7 @@ const quickLogsFindFirst = vi.fn();
 const taskPlanningAssignmentsFindFirst = vi.fn();
 const compassSessionsFindFirst = vi.fn();
 const updateCalls: Array<{ table: unknown; payload: unknown }> = [];
+const deleteCalls: Array<unknown> = [];
 
 let advisorRows: Array<{ advisorId: string; state: unknown }> = [];
 let scheduledRows: Array<typeof scheduledSessions.$inferSelect> = [];
@@ -42,6 +43,13 @@ const update = vi.fn((table: unknown) => ({
   }),
 }));
 
+const remove = vi.fn((table: unknown) => ({
+  where: vi.fn().mockImplementation(() => {
+    deleteCalls.push(table);
+    return Promise.resolve(undefined);
+  }),
+}));
+
 const select = vi.fn(() => ({
   from: vi.fn((table: unknown) => {
     if (table === advisorStates) {
@@ -61,9 +69,7 @@ const select = vi.fn(() => ({
     if (table === compassSessions) {
       return {
         where: vi.fn(() => ({
-          orderBy: vi.fn(() => ({
-            limit: vi.fn().mockResolvedValue(completedCompassRows),
-          })),
+          orderBy: vi.fn().mockResolvedValue(completedCompassRows),
         })),
       };
     }
@@ -104,6 +110,7 @@ vi.mock('../db/client', () => ({
     },
     insert,
     update,
+    delete: remove,
     select,
   },
 }));
@@ -141,6 +148,7 @@ describe('Compass persistence in server/data', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     updateCalls.length = 0;
+    deleteCalls.length = 0;
     advisorRows = [];
     scheduledRows = [];
     completedCompassRows = [];
@@ -186,6 +194,7 @@ describe('Compass persistence in server/data', () => {
       createdAt: new Date('2026-04-09T09:00:00.000Z'),
       updatedAt: new Date('2026-04-09T09:30:00.000Z'),
       completedAt: null,
+      achievedAt: null,
     });
     updatedCompassRow = {
       id: 'compass-1',
@@ -203,7 +212,9 @@ describe('Compass persistence in server/data', () => {
       createdAt: new Date('2026-04-09T09:00:00.000Z'),
       updatedAt: new Date('2026-04-09T10:00:00.000Z'),
       completedAt: new Date('2026-04-09T10:00:00.000Z'),
+      achievedAt: null,
     };
+    completedCompassRows = [updatedCompassRow];
 
     const { updateCompassSession } = await import('../data');
     await updateCompassSession('user_123', 'compass-1', { status: 'completed' });
@@ -213,6 +224,7 @@ describe('Compass persistence in server/data', () => {
     expect(metaUpdate?.payload).toEqual(
       expect.objectContaining({
         strategicDashboard: expect.objectContaining({
+          activeCompassSessionId: 'compass-1',
           latestCompassAdvisorContext: expect.objectContaining({
             sessionId: 'compass-1',
             planningYear: 2026,
@@ -227,6 +239,256 @@ describe('Compass persistence in server/data', () => {
               dayNarrative: 'A calm day with long stretches of focused work.',
             }),
           }),
+          latestCompassInsights: {
+            annualGoals: [],
+            dailyRituals: [],
+            supportPeople: [],
+          },
+          achievedCompassSummaries: [],
+        }),
+      }),
+    );
+  });
+
+  it('lets a previously completed Compass become the active Compass without rewriting year state', async () => {
+    const olderCompleted = {
+      id: 'compass-older',
+      userId: 'user_123',
+      planningYear: 2025,
+      title: 'Golden Compass 2025',
+      status: 'completed' as const,
+      currentScreen: 12,
+      answers: {
+        'past-highlights': { items: JSON.stringify(['Old but still relevant']) },
+      },
+      insights: {
+        annualGoals: ['Protect the quiet rebuild'],
+        dailyRituals: ['Slow the morning down'],
+        supportPeople: ['Coach'],
+      },
+      createdAt: new Date('2025-12-30T09:00:00.000Z'),
+      updatedAt: new Date('2025-12-30T10:00:00.000Z'),
+      completedAt: new Date('2025-12-30T10:00:00.000Z'),
+      achievedAt: null,
+    };
+    const newerCompleted = {
+      ...olderCompleted,
+      id: 'compass-newer',
+      planningYear: 2026,
+      title: 'Golden Compass 2026',
+      insights: {
+        annualGoals: ['Ship L.A.B.'],
+        dailyRituals: ['Plan first'],
+        supportPeople: ['Therapist'],
+      },
+      updatedAt: new Date('2026-03-01T10:00:00.000Z'),
+      completedAt: new Date('2026-03-01T10:00:00.000Z'),
+    };
+
+    compassSessionsFindFirst.mockResolvedValue(olderCompleted);
+    userAppMetaFindFirst.mockResolvedValue({
+      userId: 'user_123',
+      schemaVersion: CURRENT_SCHEMA_VERSION,
+      dailyPlanning: { entries: [] },
+      weeklyFocus: { weeks: [] },
+      weeklyReview: { entries: [] },
+      strategicDashboard: {
+        years: [],
+        activeCompassSessionId: 'compass-newer',
+        latestCompassInsights: newerCompleted.insights,
+        latestCompassAdvisorContext: null,
+        achievedCompassSummaries: [],
+      },
+      updatedAt: new Date('2026-04-09T10:00:00.000Z'),
+    });
+    updatedCompassRow = olderCompleted;
+    completedCompassRows = [newerCompleted, olderCompleted];
+
+    const { updateCompassSession } = await import('../data');
+    await updateCompassSession('user_123', 'compass-older', { setActive: true });
+
+    const metaUpdate = updateCalls.find(call => call.table === userAppMeta);
+    expect(metaUpdate?.payload).toEqual(
+      expect.objectContaining({
+        strategicDashboard: expect.objectContaining({
+          activeCompassSessionId: 'compass-older',
+          latestCompassInsights: olderCompleted.insights,
+        }),
+      }),
+    );
+  });
+
+  it('stores achieved Compass summaries separately from the active Compass cache', async () => {
+    const completedSession = {
+      id: 'compass-achieved',
+      userId: 'user_123',
+      planningYear: 2026,
+      title: 'Golden Compass 2026',
+      status: 'completed' as const,
+      currentScreen: 12,
+      answers: {},
+      insights: {
+        annualGoals: ['Ship L.A.B.'],
+        dailyRituals: ['Plan first'],
+        supportPeople: ['Therapist'],
+      },
+      createdAt: new Date('2026-04-09T09:00:00.000Z'),
+      updatedAt: new Date('2026-04-09T10:00:00.000Z'),
+      completedAt: new Date('2026-04-09T10:00:00.000Z'),
+      achievedAt: null,
+    };
+
+    compassSessionsFindFirst.mockResolvedValue(completedSession);
+    updatedCompassRow = {
+      ...completedSession,
+      achievedAt: new Date('2026-04-12T10:00:00.000Z'),
+    };
+    completedCompassRows = [updatedCompassRow];
+
+    const { updateCompassSession } = await import('../data');
+    await updateCompassSession('user_123', 'compass-achieved', { achieved: true });
+
+    const metaUpdate = updateCalls.find(call => call.table === userAppMeta);
+    expect(metaUpdate?.payload).toEqual(
+      expect.objectContaining({
+        strategicDashboard: expect.objectContaining({
+          activeCompassSessionId: 'compass-achieved',
+          achievedCompassSummaries: [
+            expect.objectContaining({
+              sessionId: 'compass-achieved',
+              title: 'Golden Compass 2026',
+              planningYear: 2026,
+            }),
+          ],
+        }),
+      }),
+    );
+  });
+
+  it('falls back to the next newest completed Compass when the active one is deleted', async () => {
+    const activeCompleted = {
+      id: 'compass-active',
+      userId: 'user_123',
+      planningYear: 2026,
+      title: 'Golden Compass 2026',
+      status: 'completed' as const,
+      currentScreen: 12,
+      answers: {},
+      insights: {
+        annualGoals: ['Ship L.A.B.'],
+        dailyRituals: ['Plan first'],
+        supportPeople: ['Therapist'],
+      },
+      createdAt: new Date('2026-04-09T09:00:00.000Z'),
+      updatedAt: new Date('2026-04-09T10:00:00.000Z'),
+      completedAt: new Date('2026-04-09T10:00:00.000Z'),
+      achievedAt: null,
+    };
+    const fallbackCompleted = {
+      ...activeCompleted,
+      id: 'compass-fallback',
+      planningYear: 2025,
+      title: 'Golden Compass 2025',
+      insights: {
+        annualGoals: ['Stay steady'],
+        dailyRituals: ['Protect sleep'],
+        supportPeople: ['Coach'],
+      },
+      updatedAt: new Date('2025-12-09T10:00:00.000Z'),
+      completedAt: new Date('2025-12-09T10:00:00.000Z'),
+    };
+
+    compassSessionsFindFirst.mockResolvedValue(activeCompleted);
+    userAppMetaFindFirst.mockResolvedValue({
+      userId: 'user_123',
+      schemaVersion: CURRENT_SCHEMA_VERSION,
+      dailyPlanning: { entries: [] },
+      weeklyFocus: { weeks: [] },
+      weeklyReview: { entries: [] },
+      strategicDashboard: {
+        years: [],
+        activeCompassSessionId: 'compass-active',
+        latestCompassInsights: activeCompleted.insights,
+        latestCompassAdvisorContext: null,
+        achievedCompassSummaries: [],
+      },
+      updatedAt: new Date('2026-04-09T10:00:00.000Z'),
+    });
+    completedCompassRows = [fallbackCompleted];
+
+    const { deleteCompassSession } = await import('../data');
+    const deleted = await deleteCompassSession('user_123', 'compass-active');
+
+    expect(deleted).toBe(true);
+    expect(deleteCalls).toContain(compassSessions);
+    const metaUpdate = updateCalls.find(call => call.table === userAppMeta);
+    expect(metaUpdate?.payload).toEqual(
+      expect.objectContaining({
+        strategicDashboard: expect.objectContaining({
+          activeCompassSessionId: 'compass-fallback',
+          latestCompassInsights: fallbackCompleted.insights,
+        }),
+      }),
+    );
+  });
+
+  it('clears active Compass caches when the last completed Compass is deleted', async () => {
+    const onlyCompleted = {
+      id: 'compass-only',
+      userId: 'user_123',
+      planningYear: 2026,
+      title: 'Golden Compass 2026',
+      status: 'completed' as const,
+      currentScreen: 12,
+      answers: {},
+      insights: {
+        annualGoals: ['Ship L.A.B.'],
+        dailyRituals: ['Plan first'],
+        supportPeople: ['Therapist'],
+      },
+      createdAt: new Date('2026-04-09T09:00:00.000Z'),
+      updatedAt: new Date('2026-04-09T10:00:00.000Z'),
+      completedAt: new Date('2026-04-09T10:00:00.000Z'),
+      achievedAt: new Date('2026-04-12T10:00:00.000Z'),
+    };
+
+    compassSessionsFindFirst.mockResolvedValue(onlyCompleted);
+    userAppMetaFindFirst.mockResolvedValue({
+      userId: 'user_123',
+      schemaVersion: CURRENT_SCHEMA_VERSION,
+      dailyPlanning: { entries: [] },
+      weeklyFocus: { weeks: [] },
+      weeklyReview: { entries: [] },
+      strategicDashboard: {
+        years: [],
+        activeCompassSessionId: 'compass-only',
+        latestCompassInsights: onlyCompleted.insights,
+        latestCompassAdvisorContext: null,
+        achievedCompassSummaries: [
+          {
+            sessionId: 'compass-only',
+            title: 'Golden Compass 2026',
+            planningYear: 2026,
+            completedAt: '2026-04-09T10:00:00.000Z',
+            achievedAt: '2026-04-12T10:00:00.000Z',
+          },
+        ],
+      },
+      updatedAt: new Date('2026-04-09T10:00:00.000Z'),
+    });
+    completedCompassRows = [];
+
+    const { deleteCompassSession } = await import('../data');
+    await deleteCompassSession('user_123', 'compass-only');
+
+    const metaUpdate = updateCalls.find(call => call.table === userAppMeta);
+    expect(metaUpdate?.payload).toEqual(
+      expect.objectContaining({
+        strategicDashboard: expect.objectContaining({
+          activeCompassSessionId: null,
+          latestCompassInsights: null,
+          latestCompassAdvisorContext: null,
+          achievedCompassSummaries: [],
         }),
       }),
     );
@@ -254,6 +516,7 @@ describe('Compass persistence in server/data', () => {
       createdAt: new Date('2026-03-01T08:00:00.000Z'),
       updatedAt: new Date('2026-03-01T10:00:00.000Z'),
       completedAt: new Date('2026-03-01T10:00:00.000Z'),
+      achievedAt: null,
     };
 
     completedCompassRows = [completedSession];
@@ -265,8 +528,10 @@ describe('Compass persistence in server/data', () => {
       weeklyReview: { entries: [] },
       strategicDashboard: {
         years: [],
+        activeCompassSessionId: null,
         latestCompassInsights: completedSession.insights,
         latestCompassAdvisorContext: null,
+        achievedCompassSummaries: [],
       },
       updatedAt: new Date('2026-04-09T10:00:00.000Z'),
     });
@@ -366,5 +631,6 @@ describe('Compass persistence in server/data', () => {
         timeCapsuleFeeling: '',
       },
     });
+    expect(response.appState.strategicDashboard.activeCompassSessionId).toBe('compass-older');
   });
 });

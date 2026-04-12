@@ -303,7 +303,7 @@ export function CompassSessionRunner({
           <PastMonthlyEventsEditor
             monthNames={pastMonthsState.monthNames}
             answers={screenAnswers}
-            onAnswerChange={updateAnswer}
+            onItemsChange={setMultiInputItems}
           />
         ) : screen.prompts?.length ? (
           <div className="mt-8 space-y-6">
@@ -647,39 +647,35 @@ function PastMonthsToggle({
 function PastMonthlyEventsEditor({
   monthNames,
   answers,
-  onAnswerChange,
+  onItemsChange,
 }: {
   monthNames: string[];
   answers: CompassAnswerRecord;
-  onAnswerChange: (key: string, value: string) => void;
+  onItemsChange: (key: string, items: string[]) => void;
 }) {
   return (
     <div className="mt-8 space-y-6 rounded-3xl border border-gray-800/80 bg-gray-950/40 p-5">
       <div className="space-y-2">
         <h2 className="text-xl font-semibold text-gray-100">Important things that happened in each month</h2>
         <p className="text-sm leading-6 text-gray-400">
-          Add one moment per line so the next page can turn this timeline into a clean snapshot of the year.
+          For each month, note any events that had a significant impact on your life.
         </p>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
         {monthNames.map((monthName, index) => {
           const fieldKey = LEGACY_PAST_MONTH_KEYS[index];
-          const fieldId = `${PAST_MONTHLY_EVENTS_SCREEN_ID}-${fieldKey}`;
 
           return (
             <div key={fieldKey} className="space-y-2 rounded-2xl border border-gray-800 bg-gray-900/70 p-4">
-              <label htmlFor={fieldId} className="block text-sm font-semibold text-gray-100">
-                {monthName}
-              </label>
-              <textarea
-                id={fieldId}
-                aria-label={`${monthName} events`}
-                value={answers[fieldKey] ?? ''}
-                onChange={event => onAnswerChange(fieldKey, event.target.value)}
-                placeholder={`What stood out in ${monthName}? Add one event per line...`}
-                rows={5}
-                className="w-full rounded-3xl border border-gray-800 bg-gray-950/70 px-4 py-4 text-sm leading-7 text-gray-100 placeholder:text-gray-500 focus:border-amber-300/50 focus:outline-none focus:ring-1 focus:ring-amber-300/20"
+              <p className="block text-sm font-semibold text-gray-100">{monthName}</p>
+              <MultiInputEditor
+                key={`${fieldKey}-${monthName}`}
+                items={parseMultiInputItems(answers[fieldKey])}
+                placeholder={`What mattered in ${monthName}?`}
+                inputLabelPrefix={`${monthName} event`}
+                addItemLabel={`Add event for ${monthName}`}
+                onChange={items => onItemsChange(fieldKey, items)}
               />
             </div>
           );
@@ -850,7 +846,10 @@ function parseMultiInputItems(value: string | undefined): string[] {
       ? parsed.map(item => String(item).trim()).filter(Boolean)
       : [];
   } catch {
-    return [];
+    return value
+      .split('\n')
+      .map(item => item.trim())
+      .filter(Boolean);
   }
 }
 

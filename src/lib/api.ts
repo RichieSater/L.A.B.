@@ -183,6 +183,12 @@ export const apiClient = {
       body: JSON.stringify(input),
     });
   },
+
+  deleteCompassSession(id: string): Promise<void> {
+    return request<void>(`/api/compass-sessions/${id}`, {
+      method: 'DELETE',
+    });
+  },
 };
 
 export function isApiClientError(error: unknown): error is ApiClientError {

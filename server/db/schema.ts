@@ -125,6 +125,7 @@ export const compassSessions = pgTable('compass_sessions', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   completedAt: timestamp('completed_at', { withTimezone: true }),
+  achievedAt: timestamp('achieved_at', { withTimezone: true }),
 });
 
 export const userAppMeta = pgTable('user_app_meta', {
@@ -145,7 +146,9 @@ export const userAppMeta = pgTable('user_app_meta', {
   strategicDashboard: jsonb('strategic_dashboard')
     .$type<StrategicDashboardState>()
     .notNull()
-    .default(sql`'{"years":[],"latestCompassInsights":null,"latestCompassAdvisorContext":null}'::jsonb`),
+    .default(
+      sql`'{"years":[],"activeCompassSessionId":null,"latestCompassInsights":null,"latestCompassAdvisorContext":null,"achievedCompassSummaries":[]}'::jsonb`,
+    ),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
 

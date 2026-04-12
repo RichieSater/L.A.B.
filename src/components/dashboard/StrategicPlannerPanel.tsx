@@ -75,8 +75,8 @@ export function StrategicPlannerPanel() {
     () => compassSessions.find(session => session.status === 'in_progress') ?? null,
     [compassSessions],
   );
-  const latestCompletedCompassSession = useMemo(
-    () => compassSessions.find(session => session.status === 'completed') ?? null,
+  const activeCompletedCompassSession = useMemo(
+    () => compassSessions.find(session => session.status === 'completed' && session.isActive) ?? null,
     [compassSessions],
   );
 
@@ -336,10 +336,10 @@ export function StrategicPlannerPanel() {
               </button>
             </div>
           </div>
-        ) : compassSessionsLoaded && latestCompletedCompassSession ? (
+        ) : compassSessionsLoaded && activeCompletedCompassSession ? (
           <div className="mt-6 rounded-3xl border border-stone-200 bg-white/75 px-5 py-4 text-sm text-stone-600">
-            Latest Compass: <span className="font-semibold text-stone-900">{latestCompletedCompassSession.title}</span>{' '}
-            completed {new Date(latestCompletedCompassSession.completedAt ?? latestCompletedCompassSession.updatedAt).toLocaleDateString()}.
+            Active Compass: <span className="font-semibold text-stone-900">{activeCompletedCompassSession.title}</span>{' '}
+            completed {new Date(activeCompletedCompassSession.completedAt ?? activeCompletedCompassSession.updatedAt).toLocaleDateString()}.
           </div>
         ) : null}
 

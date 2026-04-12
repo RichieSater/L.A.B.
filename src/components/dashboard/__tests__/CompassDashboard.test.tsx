@@ -9,11 +9,17 @@ const { apiClient } = vi.hoisted(() => ({
   apiClient: {
     listCompassSessions: vi.fn(),
     createCompassSession: vi.fn(),
+    updateCompassSession: vi.fn(),
+    deleteCompassSession: vi.fn(),
   },
 }));
 
 const { useNavigate } = vi.hoisted(() => ({
   useNavigate: vi.fn(),
+}));
+
+const { useAuth } = vi.hoisted(() => ({
+  useAuth: vi.fn(),
 }));
 
 vi.mock('../../../lib/api', async () => {
@@ -32,14 +38,26 @@ vi.mock('react-router-dom', async () => {
   };
 });
 
+vi.mock('../../../auth/auth-context', () => ({
+  useAuth,
+}));
+
 describe('CompassDashboard', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     useNavigate.mockReturnValue(vi.fn());
+    useAuth.mockReturnValue({
+      refreshBootstrap: vi.fn().mockResolvedValue(undefined),
+    });
     apiClient.listCompassSessions.mockResolvedValue([]);
     apiClient.createCompassSession.mockResolvedValue(
       createCompassTestSession({ id: 'compass-created-from-dashboard' }),
     );
+    apiClient.updateCompassSession.mockResolvedValue(
+      createCompassTestSession({ id: 'compass-updated', status: 'completed', isActive: true }),
+    );
+    apiClient.deleteCompassSession.mockResolvedValue(undefined);
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
   });
 
   it('shows the empty state and routes create actions into a new session', async () => {
@@ -77,6 +95,8 @@ describe('CompassDashboard', () => {
         title: 'Golden Compass Complete',
         status: 'completed',
         completedAt: '2026-04-11T12:20:00.000Z',
+        isActive: true,
+        achievedAt: '2026-04-12T12:20:00.000Z',
       }),
     ]);
 
@@ -90,9 +110,60 @@ describe('CompassDashboard', () => {
     expect(screen.getByRole('heading', { name: 'Completed' })).toBeInTheDocument();
     expect(screen.getByText('Golden Compass In Progress')).toBeInTheDocument();
     expect(screen.getByText('Golden Compass Complete')).toBeInTheDocument();
+    expect(screen.getByText('Active')).toBeInTheDocument();
+    expect(screen.getByText('Achieved')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: /Golden Compass In Progress/i }));
+    fireEvent.click(screen.getAllByRole('button', { name: 'Open' })[0]!);
     expect(navigate).toHaveBeenCalledWith(getGoldenCompassSessionPath('compass-in-progress'));
+  });
+
+  it('runs completed-session lifecycle actions and refreshes bootstrap', async () => {
+    const refreshBootstrap = vi.fn().mockResolvedValue(undefined);
+    useAuth.mockReturnValue({ refreshBootstrap });
+    apiClient.listCompassSessions
+      .mockResolvedValueOnce([
+        createCompassTestSession({
+          id: 'compass-complete',
+          title: 'Golden Compass Complete',
+          status: 'completed',
+          completedAt: '2026-04-11T12:20:00.000Z',
+        }),
+      ])
+      .mockResolvedValue([
+        createCompassTestSession({
+          id: 'compass-complete',
+          title: 'Golden Compass Complete',
+          status: 'completed',
+          completedAt: '2026-04-11T12:20:00.000Z',
+          isActive: true,
+          achievedAt: '2026-04-12T12:20:00.000Z',
+        }),
+      ]);
+
+    render(
+      <MemoryRouter>
+        <CompassDashboard />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText('Golden Compass Complete')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Use in LAB' }));
+    await waitFor(() => {
+      expect(apiClient.updateCompassSession).toHaveBeenCalledWith('compass-complete', { setActive: true });
+    });
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Unmark achieved' }));
+    await waitFor(() => {
+      expect(apiClient.updateCompassSession).toHaveBeenCalledWith('compass-complete', { achieved: false });
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
+    await waitFor(() => {
+      expect(apiClient.deleteCompassSession).toHaveBeenCalledWith('compass-complete');
+    });
+
+    expect(refreshBootstrap).toHaveBeenCalled();
   });
 
   it('shows load and create errors without breaking the dashboard shell', async () => {

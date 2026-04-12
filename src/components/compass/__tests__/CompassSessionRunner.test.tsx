@@ -364,13 +364,34 @@ describe('CompassSessionRunner', () => {
     );
 
     expect(screen.getByRole('button', { name: 'Continue' })).toBeDisabled();
-    expect(screen.getByRole('textbox', { name: 'April events' })).toBeInTheDocument();
-    expect(screen.getByRole('textbox', { name: 'March events' })).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: 'April event 1' })).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: 'March event 1' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Add event for April' })).toBeInTheDocument();
     expect(screen.queryByText('The Snapshot Of Your Past Year')).not.toBeInTheDocument();
 
-    await user.type(screen.getByRole('textbox', { name: 'April events' }), 'Signed the lease\nTook the first real trip');
+    await user.type(screen.getByRole('textbox', { name: 'April event 1' }), 'Signed the lease');
+    await user.click(screen.getByRole('button', { name: 'Add event for April' }));
+    await user.type(screen.getByRole('textbox', { name: 'April event 2' }), 'Took the first real trip');
 
     expect(screen.getByRole('button', { name: 'Continue' })).toBeEnabled();
+  });
+
+  it('hydrates legacy newline month notes into add-item rows', () => {
+    const answers = createCompassTestAnswers();
+    answers['past-monthly-events'] = {
+      month1: 'Signed the lease\nTook the first real trip',
+    };
+
+    renderRunner(
+      createCompassTestSession({
+        currentScreen: getCompassScreenIndex('past-monthly-events'),
+        answers,
+        createdAt: '2026-04-10T12:00:00.000Z',
+      }),
+    );
+
+    expect(screen.getByDisplayValue('Signed the lease')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('Took the first real trip')).toBeInTheDocument();
   });
 
   it('does not jump backward on resume when past-monthly-events has no stored answer yet', () => {

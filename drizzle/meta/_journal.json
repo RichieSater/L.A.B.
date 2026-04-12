@@ -78,6 +78,13 @@
       "when": 1775755512756,
       "tag": "0010_magenta_screwball",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1775980800000,
+      "tag": "0011_amber_compass_history",
+      "breakpoints": true
     }
   ]
 }

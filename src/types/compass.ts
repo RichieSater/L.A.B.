@@ -190,6 +190,8 @@ export interface CompassSessionSummary {
   createdAt: string;
   updatedAt: string;
   completedAt: string | null;
+  achievedAt: string | null;
+  isActive: boolean;
   insights: CompassInsights | null;
 }
 
@@ -205,4 +207,6 @@ export interface UpdateCompassSessionInput {
   currentScreen?: number;
   answers?: CompassAnswers;
   status?: CompassSessionStatus;
+  achieved?: boolean;
+  setActive?: boolean;
 }

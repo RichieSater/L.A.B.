@@ -1,8 +1,12 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import type { UpdateCompassSessionInput } from '../../src/types/compass.js';
 import { requireUser } from '../../server/auth.js';
-import { getCompassSession, updateCompassSession } from '../../server/data.js';
+import { deleteCompassSession, getCompassSession, updateCompassSession } from '../../server/data.js';
 import { json, methodNotAllowed, readJsonBody } from '../../server/http.js';
+
+function isCompletedCompassRequirementError(error: unknown): boolean {
+  return error instanceof Error && error.message === 'COMPASS_COMPLETED_REQUIRED';
+}
 
 export default async function handler(
   req: VercelRequest,
@@ -32,15 +36,35 @@ export default async function handler(
   }
 
   if (req.method === 'PATCH') {
-    const input = readJsonBody<UpdateCompassSessionInput>(req);
-    const session = await updateCompassSession(auth.userId, id, input);
+    try {
+      const input = readJsonBody<UpdateCompassSessionInput>(req);
+      const session = await updateCompassSession(auth.userId, id, input);
 
-    if (!session) {
+      if (!session) {
+        return json(res, 404, { error: 'Compass session not found.' });
+      }
+
+      return json(res, 200, session);
+    } catch (error) {
+      if (isCompletedCompassRequirementError(error)) {
+        return json(res, 400, {
+          error: 'Only completed Compass sessions can be marked achieved or used as the active Compass.',
+        });
+      }
+
+      throw error;
+    }
+  }
+
+  if (req.method === 'DELETE') {
+    const deleted = await deleteCompassSession(auth.userId, id);
+
+    if (!deleted) {
       return json(res, 404, { error: 'Compass session not found.' });
     }
 
-    return json(res, 200, session);
+    return res.status(204).send('');
   }
 
-  return methodNotAllowed(res, ['GET', 'PATCH']);
+  return methodNotAllowed(res, ['GET', 'PATCH', 'DELETE']);
 }

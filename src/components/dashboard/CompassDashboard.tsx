@@ -1,26 +1,29 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getGoldenCompassSessionPath } from '../../constants/routes';
 import { apiClient } from '../../lib/api';
 import type { CompassSessionSummary } from '../../types/compass';
+import { useAuth } from '../../auth/auth-context';
 
 export function CompassDashboard() {
   const navigate = useNavigate();
+  const { refreshBootstrap } = useAuth();
   const [sessions, setSessions] = useState<CompassSessionSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
+  const [busyActionKey, setBusyActionKey] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const loadSessions = useCallback(async () => {
+    const result = await apiClient.listCompassSessions();
+    setSessions(result);
+    setError(null);
+  }, []);
 
   useEffect(() => {
     let active = true;
 
-    apiClient.listCompassSessions()
-      .then(result => {
-        if (active) {
-          setSessions(result);
-          setError(null);
-        }
-      })
+    loadSessions()
       .catch(err => {
         if (active) {
           setError(err instanceof Error ? err.message : 'Failed to load Compass sessions.');
@@ -35,7 +38,7 @@ export function CompassDashboard() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [loadSessions]);
 
   const inProgress = useMemo(
     () => sessions.filter(session => session.status === 'in_progress'),
@@ -59,6 +62,57 @@ export function CompassDashboard() {
       setError(err instanceof Error ? err.message : 'Failed to create Compass session.');
       setCreating(false);
     }
+  }
+
+  async function runLifecycleAction(actionKey: string, action: () => Promise<void>) {
+    setBusyActionKey(actionKey);
+    setError(null);
+
+    try {
+      await action();
+      await Promise.all([
+        refreshBootstrap(),
+        loadSessions(),
+      ]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update Compass session.');
+    } finally {
+      setBusyActionKey(null);
+    }
+  }
+
+  async function handleUseInLab(sessionId: string) {
+    await runLifecycleAction(`active:${sessionId}`, async () => {
+      await apiClient.updateCompassSession(sessionId, { setActive: true });
+    });
+  }
+
+  async function handleToggleAchieved(session: CompassSessionSummary) {
+    await runLifecycleAction(`achieved:${session.id}`, async () => {
+      await apiClient.updateCompassSession(session.id, {
+        achieved: session.achievedAt === null,
+      });
+    });
+  }
+
+  async function handleDeleteSession(session: CompassSessionSummary) {
+    const confirmed = window.confirm(
+      [
+        `Delete ${session.title}?`,
+        'Existing strategic rows and linked tasks will stay in LAB.',
+        session.isActive
+          ? 'Because this is the active Compass, LAB will switch to the newest remaining completed Compass.'
+          : 'This only removes the Compass session from history.',
+      ].join('\n\n'),
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    await runLifecycleAction(`delete:${session.id}`, async () => {
+      await apiClient.deleteCompassSession(session.id);
+    });
   }
 
   return (
@@ -119,6 +173,7 @@ export function CompassDashboard() {
               title="In Progress"
               description="Resume the latest reset before starting another one."
               sessions={inProgress}
+              busyActionKey={busyActionKey}
               onOpen={id => navigate(getGoldenCompassSessionPath(id))}
             />
           ) : null}
@@ -127,7 +182,11 @@ export function CompassDashboard() {
               title="Completed"
               description="Review what you set for the year and reopen the session summary if needed."
               sessions={completed}
+              busyActionKey={busyActionKey}
               onOpen={id => navigate(getGoldenCompassSessionPath(id))}
+              onUseInLab={handleUseInLab}
+              onToggleAchieved={handleToggleAchieved}
+              onDelete={handleDeleteSession}
             />
           ) : null}
         </div>
@@ -140,12 +199,20 @@ function SessionGroup({
   title,
   description,
   sessions,
+  busyActionKey,
   onOpen,
+  onUseInLab,
+  onToggleAchieved,
+  onDelete,
 }: {
   title: string;
   description: string;
   sessions: CompassSessionSummary[];
+  busyActionKey: string | null;
   onOpen: (id: string) => void;
+  onUseInLab?: (id: string) => Promise<void>;
+  onToggleAchieved?: (session: CompassSessionSummary) => Promise<void>;
+  onDelete?: (session: CompassSessionSummary) => Promise<void>;
 }) {
   return (
     <div>
@@ -155,10 +222,8 @@ function SessionGroup({
       </div>
       <div className="grid gap-4 lg:grid-cols-2">
         {sessions.map(session => (
-          <button
+          <article
             key={session.id}
-            type="button"
-            onClick={() => onOpen(session.id)}
             className="rounded-3xl border border-gray-800 bg-gray-900/60 p-5 text-left transition hover:border-amber-400/40 hover:bg-gray-900"
           >
             <div className="flex items-start justify-between gap-4">
@@ -168,15 +233,14 @@ function SessionGroup({
                   {session.planningYear} planning year
                 </p>
               </div>
-              <span
-                className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                  session.status === 'completed'
-                    ? 'bg-emerald-500/10 text-emerald-200'
-                    : 'bg-amber-500/10 text-amber-200'
-                }`}
-              >
-                {session.status === 'completed' ? 'Completed' : 'In Progress'}
-              </span>
+              <div className="flex flex-wrap justify-end gap-2">
+                <StatusPill
+                  tone={session.status === 'completed' ? 'success' : 'warning'}
+                  label={session.status === 'completed' ? 'Completed' : 'In Progress'}
+                />
+                {session.isActive ? <StatusPill tone="neutral" label="Active" /> : null}
+                {session.achievedAt ? <StatusPill tone="success" label="Achieved" /> : null}
+              </div>
             </div>
             <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
               <SessionMetric label="Answers" value={String(session.answerCount)} />
@@ -190,7 +254,54 @@ function SessionGroup({
                 {session.insights.annualGoals.length} annual goal{session.insights.annualGoals.length === 1 ? '' : 's'} seeded into LAB.
               </p>
             ) : null}
-          </button>
+            <div className="mt-5 flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={() => onOpen(session.id)}
+                className="rounded-full border border-gray-700 bg-gray-950/80 px-4 py-2 text-sm font-semibold text-gray-100 transition hover:border-amber-300/40 hover:text-amber-100"
+              >
+                Open
+              </button>
+              {session.status === 'completed' && onUseInLab ? (
+                <button
+                  type="button"
+                  onClick={() => void onUseInLab(session.id)}
+                  disabled={busyActionKey === `active:${session.id}` || session.isActive}
+                  className="rounded-full border border-amber-300/40 bg-amber-500/10 px-4 py-2 text-sm font-semibold text-amber-100 transition hover:border-amber-200/60 hover:bg-amber-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {session.isActive
+                    ? 'Using in LAB'
+                    : busyActionKey === `active:${session.id}`
+                      ? 'Updating...'
+                      : 'Use in LAB'}
+                </button>
+              ) : null}
+              {session.status === 'completed' && onToggleAchieved ? (
+                <button
+                  type="button"
+                  onClick={() => void onToggleAchieved(session)}
+                  disabled={busyActionKey === `achieved:${session.id}`}
+                  className="rounded-full border border-emerald-400/30 bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-emerald-100 transition hover:border-emerald-300/60 hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {busyActionKey === `achieved:${session.id}`
+                    ? 'Updating...'
+                    : session.achievedAt
+                      ? 'Unmark achieved'
+                      : 'Mark achieved'}
+                </button>
+              ) : null}
+              {session.status === 'completed' && onDelete ? (
+                <button
+                  type="button"
+                  onClick={() => void onDelete(session)}
+                  disabled={busyActionKey === `delete:${session.id}`}
+                  className="rounded-full border border-red-400/25 bg-red-500/10 px-4 py-2 text-sm font-semibold text-red-100 transition hover:border-red-300/60 hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {busyActionKey === `delete:${session.id}` ? 'Deleting...' : 'Delete'}
+                </button>
+              ) : null}
+            </div>
+          </article>
         ))}
       </div>
     </div>
@@ -204,4 +315,21 @@ function SessionMetric({ label, value }: { label: string; value: string }) {
       <p className="mt-2 text-sm font-semibold text-gray-200">{value}</p>
     </div>
   );
+}
+
+function StatusPill({
+  label,
+  tone,
+}: {
+  label: string;
+  tone: 'success' | 'warning' | 'neutral';
+}) {
+  const className =
+    tone === 'success'
+      ? 'bg-emerald-500/10 text-emerald-200'
+      : tone === 'warning'
+        ? 'bg-amber-500/10 text-amber-200'
+        : 'bg-sky-500/10 text-sky-200';
+
+  return <span className={`rounded-full px-3 py-1 text-xs font-semibold ${className}`}>{label}</span>;
 }

@@ -20,8 +20,8 @@ describe('extractCompassAdvisorContext', () => {
           word3: 'steady',
         },
         'past-monthly-events': {
-          month1: 'Left the old job',
-          month2: 'Started L.A.B.',
+          month1: JSON.stringify(['Left the old job']),
+          month2: JSON.stringify(['Started L.A.B.']),
         },
         'past-highlights': {
           workLife: 'Work became more honest.',
@@ -252,5 +252,20 @@ describe('extractCompassAdvisorContext', () => {
     expect(context.past.bestThing).toBe('');
     expect(context.perfectDay.wakeTime).toBe('');
     expect(context.goldenPath.movieTitle).toBe('');
+  });
+
+  it('still reads legacy newline month notes as past highlights', () => {
+    const context = extractCompassAdvisorContext({
+      sessionId: 'compass-3',
+      planningYear: 2026,
+      completedAt: '2026-04-09T13:10:00.000Z',
+      answers: {
+        'past-monthly-events': {
+          month1: 'Left the old job\nStarted the company',
+        },
+      },
+    });
+
+    expect(context.past.highlights).toEqual(['Left the old job', 'Started the company']);
   });
 });

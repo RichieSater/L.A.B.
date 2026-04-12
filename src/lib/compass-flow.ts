@@ -257,8 +257,8 @@ const pastScreens: CompassScreenDefinition[] = [
     headline: 'Month-By-Month Review',
     contentBlocks: [
       paragraphBlock(
-        'Using the month window you just set, capture the important things that happened in each month.',
-        'Add one event per line so the next page can turn those notes into a clear snapshot of your past year.',
+        'For each month, note any events that had a significant impact on your life.',
+        'Use the add-item rows to capture as many as you need before turning those notes into a clear snapshot of your past year.',
       ),
     ],
   }),

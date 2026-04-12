@@ -48,10 +48,13 @@ const COMPASS_TEST_SCREEN_OVERRIDES: Record<string, CompassTestScreenValue> = {
     word3: 'steadier',
   },
   'past-monthly-events': {
-    month1: 'Protected a calmer starting point for the year.',
-    month2: 'Shipped a more coherent version of The L.A.B.\nMade one clean strategic decision instead of five noisy ones.',
-    month3: 'Protected more honest relationships instead of overperforming.',
-    month4: 'Started sleeping and recovering more consistently.',
+    month1: JSON.stringify(['Protected a calmer starting point for the year.']),
+    month2: JSON.stringify([
+      'Shipped a more coherent version of The L.A.B.',
+      'Made one clean strategic decision instead of five noisy ones.',
+    ]),
+    month3: JSON.stringify(['Protected more honest relationships instead of overperforming.']),
+    month4: JSON.stringify(['Started sleeping and recovering more consistently.']),
   },
   'past-highlights': {
     workLife: 'Work mattered more when I simplified the active bets.',
@@ -308,6 +311,8 @@ export function createCompassTestSession(
     createdAt: overrides.createdAt ?? '2026-04-11T12:00:00.000Z',
     updatedAt: overrides.updatedAt ?? '2026-04-11T12:15:00.000Z',
     completedAt: overrides.completedAt ?? (status === 'completed' ? '2026-04-11T12:20:00.000Z' : null),
+    achievedAt: overrides.achievedAt ?? null,
+    isActive: overrides.isActive ?? false,
     insights: overrides.insights ?? (status === 'completed' ? COMPASS_TEST_INSIGHTS : null),
     answers: overrides.answers ?? createCompassTestAnswers(),
   };

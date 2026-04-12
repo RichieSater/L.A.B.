@@ -33,8 +33,10 @@ function createMockStorage(overrides: Partial<AppPersistence> = {}): AppPersiste
     saveWeeklyReview: vi.fn().mockResolvedValue(undefined),
     loadStrategicDashboard: vi.fn().mockResolvedValue({
       years: [],
+      activeCompassSessionId: null,
       latestCompassInsights: null,
       latestCompassAdvisorContext: null,
+      achievedCompassSummaries: [],
     }),
     saveStrategicDashboard: vi.fn().mockResolvedValue(undefined),
     ...overrides,
@@ -69,8 +71,10 @@ describe('createDefaultAppState', () => {
     });
     expect(state.strategicDashboard).toEqual({
       years: [],
+      activeCompassSessionId: null,
       latestCompassInsights: null,
       latestCompassAdvisorContext: null,
+      achievedCompassSummaries: [],
     });
   });
 });
@@ -96,8 +100,10 @@ describe('loadAppStateFromStorage', () => {
     });
     expect(state.strategicDashboard).toEqual({
       years: [],
+      activeCompassSessionId: null,
       latestCompassInsights: null,
       latestCompassAdvisorContext: null,
+      achievedCompassSummaries: [],
     });
   });
 

@@ -261,6 +261,8 @@ describe('StrategicPlannerPanel', () => {
         createdAt: '2026-03-30T12:00:00.000Z',
         updatedAt: '2026-03-30T13:30:00.000Z',
         completedAt: null,
+        achievedAt: null,
+        isActive: false,
         insights: null,
       },
     ]);
@@ -283,5 +285,36 @@ describe('StrategicPlannerPanel', () => {
     await waitFor(() => {
       expect(apiClient.listCompassSessions).toHaveBeenCalledTimes(1);
     });
+  });
+
+  it('references the active completed Compass in the planner shell', async () => {
+    const dispatch = vi.fn();
+    const appState = createDefaultAppState();
+
+    useAppState.mockReturnValue({
+      state: appState,
+      dispatch,
+    });
+    apiClient.listCompassSessions.mockResolvedValue([
+      {
+        id: 'compass-complete',
+        title: 'Golden Compass 2025',
+        planningYear: 2025,
+        status: 'completed',
+        currentScreen: 28,
+        answerCount: 32,
+        createdAt: '2025-12-30T12:00:00.000Z',
+        updatedAt: '2025-12-30T13:30:00.000Z',
+        completedAt: '2025-12-30T13:30:00.000Z',
+        achievedAt: null,
+        isActive: true,
+        insights: null,
+      },
+    ]);
+
+    render(<StrategicPlannerPanel />);
+
+    expect(await screen.findByText(/Active Compass:/i)).toBeInTheDocument();
+    expect(screen.getByText('Golden Compass 2025')).toBeInTheDocument();
   });
 });

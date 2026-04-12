@@ -428,8 +428,10 @@ describe('appReducer', () => {
           lastManualEditAt: '2026-04-01T10:00:00.000Z',
         },
       ],
+      activeCompassSessionId: null,
       latestCompassInsights: null,
       latestCompassAdvisorContext: null,
+      achievedCompassSummaries: [],
     };
 
     const insights = {
@@ -547,6 +549,7 @@ describe('appReducer', () => {
 
     expect(seeded.latestCompassInsights).toEqual(insights);
     expect(seeded.latestCompassAdvisorContext).toEqual(advisorContext);
+    expect(seeded.activeCompassSessionId).toBe('compass-1');
     expect(seeded.years[0]?.sections.yearGoals.goals[0]).toEqual(
       expect.objectContaining({
         text: 'Ship Golden Compass',
@@ -555,6 +558,7 @@ describe('appReducer', () => {
     );
     expect(protectedState.latestCompassInsights).toEqual(insights);
     expect(protectedState.latestCompassAdvisorContext).toEqual(advisorContext);
+    expect(protectedState.activeCompassSessionId).toBe('compass-1');
     expect(protectedState.years[0]?.sections.yearGoals.goals[0]?.text).toBe('');
   });
 });

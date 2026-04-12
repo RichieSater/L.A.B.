@@ -41,10 +41,20 @@ export interface StrategicDashboardYear {
   updatedAt: string;
 }
 
+export interface AchievedCompassSummary {
+  sessionId: string;
+  title: string;
+  planningYear: number;
+  completedAt: string;
+  achievedAt: string;
+}
+
 export interface StrategicDashboardState {
   years: StrategicDashboardYear[];
+  activeCompassSessionId: string | null;
   latestCompassInsights: CompassInsights | null;
   latestCompassAdvisorContext: CompassAdvisorContext | null;
+  achievedCompassSummaries: AchievedCompassSummary[];
 }
 
 const SECTION_TEMPLATES: Record<
@@ -104,8 +114,10 @@ function createStrategicSection(
 export function createDefaultStrategicDashboardState(): StrategicDashboardState {
   return {
     years: [],
+    activeCompassSessionId: null,
     latestCompassInsights: null,
     latestCompassAdvisorContext: null,
+    achievedCompassSummaries: [],
   };
 }
 
@@ -164,8 +176,12 @@ export function normalizeStrategicDashboardState(
     years: (state.years ?? [])
       .map(year => normalizeStrategicDashboardYear(year, year?.year ?? new Date().getFullYear()))
       .sort((a, b) => b.year - a.year),
+    activeCompassSessionId: state.activeCompassSessionId ?? null,
     latestCompassInsights: state.latestCompassInsights ?? null,
     latestCompassAdvisorContext: state.latestCompassAdvisorContext ?? null,
+    achievedCompassSummaries: (state.achievedCompassSummaries ?? [])
+      .filter(summary => summary.completedAt && summary.achievedAt)
+      .sort((a, b) => b.achievedAt.localeCompare(a.achievedAt)),
   };
 }
 
@@ -219,6 +235,7 @@ export function applyCompassInsightsToStrategicDashboard(
     ...nextState,
     latestCompassInsights: insights,
     latestCompassAdvisorContext: advisorContext ?? nextState.latestCompassAdvisorContext ?? null,
+    activeCompassSessionId: advisorContext?.sessionId ?? nextState.activeCompassSessionId ?? null,
     years: nextYears.sort((a, b) => b.year - a.year),
   };
 }

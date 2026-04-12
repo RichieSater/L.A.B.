@@ -44,9 +44,9 @@ describe('buildPrompt', () => {
     expect(prompt).toContain('[STRATEGIC CONTEXT]');
     expect(prompt).toContain(`Current-year goals (${currentYear}):`);
     expect(prompt).toContain('Ship Golden Compass inside LAB');
-    expect(prompt).toContain('Latest Compass daily rituals:');
+    expect(prompt).toContain('Active Compass daily rituals:');
     expect(prompt).toContain('Write the daily plan before opening messages');
-    expect(prompt).toContain('Latest Compass support structure:');
+    expect(prompt).toContain('Active Compass support structure:');
     expect(prompt).toContain('Therapist');
   });
 
@@ -189,5 +189,30 @@ describe('buildPrompt', () => {
     );
 
     expect(prompt).not.toContain('[LATEST GOLDEN COMPASS CONTEXT]');
+  });
+
+  it('includes achieved Compass history as high-level context only', () => {
+    const appState = createDefaultAppState();
+    appState.strategicDashboard.achievedCompassSummaries = [
+      {
+        sessionId: 'compass-1',
+        title: 'Golden Compass 2025',
+        planningYear: 2025,
+        completedAt: '2025-12-30T10:00:00.000Z',
+        achievedAt: '2026-04-12T10:00:00.000Z',
+      },
+    ];
+
+    const prompt = buildPrompt(
+      ADVISOR_CONFIGS.career,
+      createDefaultAdvisorState('career'),
+      {},
+      [],
+      appState,
+    );
+
+    expect(prompt).toContain('[ACHIEVED GOLDEN COMPASS HISTORY]');
+    expect(prompt).toContain('Golden Compass 2025');
+    expect(prompt).toContain('achieved');
   });
 });

@@ -16,6 +16,7 @@ import { buildIntakeSection } from './sections/intake-section';
 import { buildTherapistNotesSection } from './sections/therapist-notes-section';
 import { buildStrategicContextSection } from './sections/strategic-context-section';
 import { buildLatestCompassContextSection } from './sections/latest-compass-context-section';
+import { buildAchievedCompassHistorySection } from './sections/achieved-compass-history-section';
 import { buildStartupProtocol } from './boot-sequence';
 
 export function buildPrompt(
@@ -83,6 +84,11 @@ No previous sessions. This is our first conversation.`);
   const latestCompassContext = buildLatestCompassContextSection(appState);
   if (latestCompassContext) {
     sections.push(latestCompassContext);
+  }
+
+  const achievedCompassHistory = buildAchievedCompassHistorySection(appState);
+  if (achievedCompassHistory) {
+    sections.push(achievedCompassHistory);
   }
 
   // Therapist-specific: cross-advisor session notes

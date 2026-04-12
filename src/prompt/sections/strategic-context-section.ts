@@ -28,14 +28,14 @@ export function buildStrategicContextSection(appState?: AppState): string | null
   }
 
   if (dailyRituals.length > 0) {
-    lines.push('Latest Compass daily rituals:');
+    lines.push('Active Compass daily rituals:');
     for (const ritual of dailyRituals.slice(0, 3)) {
       lines.push(`- ${ritual}`);
     }
   }
 
   if (supportPeople.length > 0) {
-    lines.push('Latest Compass support structure:');
+    lines.push('Active Compass support structure:');
     for (const person of supportPeople.slice(0, 5)) {
       lines.push(`- ${person}`);
     }

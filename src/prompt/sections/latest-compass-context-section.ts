@@ -29,7 +29,7 @@ export function buildLatestCompassContextSection(appState?: AppState): string | 
 
   const lines: string[] = [
     '[LATEST GOLDEN COMPASS CONTEXT]',
-    'Use this verbatim context from the latest completed Golden Compass session when it helps you advise me.',
+    'Use this verbatim context from the active Golden Compass session when it helps you advise me.',
   ];
 
   const bonfireLines: string[] = [];

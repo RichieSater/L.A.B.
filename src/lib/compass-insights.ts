@@ -36,6 +36,18 @@ function parseStoredListAnswer(value: string | undefined): string[] {
   }
 }
 
+function parseStoredListOrLinesAnswer(value: string | undefined): string[] {
+  const storedList = parseStoredListAnswer(value);
+  if (storedList.length > 0) {
+    return storedList;
+  }
+
+  return (value ?? '')
+    .split('\n')
+    .map(item => item.trim())
+    .filter(Boolean);
+}
+
 function trimCompassList(values: string[]): string[] {
   return values
     .map(value => trimCompassAnswer(value, ADVISOR_CONTEXT_LIST_ITEM_LIMIT))
@@ -85,10 +97,7 @@ function firstNonEmptyMonthlyEventList(
 ): string[] {
   for (const selector of selectors) {
     const values = selector.keys.flatMap(key =>
-      (answers[selector.screenId]?.[key] ?? '')
-        .split('\n')
-        .map(value => value.trim())
-        .filter(Boolean),
+      parseStoredListOrLinesAnswer(answers[selector.screenId]?.[key]),
     );
 
     if (values.length > 0) {

@@ -16,7 +16,7 @@ Fix Golden Compass text-entry regressions at the source, harden the full in-app 
 
 1. Replace the value-derived multi-input row identity with stable local row ids while keeping persisted Compass answers as plain string arrays.
 2. Convert the Past-months step into a read-only month list derived from session `createdAt`, defaulting to the agreed `> 10` include-current-month rule and persisting only a single `includeCurrentMonth` toggle choice with legacy month-answer inference for older sessions.
-3. Restore the missing month-by-month recap screen after that toggle so users capture significant events inside each month before the yearly snapshot, and shift the snapshot page back to summary-only fields with legacy answer fallbacks preserved.
+3. Restore the missing month-by-month recap screen after that toggle so users capture significant events inside each month with add-item entry groups before the yearly snapshot, and shift the snapshot page back to summary-only fields with legacy answer fallbacks preserved.
 4. Add focused Compass runner tests for required-field gating, input hydration across all interactive screen types, the read-only month toggle flow, the month-by-month recap step, save-and-exit flush behavior, and completion.
 5. Add dashboard and session-page tests for Compass create/open, grouped session states, load failures, and 404 redirect behavior.
 6. Add a dedicated Playwright Golden Compass regression that starts from the live app entry path, creates a session, validates uninterrupted multi-word typing, save-and-exit, planner resume, and full completion on desktop and mobile.
