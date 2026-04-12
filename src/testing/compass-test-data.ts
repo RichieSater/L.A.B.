@@ -47,11 +47,13 @@ const COMPASS_TEST_SCREEN_OVERRIDES: Record<string, CompassTestScreenValue> = {
     word2: 'clearer',
     word3: 'steadier',
   },
+  'past-monthly-events': {
+    month1: 'Protected a calmer starting point for the year.',
+    month2: 'Shipped a more coherent version of The L.A.B.\nMade one clean strategic decision instead of five noisy ones.',
+    month3: 'Protected more honest relationships instead of overperforming.',
+    month4: 'Started sleeping and recovering more consistently.',
+  },
   'past-highlights': {
-    items: JSON.stringify([
-      'Shipped a more coherent version of The L.A.B.',
-      'Protected more honest relationships instead of overperforming.',
-    ]),
     workLife: 'Work mattered more when I simplified the active bets.',
     relationships: 'Honesty beat performance in the relationships worth keeping.',
     health: 'The basics mattered more than intensity bursts.',
@@ -275,7 +277,7 @@ function mapCompassTestValueToAnswer(value: CompassTestScreenValue): CompassAnsw
 export function createCompassTestAnswers(): CompassAnswers {
   return Object.fromEntries(
     getAllCompassScreens()
-      .filter(screen => (screen.prompts?.length ?? 0) > 0)
+      .filter(screen => (screen.prompts?.length ?? 0) > 0 || Boolean(COMPASS_TEST_SCREEN_OVERRIDES[screen.id]))
       .map(screen => [screen.id, getCompassTestAnswerRecord(screen.id)]),
   );
 }

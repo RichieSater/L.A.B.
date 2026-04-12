@@ -294,7 +294,7 @@ describe('CompassSessionRunner', () => {
             includeCurrentMonth: 'false',
           },
         },
-        currentScreen: getCompassScreenIndex('past-highlights'),
+        currentScreen: getCompassScreenIndex('past-monthly-events'),
       });
     });
   });
@@ -342,20 +342,53 @@ describe('CompassSessionRunner', () => {
             includeCurrentMonth: 'true',
           },
         },
-        currentScreen: getCompassScreenIndex('past-highlights'),
+        currentScreen: getCompassScreenIndex('past-monthly-events'),
       });
     });
   });
 
-  it('does not jump backward on resume when past-months has no stored answer yet', () => {
+  it('shows month-specific event fields before the snapshot and gates progress until at least one month has content', async () => {
+    const user = userEvent.setup();
+    const answers = createCompassTestAnswers();
+    answers['past-months'] = {
+      includeCurrentMonth: 'false',
+    };
+    delete answers['past-monthly-events'];
+
+    renderRunner(
+      createCompassTestSession({
+        currentScreen: getCompassScreenIndex('past-monthly-events'),
+        answers,
+        createdAt: '2026-04-10T12:00:00.000Z',
+      }),
+    );
+
+    expect(screen.getByRole('button', { name: 'Continue' })).toBeDisabled();
+    expect(screen.getByRole('textbox', { name: 'April events' })).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: 'March events' })).toBeInTheDocument();
+    expect(screen.queryByText('The Snapshot Of Your Past Year')).not.toBeInTheDocument();
+
+    await user.type(screen.getByRole('textbox', { name: 'April events' }), 'Signed the lease\nTook the first real trip');
+
+    expect(screen.getByRole('button', { name: 'Continue' })).toBeEnabled();
+  });
+
+  it('does not jump backward on resume when past-monthly-events has no stored answer yet', () => {
+    const answers = createCompassTestAnswers();
+    delete answers['past-monthly-events'];
+
     renderRunner(
       createCompassTestSession({
         currentScreen: getCompassScreenIndex('past-highlights'),
+        answers,
       }),
     );
 
     expect(screen.getByText('The Snapshot Of Your Past Year')).toBeInTheDocument();
     expect(screen.queryByRole('list', { name: 'Previous 12 months' })).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('Significant events, changes, wins, or losses from the past year'),
+    ).not.toBeInTheDocument();
   });
 
   it('maps legacy stored month names back to the matching toggle mode before persisting the new answer shape', async () => {
@@ -410,7 +443,7 @@ describe('CompassSessionRunner', () => {
             includeCurrentMonth: 'false',
           },
         },
-        currentScreen: getCompassScreenIndex('past-highlights'),
+        currentScreen: getCompassScreenIndex('past-monthly-events'),
       });
     });
   });

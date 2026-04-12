@@ -19,8 +19,11 @@ describe('extractCompassAdvisorContext', () => {
           word2: 'clear',
           word3: 'steady',
         },
+        'past-monthly-events': {
+          month1: 'Left the old job',
+          month2: 'Started L.A.B.',
+        },
         'past-highlights': {
-          items: JSON.stringify(['Left the old job', 'Started L.A.B.']),
           workLife: 'Work became more honest.',
           relationships: 'I stopped performing calm.',
           health: 'My body needed consistency more than intensity.',

@@ -27,6 +27,7 @@ describe('COMPASS_FLOW', () => {
       'bonfire-release-words',
       'past-intro',
       'past-months',
+      'past-monthly-events',
       'past-highlights',
       'past-lessons',
       'past-golden-moments',

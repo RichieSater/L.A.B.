@@ -79,6 +79,26 @@ function firstNonEmptyList(
   return [];
 }
 
+function firstNonEmptyMonthlyEventList(
+  answers: CompassAnswers,
+  selectors: Array<{ screenId: string; keys: string[] }>,
+): string[] {
+  for (const selector of selectors) {
+    const values = selector.keys.flatMap(key =>
+      (answers[selector.screenId]?.[key] ?? '')
+        .split('\n')
+        .map(value => value.trim())
+        .filter(Boolean),
+    );
+
+    if (values.length > 0) {
+      return trimCompassList(values);
+    }
+  }
+
+  return [];
+}
+
 function firstNonEmptyChallengeList(answers: CompassAnswers): string[] {
   const structuredChallenges = collectValues(answers['past-challenges'], ['challenge1', 'challenge2', 'challenge3']);
   if (structuredChallenges.length > 0) {
@@ -141,6 +161,12 @@ export function extractCompassAdvisorContext(input: {
   answers: CompassAnswers;
 }): CompassAdvisorContext {
   const { answers } = input;
+  const monthlyHighlights = firstNonEmptyMonthlyEventList(answers, [
+    {
+      screenId: 'past-monthly-events',
+      keys: ['month1', 'month2', 'month3', 'month4', 'month5', 'month6', 'month7', 'month8', 'month9', 'month10', 'month11', 'month12'],
+    },
+  ]);
 
   return {
     sessionId: input.sessionId,
@@ -152,7 +178,7 @@ export function extractCompassAdvisorContext(input: {
       releaseWords: firstNonEmptyList(answers, [{ screenId: 'bonfire-release-words', keys: ['word1', 'word2', 'word3'] }]),
     },
     past: {
-      highlights: firstNonEmptyList(answers, [{ screenId: 'past-highlights' }]),
+      highlights: monthlyHighlights.length > 0 ? monthlyHighlights : firstNonEmptyList(answers, [{ screenId: 'past-highlights' }]),
       yearSnapshot: {
         workLife: firstNonEmptyValue(answers, [{ screenId: 'past-highlights', key: 'workLife' }]),
         relationships: firstNonEmptyValue(answers, [{ screenId: 'past-highlights', key: 'relationships' }]),

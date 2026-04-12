@@ -32,6 +32,7 @@ interface CompassPastMonthsState {
 }
 
 const PAST_MONTHS_SCREEN_ID = 'past-months';
+const PAST_MONTHLY_EVENTS_SCREEN_ID = 'past-monthly-events';
 const PAST_MONTHS_INCLUDE_CURRENT_KEY = 'includeCurrentMonth';
 const LEGACY_PAST_MONTH_KEYS = Array.from({ length: 12 }, (_, index) => `month${index + 1}`);
 
@@ -63,11 +64,8 @@ export function CompassSessionRunner({
 
   const screen = allScreens[currentIndex];
   const pastMonthsState = useMemo(
-    () =>
-      screen.id === PAST_MONTHS_SCREEN_ID
-        ? resolvePastMonthsState(answers[PAST_MONTHS_SCREEN_ID], sessionCreatedAt)
-        : null,
-    [answers, screen.id, sessionCreatedAt],
+    () => resolvePastMonthsState(answers[PAST_MONTHS_SCREEN_ID], sessionCreatedAt),
+    [answers, sessionCreatedAt],
   );
   const screenAnswers = useMemo(
     () => resolveScreenAnswers(screen, answers, sessionCreatedAt),
@@ -295,11 +293,17 @@ export function CompassSessionRunner({
           <RitualPreview items={extractCompassionItems(answers)} />
         ) : null}
 
-        {screen.id === PAST_MONTHS_SCREEN_ID && pastMonthsState ? (
+        {screen.id === PAST_MONTHS_SCREEN_ID ? (
           <PastMonthsToggle
             includeCurrentMonth={pastMonthsState.includeCurrentMonth}
             monthNames={pastMonthsState.monthNames}
             onToggle={setPastMonthsIncludeCurrentMonth}
+          />
+        ) : screen.id === PAST_MONTHLY_EVENTS_SCREEN_ID ? (
+          <PastMonthlyEventsEditor
+            monthNames={pastMonthsState.monthNames}
+            answers={screenAnswers}
+            onAnswerChange={updateAnswer}
           />
         ) : screen.prompts?.length ? (
           <div className="mt-8 space-y-6">
@@ -640,6 +644,51 @@ function PastMonthsToggle({
   );
 }
 
+function PastMonthlyEventsEditor({
+  monthNames,
+  answers,
+  onAnswerChange,
+}: {
+  monthNames: string[];
+  answers: CompassAnswerRecord;
+  onAnswerChange: (key: string, value: string) => void;
+}) {
+  return (
+    <div className="mt-8 space-y-6 rounded-3xl border border-gray-800/80 bg-gray-950/40 p-5">
+      <div className="space-y-2">
+        <h2 className="text-xl font-semibold text-gray-100">Important things that happened in each month</h2>
+        <p className="text-sm leading-6 text-gray-400">
+          Add one moment per line so the next page can turn this timeline into a clean snapshot of the year.
+        </p>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        {monthNames.map((monthName, index) => {
+          const fieldKey = LEGACY_PAST_MONTH_KEYS[index];
+          const fieldId = `${PAST_MONTHLY_EVENTS_SCREEN_ID}-${fieldKey}`;
+
+          return (
+            <div key={fieldKey} className="space-y-2 rounded-2xl border border-gray-800 bg-gray-900/70 p-4">
+              <label htmlFor={fieldId} className="block text-sm font-semibold text-gray-100">
+                {monthName}
+              </label>
+              <textarea
+                id={fieldId}
+                aria-label={`${monthName} events`}
+                value={answers[fieldKey] ?? ''}
+                onChange={event => onAnswerChange(fieldKey, event.target.value)}
+                placeholder={`What stood out in ${monthName}? Add one event per line...`}
+                rows={5}
+                className="w-full rounded-3xl border border-gray-800 bg-gray-950/70 px-4 py-4 text-sm leading-7 text-gray-100 placeholder:text-gray-500 focus:border-amber-300/50 focus:outline-none focus:ring-1 focus:ring-amber-300/20"
+              />
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function ChecklistRow({
   item,
   screenId,
@@ -695,7 +744,17 @@ function resolveInitialCompassIndex(
 
   for (let index = 0; index <= storedIndex; index += 1) {
     const screen = screens[index];
-    if (!canProceed(screen, resolveScreenAnswers(screen, session.answers ?? {}, sessionCreatedAt))) {
+    const resolvedAnswers = resolveScreenAnswers(screen, session.answers ?? {}, sessionCreatedAt);
+
+    if (
+      screen.id === PAST_MONTHLY_EVENTS_SCREEN_ID &&
+      storedIndex > index &&
+      !hasPastMonthlyEventEntries(resolvedAnswers)
+    ) {
+      continue;
+    }
+
+    if (!canProceed(screen, resolvedAnswers)) {
       return index;
     }
   }
@@ -732,6 +791,14 @@ function resolveScreenAnswers(
 }
 
 function canProceed(screen: CompassScreenDefinition, answers: CompassAnswerRecord): boolean {
+  if (screen.id === PAST_MONTHS_SCREEN_ID) {
+    return true;
+  }
+
+  if (screen.id === PAST_MONTHLY_EVENTS_SCREEN_ID) {
+    return hasPastMonthlyEventEntries(answers);
+  }
+
   if (!screen.prompts?.length) {
     return true;
   }
@@ -785,6 +852,10 @@ function parseMultiInputItems(value: string | undefined): string[] {
   } catch {
     return [];
   }
+}
+
+function hasPastMonthlyEventEntries(answers: CompassAnswerRecord): boolean {
+  return LEGACY_PAST_MONTH_KEYS.some(key => (answers[key] ?? '').trim().length > 0);
 }
 
 function normalizeMonthName(value: string): string {

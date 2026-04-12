@@ -250,6 +250,19 @@ const pastScreens: CompassScreenDefinition[] = [
     ],
   }),
   screen({
+    id: 'past-monthly-events',
+    sectionIndex: 2,
+    sectionKey: 'past',
+    sectionTitle: 'The Past',
+    headline: 'Month-By-Month Review',
+    contentBlocks: [
+      paragraphBlock(
+        'Using the month window you just set, capture the important things that happened in each month.',
+        'Add one event per line so the next page can turn those notes into a clear snapshot of your past year.',
+      ),
+    ],
+  }),
+  screen({
     id: 'past-highlights',
     sectionIndex: 2,
     sectionKey: 'past',
@@ -257,17 +270,10 @@ const pastScreens: CompassScreenDefinition[] = [
     headline: 'The Snapshot Of Your Past Year',
     contentBlocks: [
       paragraphBlock(
-        'Looking at all the significant events of the past 12 months, summarize briefly what was important to you in the following areas:',
+        'Looking at all the significant events of the past 12 months on the previous page, summarize briefly what was important to you in the following areas:',
       ),
     ],
     prompts: [
-      {
-        key: 'items',
-        type: 'multi-input',
-        label: 'Significant events, changes, wins, or losses from the past year',
-        placeholder: 'Add a defining event from the last 12 months...',
-        isRequired: true,
-      },
       {
         key: 'snapshot',
         type: 'multi-textarea',
