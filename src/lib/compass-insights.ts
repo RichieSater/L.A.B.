@@ -1,4 +1,5 @@
 import type { CompassAdvisorContext, CompassAnswers, CompassInsights } from '../types/compass.js';
+import { parseCompassListAnswer, resolveCompassListItems } from './compass-answer-normalization';
 
 const ADVISOR_CONTEXT_TEXT_LIMIT = 600;
 const ADVISOR_CONTEXT_LIST_ITEM_LIMIT = 180;
@@ -21,31 +22,6 @@ function trimCompassAnswer(value: string | undefined, limit: number): string {
   }
 
   return `${normalized.slice(0, Math.max(limit - 3, 0)).trimEnd()}...`;
-}
-
-function parseStoredListAnswer(value: string | undefined): string[] {
-  if (!value) {
-    return [];
-  }
-
-  try {
-    const parsed = JSON.parse(value);
-    return Array.isArray(parsed) ? parsed.map(item => String(item)) : [];
-  } catch {
-    return [];
-  }
-}
-
-function parseStoredListOrLinesAnswer(value: string | undefined): string[] {
-  const storedList = parseStoredListAnswer(value);
-  if (storedList.length > 0) {
-    return storedList;
-  }
-
-  return (value ?? '')
-    .split('\n')
-    .map(item => item.trim())
-    .filter(Boolean);
 }
 
 function trimCompassList(values: string[]): string[] {
@@ -71,7 +47,7 @@ function firstNonEmptyValue(
 
 function firstNonEmptyList(
   answers: CompassAnswers,
-  selectors: Array<{ screenId: string; key?: string; keys?: string[] }>,
+  selectors: Array<{ screenId: string; key?: string; keys?: string[]; legacyInputKeys?: string[] }>,
 ): string[] {
   for (const selector of selectors) {
     if (selector.keys?.length) {
@@ -82,7 +58,10 @@ function firstNonEmptyList(
       continue;
     }
 
-    const values = parseStoredListAnswer(answers[selector.screenId]?.[selector.key ?? 'items']);
+    const values = resolveCompassListItems(answers[selector.screenId], {
+      key: selector.key ?? 'items',
+      legacyInputKeys: selector.legacyInputKeys,
+    });
     if (values.length > 0) {
       return trimCompassList(values);
     }
@@ -97,7 +76,7 @@ function firstNonEmptyMonthlyEventList(
 ): string[] {
   for (const selector of selectors) {
     const values = selector.keys.flatMap(key =>
-      parseStoredListOrLinesAnswer(answers[selector.screenId]?.[key]),
+      parseCompassListAnswer(answers[selector.screenId]?.[key]),
     );
 
     if (values.length > 0) {
@@ -109,12 +88,19 @@ function firstNonEmptyMonthlyEventList(
 }
 
 function firstNonEmptyChallengeList(answers: CompassAnswers): string[] {
-  const structuredChallenges = collectValues(answers['past-challenges'], ['challenge1', 'challenge2', 'challenge3']);
+  const structuredChallenges = resolveCompassListItems(answers['past-challenges'], {
+    key: 'challenges',
+    legacyInputKeys: ['challenge1', 'challenge2', 'challenge3'],
+  });
   if (structuredChallenges.length > 0) {
     return trimCompassList(structuredChallenges);
   }
 
-  const legacyChallenge = firstNonEmptyValue(answers, [{ screenId: 'past-challenges' }], ADVISOR_CONTEXT_LIST_ITEM_LIMIT);
+  const legacyChallenge = firstNonEmptyValue(
+    answers,
+    [{ screenId: 'past-challenges' }, { screenId: 'past-challenges', key: 'main' }],
+    ADVISOR_CONTEXT_LIST_ITEM_LIMIT,
+  );
   return legacyChallenge ? [legacyChallenge] : [];
 }
 
@@ -143,13 +129,22 @@ export function countCompassAnswers(answers: CompassAnswers): number {
 }
 
 export function deriveCompassInsights(answers: CompassAnswers): CompassInsights {
-  const annualGoals = collectValues(answers['top-3-goals'], ['goal1', 'goal2', 'goal3']);
-  const dailyRituals = collectValues(answers['morning-routine'], ['routine1', 'routine2', 'routine3']);
+  const annualGoals = resolveCompassListItems(answers['top-3-goals'], {
+    key: 'goals',
+    legacyInputKeys: ['goal1', 'goal2', 'goal3'],
+  });
+  const dailyRituals = resolveCompassListItems(answers['morning-routine'], {
+    key: 'rituals',
+    legacyInputKeys: ['routine1', 'routine2', 'routine3'],
+  });
   const supportPeople = uniqueValues([
     ...collectValues(answers['financial-help'], ['main']),
     ...collectValues(answers['health-help'], ['main']),
     ...collectValues(answers['relationship-help'], ['main']),
-    ...collectValues(answers['vulnerability-partners'], ['person1', 'person2', 'person3']),
+    ...resolveCompassListItems(answers['vulnerability-partners'], {
+      key: 'people',
+      legacyInputKeys: ['person1', 'person2', 'person3'],
+    }),
   ]);
 
   return {
@@ -203,18 +198,15 @@ export function extractCompassAdvisorContext(input: {
         { screenId: 'past-proud' },
       ]),
       yearWords: firstNonEmptyList(answers, [{ screenId: 'past-lessons', keys: ['word1', 'word2', 'word3'] }]),
-      goldenMoments: firstNonEmptyValue(answers, [{ screenId: 'past-golden-moments' }]),
+      goldenMoments: firstNonEmptyList(answers, [{ screenId: 'past-golden-moments', key: 'main' }]),
       biggestChallenges: firstNonEmptyChallengeList(answers),
-      challengeSupport: firstNonEmptyValue(answers, [{ screenId: 'past-challenges', key: 'support' }]),
-      challengeLessons: firstNonEmptyValue(answers, [
-        { screenId: 'past-challenges', key: 'lessons' },
-        { screenId: 'past-lessons' },
-      ]),
+      challengeSupport: firstNonEmptyList(answers, [{ screenId: 'past-challenges', key: 'support' }]),
+      challengeLessons: firstNonEmptyList(answers, [{ screenId: 'past-challenges', key: 'lessons' }]),
       notProud: firstNonEmptyValue(answers, [{ screenId: 'past-challenges', key: 'notProud' }]),
-      selfForgiveness: firstNonEmptyValue(answers, [{ screenId: 'past-compassion-box' }]),
+      selfForgiveness: firstNonEmptyList(answers, [{ screenId: 'past-compassion-box', key: 'main' }]),
     },
     future: {
-      perfectDayBrainstorm: firstNonEmptyValue(answers, [{ screenId: 'future-brainstorm' }]),
+      perfectDayBrainstorm: firstNonEmptyList(answers, [{ screenId: 'future-brainstorm', key: 'main' }]),
       nextYearSummary: {
         workLife: firstNonEmptyValue(answers, [{ screenId: 'future-next-year', key: 'workLife' }]),
         relationships: firstNonEmptyValue(answers, [{ screenId: 'future-next-year', key: 'relationships' }]),
@@ -227,16 +219,13 @@ export function extractCompassAdvisorContext(input: {
         { screenId: 'perfect-day-morning', key: 'bodyFeeling' },
         { screenId: 'perfect-day-body' },
       ]),
-      firstThoughts: firstNonEmptyValue(answers, [{ screenId: 'perfect-day-morning', key: 'firstThoughts' }]),
+      firstThoughts: firstNonEmptyList(answers, [{ screenId: 'perfect-day-morning', key: 'firstThoughts' }]),
       morningView: firstNonEmptyValue(answers, [{ screenId: 'perfect-day-morning', key: 'morningView' }]),
       location: firstNonEmptyValue(answers, [{ screenId: 'perfect-day-morning', key: 'location' }]),
       salesMessage: firstNonEmptyValue(answers, [{ screenId: 'perfect-day-morning', key: 'salesMessage' }]),
       autonomyFeeling: firstNonEmptyValue(answers, [{ screenId: 'perfect-day-plans', key: 'autonomyFeeling' }]),
-      workPlans: firstNonEmptyValue(answers, [
-        { screenId: 'perfect-day-plans', key: 'workPlans' },
-        { screenId: 'perfect-day-work' },
-      ]),
-      funPlans: firstNonEmptyValue(answers, [{ screenId: 'perfect-day-plans', key: 'funPlans' }]),
+      workPlans: firstNonEmptyList(answers, [{ screenId: 'perfect-day-plans', key: 'workPlans' }]),
+      funPlans: firstNonEmptyList(answers, [{ screenId: 'perfect-day-plans', key: 'funPlans' }]),
       mirrorView: firstNonEmptyValue(answers, [{ screenId: 'perfect-day-style', key: 'mirrorView' }]),
       selfImageFeeling: firstNonEmptyValue(answers, [{ screenId: 'perfect-day-style', key: 'selfImageFeeling' }]),
       outfit: firstNonEmptyValue(answers, [{ screenId: 'perfect-day-style', key: 'outfit' }]),
@@ -251,39 +240,75 @@ export function extractCompassAdvisorContext(input: {
       charity: firstNonEmptyValue(answers, [{ screenId: 'perfect-day-money', key: 'charity' }]),
       givingBack: firstNonEmptyValue(answers, [{ screenId: 'perfect-day-difference', key: 'givingBack' }]),
       weekendTrip: firstNonEmptyValue(answers, [{ screenId: 'perfect-day-difference', key: 'weekendTrip' }]),
-      weekendActivities: firstNonEmptyValue(answers, [{ screenId: 'perfect-day-difference', key: 'weekendActivities' }]),
+      weekendActivities: firstNonEmptyList(answers, [{ screenId: 'perfect-day-difference', key: 'weekendActivities' }]),
       weekendFood: firstNonEmptyValue(answers, [{ screenId: 'perfect-day-home', key: 'weekendFood' }]),
       homeAtmosphere: firstNonEmptyValue(answers, [{ screenId: 'perfect-day-home', key: 'homeAtmosphere' }]),
       windowView: firstNonEmptyValue(answers, [{ screenId: 'perfect-day-home', key: 'windowView' }]),
-      houseHighlights: firstNonEmptyValue(answers, [{ screenId: 'perfect-day-home', key: 'houseHighlights' }]),
-      garageHighlights: firstNonEmptyValue(answers, [{ screenId: 'perfect-day-home', key: 'garageHighlights' }]),
+      houseHighlights: firstNonEmptyList(answers, [{ screenId: 'perfect-day-home', key: 'houseHighlights' }]),
+      garageHighlights: firstNonEmptyList(answers, [{ screenId: 'perfect-day-home', key: 'garageHighlights' }]),
       specialSomeoneMessage: firstNonEmptyValue(answers, [{ screenId: 'perfect-day-evening', key: 'specialSomeoneMessage' }]),
       nightClose: firstNonEmptyValue(answers, [
         { screenId: 'perfect-day-evening', key: 'nightClose' },
         { screenId: 'perfect-day-relationships' },
       ]),
-      gratitude: firstNonEmptyList(answers, [{ screenId: 'perfect-day-evening', keys: ['word1', 'word2', 'word3'] }]),
+      gratitude: firstNonEmptyList(answers, [
+        {
+          screenId: 'perfect-day-evening',
+          key: 'gratitude',
+          legacyInputKeys: ['word1', 'word2', 'word3'],
+        },
+      ]),
       compassFeeling: firstNonEmptyValue(answers, [{ screenId: 'perfect-day-feeling' }]),
     },
     lightingPath: {
-      environmentJoy: firstNonEmptyList(answers, [{ screenId: 'lighting-environment-joy', keys: ['joy1', 'joy2', 'joy3'] }]),
+      environmentJoy: firstNonEmptyList(answers, [
+        {
+          screenId: 'lighting-environment-joy',
+          key: 'environmentJoy',
+          legacyInputKeys: ['joy1', 'joy2', 'joy3'],
+        },
+      ]),
       financialSupport: firstNonEmptyValue(answers, [{ screenId: 'financial-help' }]),
       healthSupport: firstNonEmptyValue(answers, [{ screenId: 'health-help' }]),
       relationshipSupport: firstNonEmptyValue(answers, [{ screenId: 'relationship-help' }]),
       lettingGo: firstNonEmptyList(answers, [{ screenId: 'lighting-boundaries', key: 'lettingGo' }]),
       sayingNo: firstNonEmptyList(answers, [{ screenId: 'lighting-boundaries', key: 'sayingNo' }]),
       guiltFreeEnjoyment: firstNonEmptyList(answers, [{ screenId: 'lighting-boundaries', key: 'guiltFreeEnjoyment' }]),
-      supportPeople: firstNonEmptyList(answers, [{ screenId: 'vulnerability-partners', keys: ['person1', 'person2', 'person3'] }]),
-      placesToVisit: firstNonEmptyList(answers, [{ screenId: 'lighting-places', keys: ['place1', 'place2', 'place3'] }]),
-      lovedOnes: firstNonEmptyList(answers, [{ screenId: 'lighting-loved-ones', keys: ['loved1', 'loved2', 'loved3'] }]),
-      selfRewards: firstNonEmptyList(answers, [{ screenId: 'lighting-self-rewards', keys: ['reward1', 'reward2', 'reward3'] }]),
+      supportPeople: firstNonEmptyList(answers, [
+        {
+          screenId: 'vulnerability-partners',
+          key: 'people',
+          legacyInputKeys: ['person1', 'person2', 'person3'],
+        },
+      ]),
+      placesToVisit: firstNonEmptyList(answers, [
+        {
+          screenId: 'lighting-places',
+          key: 'places',
+          legacyInputKeys: ['place1', 'place2', 'place3'],
+        },
+      ]),
+      lovedOnes: firstNonEmptyList(answers, [
+        {
+          screenId: 'lighting-loved-ones',
+          key: 'lovedOnes',
+          legacyInputKeys: ['loved1', 'loved2', 'loved3'],
+        },
+      ]),
+      selfRewards: firstNonEmptyList(answers, [
+        {
+          screenId: 'lighting-self-rewards',
+          key: 'rewards',
+          legacyInputKeys: ['reward1', 'reward2', 'reward3'],
+        },
+      ]),
     },
     goldenPath: {
-      pointA: firstNonEmptyValue(answers, [{ screenId: 'point-a' }]),
-      pointB: firstNonEmptyValue(answers, [{ screenId: 'point-b' }]),
+      pointA: firstNonEmptyList(answers, [{ screenId: 'point-a', key: 'main' }]),
+      pointB: firstNonEmptyList(answers, [{ screenId: 'point-b', key: 'main' }]),
       obstacles: firstNonEmptyList(answers, [{ screenId: 'challenges-obstacles' }]),
-      pleasurableProcess: firstNonEmptyValue(answers, [{ screenId: 'golden-path-process', key: 'pleasure' }]),
-      fasterHelp: firstNonEmptyValue(answers, [{ screenId: 'golden-path-process', key: 'help' }]),
+      pleasurableProcess: firstNonEmptyList(answers, [{ screenId: 'golden-path-process', key: 'pleasure' }]),
+      fasterHelp: firstNonEmptyList(answers, [{ screenId: 'golden-path-process', key: 'help' }]),
       finalNotes: firstNonEmptyValue(answers, [{ screenId: 'golden-path-final-notes', key: 'finalNotes' }]),
       movieTitle: firstNonEmptyValue(answers, [{ screenId: 'movie-title' }]),
       timeCapsuleLocation: firstNonEmptyValue(answers, [{ screenId: 'time-capsule-reflection', key: 'location' }]),

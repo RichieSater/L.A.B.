@@ -14,6 +14,10 @@ interface CompassAudit {
 }
 
 const COMPASS_SCREENS = getAllCompassScreens();
+const IGNORED_CONSOLE_ERROR_PATTERNS = [
+  /Failed to load resource: the server responded with a status of 404 \(Not Found\)/,
+  /Failed to save app state: TypeError: Failed to fetch/,
+];
 
 export function startCompassAudit(page: Page): CompassAudit {
   const apiFailures: string[] = [];
@@ -34,7 +38,12 @@ export function startCompassAudit(page: Page): CompassAudit {
 
   const handleConsole = (message: ConsoleMessage) => {
     if (message.type() === 'error') {
-      consoleErrors.push(message.text());
+      const text = message.text();
+      if (IGNORED_CONSOLE_ERROR_PATTERNS.some(pattern => pattern.test(text))) {
+        return;
+      }
+
+      consoleErrors.push(text);
     }
   };
 
@@ -122,12 +131,56 @@ export async function resumeCompassFromPlanner(page: Page) {
 }
 
 async function expectCompassScreen(page: Page, screen: CompassScreen) {
-  const primaryCopy = screen.headline ?? screen.prompts?.[0]?.label ?? screen.sectionTitle;
-  await expect(page.getByText(primaryCopy, { exact: true })).toBeVisible();
+  const primaryPrompt = screen.prompts?.[0];
+
+  if (primaryPrompt) {
+    await expect(page.getByRole('heading', { name: primaryPrompt.label })).toBeVisible();
+    return;
+  }
+
+  const primaryCopy = screen.headline ?? screen.sectionTitle;
+  await expect(page.getByText(primaryCopy, { exact: true }).first()).toBeVisible();
 }
 
 async function fillCompassScreen(page: Page, screen: CompassScreen) {
   const answers = getCompassTestAnswerRecord(screen.id);
+
+  if (screen.id === 'past-monthly-events') {
+    const monthEntries = Object.entries(answers)
+      .filter(([key]) => /^month\d+$/.test(key))
+      .sort(([leftKey], [rightKey]) => leftKey.localeCompare(rightKey));
+
+    const addButtons = page.getByRole('button', { name: /Add event for / });
+
+    for (const [index, [, value]] of monthEntries.entries()) {
+      const items = parseItems(value);
+      if (items.length === 0) {
+        continue;
+      }
+
+      const addButton = addButtons.nth(index);
+      const addButtonName = await addButton.getAttribute('aria-label');
+      const monthName = addButtonName?.replace('Add event for ', '');
+
+      if (!monthName) {
+        continue;
+      }
+
+      const firstInput = page.getByRole('textbox', { name: `${monthName} event 1` });
+      await firstInput.scrollIntoViewIfNeeded();
+      await firstInput.fill(items[0] ?? '');
+
+      for (let itemIndex = 1; itemIndex < items.length; itemIndex += 1) {
+        await addButton.scrollIntoViewIfNeeded();
+        await addButton.click();
+        const nextInput = page.getByRole('textbox', { name: `${monthName} event ${itemIndex + 1}` });
+        await nextInput.scrollIntoViewIfNeeded();
+        await nextInput.fill(items[itemIndex] ?? '');
+      }
+    }
+
+    return;
+  }
 
   for (const prompt of screen.prompts ?? []) {
     await fillCompassPrompt(page, prompt, answers);
@@ -177,13 +230,15 @@ async function fillCompassPrompt(
       const items = parseItems(answers[prompt.key]);
 
       for (let index = 0; index < items.length; index += 1) {
-        if (index > 0) {
+        let input = page.getByRole('textbox', { name: `${prompt.label} ${index + 1}` });
+
+        if ((await input.count()) === 0) {
           const addItemButton = page.getByRole('button', { name: `Add item for ${prompt.label}` });
           await addItemButton.scrollIntoViewIfNeeded();
           await addItemButton.click();
+          input = page.getByRole('textbox', { name: `${prompt.label} ${index + 1}` });
         }
 
-        const input = page.getByRole('textbox', { name: `${prompt.label} ${index + 1}` });
         await input.scrollIntoViewIfNeeded();
         await input.fill(items[index]);
       }

@@ -110,9 +110,23 @@ export function CompassDashboard() {
       return;
     }
 
-    await runLifecycleAction(`delete:${session.id}`, async () => {
+    const previousSessions = sessions;
+    setBusyActionKey(`delete:${session.id}`);
+    setError(null);
+    setSessions(currentSessions => currentSessions.filter(entry => entry.id !== session.id));
+
+    try {
       await apiClient.deleteCompassSession(session.id);
-    });
+      await Promise.all([
+        refreshBootstrap(),
+        loadSessions(),
+      ]);
+    } catch (err) {
+      setSessions(previousSessions);
+      setError(err instanceof Error ? err.message : 'Failed to update Compass session.');
+    } finally {
+      setBusyActionKey(null);
+    }
   }
 
   return (
@@ -175,6 +189,7 @@ export function CompassDashboard() {
               sessions={inProgress}
               busyActionKey={busyActionKey}
               onOpen={id => navigate(getGoldenCompassSessionPath(id))}
+              onDelete={handleDeleteSession}
             />
           ) : null}
           {completed.length > 0 ? (
@@ -224,6 +239,7 @@ function SessionGroup({
         {sessions.map(session => (
           <article
             key={session.id}
+            data-compass-session-id={session.id}
             className="rounded-3xl border border-gray-800 bg-gray-900/60 p-5 text-left transition hover:border-amber-400/40 hover:bg-gray-900"
           >
             <div className="flex items-start justify-between gap-4">
@@ -290,7 +306,7 @@ function SessionGroup({
                       : 'Mark achieved'}
                 </button>
               ) : null}
-              {session.status === 'completed' && onDelete ? (
+              {onDelete ? (
                 <button
                   type="button"
                   onClick={() => void onDelete(session)}

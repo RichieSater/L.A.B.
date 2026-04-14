@@ -33,6 +33,12 @@
 
 ## Repo Notes
 
+- Active repo boundary:
+  treat `/Users/richiesater/dev/L.A.B/L.A.B.` as the only LAB product root.
+  Do not perform LAB Golden Compass work in sibling legacy repos such as `GoldenCompass` or `weekly`.
+- Golden Compass preflight:
+  confirm `pwd`, confirm `git rev-parse --show-toplevel`, and confirm the root path above before editing, testing, or deploying Compass changes.
+
 - `src/main.tsx` is the true browser entrypoint. Changes to auth bootstrapping, global providers, or deploy-time recovery behavior should start there before drilling into page code.
 - `src/auth/` owns client auth state and bootstrap orchestration. Treat Clerk session presence as an input, but treat `/api/bootstrap` plus `server/data.ts` as the source of truth for persisted user state.
 - `api/` should stay thin. Business rules, persistence, and integration logic belong in `server/` so handlers remain transport wrappers with focused tests.

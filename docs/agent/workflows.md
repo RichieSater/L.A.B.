@@ -23,6 +23,13 @@
 
 ## Repo Notes
 
+Compass and deploy preflight:
+
+- Confirm `pwd`.
+- Confirm `git rev-parse --show-toplevel`.
+- Confirm the active repo root is `/Users/richiesater/dev/L.A.B/L.A.B.`.
+- If it is not, stop and switch repos before doing any LAB Golden Compass work.
+
 Use `npm run test:dev-api`, `npm run lint`, `npm run test`, and `npm run build` as the standard local verification sequence when work touches startup, auth, or the Vite dev/API boundary. The focused dev-api suite covers local handler execution plus env hydration; the broader test suite covers API handlers, auth flow guards, parser logic, reducer behavior, and server-side data bootstrap/reset logic.
 
 When changing auth or persistence behavior, inspect both `api/` and `server/` because handler files are intentionally thin wrappers around shared server utilities.

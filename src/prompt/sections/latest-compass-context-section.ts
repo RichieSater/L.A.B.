@@ -50,19 +50,19 @@ export function buildLatestCompassContextSection(appState?: AppState): string | 
   pushLabeledField(pastLines, 'Biggest lesson from the last year:', context.past.biggestLesson);
   pushLabeledField(pastLines, 'What I am proud of:', context.past.proud);
   pushLabeledList(pastLines, 'Three words to describe the past year:', context.past.yearWords);
-  pushLabeledField(pastLines, 'Golden moments from the past year:', context.past.goldenMoments);
+  pushLabeledList(pastLines, 'Golden moments from the past year:', context.past.goldenMoments);
   pushLabeledList(pastLines, 'Biggest challenges from the last year:', context.past.biggestChallenges);
-  pushLabeledField(pastLines, 'What or who helped me through those challenges:', context.past.challengeSupport);
-  pushLabeledField(pastLines, 'What those challenges taught me about myself:', context.past.challengeLessons);
+  pushLabeledList(pastLines, 'What or who helped me through those challenges:', context.past.challengeSupport);
+  pushLabeledList(pastLines, 'What those challenges taught me about myself:', context.past.challengeLessons);
   pushLabeledField(pastLines, 'What I am not proud of from the past year:', context.past.notProud);
-  pushLabeledField(pastLines, 'What I am ready to forgive myself for:', context.past.selfForgiveness);
+  pushLabeledList(pastLines, 'What I am ready to forgive myself for:', context.past.selfForgiveness);
   if (pastLines.length > 0) {
     lines.push('The Past:');
     lines.push(...pastLines);
   }
 
   const futureLines: string[] = [];
-  pushLabeledField(futureLines, 'Perfect-day brainstorm for the future:', context.future.perfectDayBrainstorm);
+  pushLabeledList(futureLines, 'Perfect-day brainstorm for the future:', context.future.perfectDayBrainstorm);
   pushLabeledField(futureLines, 'Next-year focus for work life and wealth:', context.future.nextYearSummary.workLife);
   pushLabeledField(
     futureLines,
@@ -78,13 +78,13 @@ export function buildLatestCompassContextSection(appState?: AppState): string | 
   const perfectDayLines: string[] = [];
   pushLabeledField(perfectDayLines, 'Wake-up time in the perfect day:', context.perfectDay.wakeTime);
   pushLabeledField(perfectDayLines, 'How my body feels in the perfect day:', context.perfectDay.bodyFeeling);
-  pushLabeledField(perfectDayLines, 'The first thoughts in my perfect day:', context.perfectDay.firstThoughts);
+  pushLabeledList(perfectDayLines, 'The first thoughts in my perfect day:', context.perfectDay.firstThoughts);
   pushLabeledField(perfectDayLines, 'What I see when I wake up:', context.perfectDay.morningView);
   pushLabeledField(perfectDayLines, 'Where I am in the perfect day:', context.perfectDay.location);
   pushLabeledField(perfectDayLines, 'The message about yesterday’s wins:', context.perfectDay.salesMessage);
   pushLabeledField(perfectDayLines, 'How autonomy and support feel in that day:', context.perfectDay.autonomyFeeling);
-  pushLabeledField(perfectDayLines, 'Work plans in the perfect day:', context.perfectDay.workPlans);
-  pushLabeledField(perfectDayLines, 'Fun plans in the perfect day:', context.perfectDay.funPlans);
+  pushLabeledList(perfectDayLines, 'Work plans in the perfect day:', context.perfectDay.workPlans);
+  pushLabeledList(perfectDayLines, 'Fun plans in the perfect day:', context.perfectDay.funPlans);
   pushLabeledField(perfectDayLines, 'What I see in the mirror:', context.perfectDay.mirrorView);
   pushLabeledField(perfectDayLines, 'How I feel about myself in the mirror:', context.perfectDay.selfImageFeeling);
   pushLabeledField(perfectDayLines, 'The outfit for that day:', context.perfectDay.outfit);
@@ -100,12 +100,12 @@ export function buildLatestCompassContextSection(appState?: AppState): string | 
   pushLabeledField(perfectDayLines, 'Charity and impact reminder:', context.perfectDay.charity);
   pushLabeledField(perfectDayLines, 'How I give back to the world:', context.perfectDay.givingBack);
   pushLabeledField(perfectDayLines, 'Weekend trip and company:', context.perfectDay.weekendTrip);
-  pushLabeledField(perfectDayLines, 'Weekend activities:', context.perfectDay.weekendActivities);
+  pushLabeledList(perfectDayLines, 'Weekend activities:', context.perfectDay.weekendActivities);
   pushLabeledField(perfectDayLines, 'Weekend food:', context.perfectDay.weekendFood);
   pushLabeledField(perfectDayLines, 'Home atmosphere:', context.perfectDay.homeAtmosphere);
   pushLabeledField(perfectDayLines, 'View from the window:', context.perfectDay.windowView);
-  pushLabeledField(perfectDayLines, 'Cool things in the house:', context.perfectDay.houseHighlights);
-  pushLabeledField(perfectDayLines, 'What is in the garage:', context.perfectDay.garageHighlights);
+  pushLabeledList(perfectDayLines, 'Cool things in the house:', context.perfectDay.houseHighlights);
+  pushLabeledList(perfectDayLines, 'What is in the garage:', context.perfectDay.garageHighlights);
   pushLabeledField(perfectDayLines, 'Message from the special someone:', context.perfectDay.specialSomeoneMessage);
   pushLabeledField(perfectDayLines, 'How the night ends:', context.perfectDay.nightClose);
   pushLabeledList(perfectDayLines, 'Three gratitudes at the end of the day:', context.perfectDay.gratitude);
@@ -137,15 +137,15 @@ export function buildLatestCompassContextSection(appState?: AppState): string | 
   }
 
   const goldenPathLines: string[] = [];
-  pushLabeledField(goldenPathLines, 'Point A - where I am now:', context.goldenPath.pointA);
-  pushLabeledField(goldenPathLines, 'Point B - the year I want to build:', context.goldenPath.pointB);
+  pushLabeledList(goldenPathLines, 'Point A - where I am now:', context.goldenPath.pointA);
+  pushLabeledList(goldenPathLines, 'Point B - the year I want to build:', context.goldenPath.pointB);
   pushLabeledList(goldenPathLines, 'Major challenges or obstacles on the path:', context.goldenPath.obstacles);
-  pushLabeledField(
+  pushLabeledList(
     goldenPathLines,
     'How I can make the process fun and pleasurable:',
     context.goldenPath.pleasurableProcess,
   );
-  pushLabeledField(
+  pushLabeledList(
     goldenPathLines,
     'Who can help me solve challenges faster and easier:',
     context.goldenPath.fasterHelp,

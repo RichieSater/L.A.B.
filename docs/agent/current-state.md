@@ -35,6 +35,12 @@
 
 ## Repo Notes
 
+## Active Repo Boundary
+
+- The only active LAB product repo is `/Users/richiesater/dev/L.A.B/L.A.B.`.
+- Legacy `weekly` and `GoldenCompass` repos remain external reference apps and are not valid targets for LAB feature work, verification, deploys, or release claims.
+- Before any Golden Compass task, confirm `pwd`, confirm `git rev-parse --show-toplevel`, and confirm the repo root matches `/Users/richiesater/dev/L.A.B/L.A.B.`.
+
 ## Product Surface
 
 The durable product baseline is a planning-first "Life Advisory Board" app:

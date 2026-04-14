@@ -5,6 +5,11 @@ import {
   QUANTUM_PLANNER_PATH,
 } from '../../constants/routes';
 import { useAuth } from '../../auth/auth-context';
+import {
+  encodeCompassListAnswer,
+  parseCompassListAnswer,
+  resolveCompassListItems,
+} from '../../lib/compass-answer-normalization';
 import { apiClient } from '../../lib/api';
 import { COMPASS_FLOW, getAllCompassScreens } from '../../lib/compass-flow';
 import {
@@ -44,9 +49,13 @@ export function CompassSessionRunner({
   const navigate = useNavigate();
   const { refreshBootstrap } = useAuth();
   const allScreens = useMemo(() => getAllCompassScreens(), []);
+  const screenMap = useMemo(
+    () => new Map(allScreens.map(entry => [entry.id, entry])),
+    [allScreens],
+  );
   const sessionCreatedAt = useMemo(() => new Date(initialSession.createdAt), [initialSession.createdAt]);
   const totalScreens = allScreens.length;
-  const [currentIndex, setCurrentIndex] = useState(() => resolveInitialCompassIndex(initialSession, allScreens));
+  const [currentIndex, setCurrentIndex] = useState(() => resolveInitialCompassIndex(initialSession, allScreens, screenMap));
   const [answers, setAnswers] = useState<CompassAnswers>(initialSession.answers ?? {});
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
   const [session, setSession] = useState(initialSession);
@@ -68,8 +77,8 @@ export function CompassSessionRunner({
     [answers, sessionCreatedAt],
   );
   const screenAnswers = useMemo(
-    () => resolveScreenAnswers(screen, answers, sessionCreatedAt),
-    [answers, screen, sessionCreatedAt],
+    () => resolveScreenAnswers(screen, answers, sessionCreatedAt, screenMap),
+    [answers, screen, screenMap, sessionCreatedAt],
   );
   const currentSection = COMPASS_FLOW.find(section => section.key === screen.sectionKey) ?? COMPASS_FLOW[0];
   const progress = Math.round(((currentIndex + 1) / totalScreens) * 100);
@@ -148,7 +157,7 @@ export function CompassSessionRunner({
   }
 
   function setMultiInputItems(key: string, items: string[]) {
-    updateAnswer(key, JSON.stringify(items.filter(item => item.trim().length > 0)));
+    updateAnswer(key, encodeCompassListAnswer(items));
   }
 
   function setPastMonthsIncludeCurrentMonth(includeCurrentMonth: boolean) {
@@ -171,6 +180,7 @@ export function CompassSessionRunner({
       screen,
       pendingAnswersRef.current,
       sessionCreatedAt,
+      screenMap,
     );
 
     pendingAnswersRef.current = nextAnswers;
@@ -181,14 +191,15 @@ export function CompassSessionRunner({
 
   async function moveTo(nextIndex: number) {
     setCurrentIndex(nextIndex);
+    const previousAnswers = pendingAnswersRef.current;
+    const nextAnswers = prepareAnswersForPersistence();
 
-    if (screen.id === PAST_MONTHS_SCREEN_ID) {
+    if (screen.id === PAST_MONTHS_SCREEN_ID || nextAnswers !== previousAnswers) {
       if (saveTimerRef.current) {
         clearTimeout(saveTimerRef.current);
         saveTimerRef.current = null;
       }
 
-      const nextAnswers = prepareAnswersForPersistence();
       await persist({
         answers: nextAnswers,
         currentScreen: nextIndex,
@@ -336,6 +347,9 @@ export function CompassSessionRunner({
                   answers={screenAnswers}
                   onAnswerChange={updateAnswer}
                   onMultiInputChange={setMultiInputItems}
+                  onAdvanceRequest={() => {
+                    void handleNext();
+                  }}
                 />
               </div>
             ))}
@@ -453,13 +467,29 @@ function CompassPromptField({
   answers,
   onAnswerChange,
   onMultiInputChange,
+  onAdvanceRequest,
 }: {
   screenId: string;
   prompt: CompassPromptDefinition;
   answers: CompassAnswerRecord;
   onAnswerChange: (key: string, value: string) => void;
   onMultiInputChange: (key: string, items: string[]) => void;
+  onAdvanceRequest: () => void;
 }) {
+  function handleShortTextKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
+    if (event.key === 'Enter' && !event.metaKey && !event.ctrlKey && !event.shiftKey) {
+      event.preventDefault();
+      onAdvanceRequest();
+    }
+  }
+
+  function handleTextareaKeyDown(event: React.KeyboardEvent<HTMLTextAreaElement>) {
+    if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
+      event.preventDefault();
+      onAdvanceRequest();
+    }
+  }
+
   if (prompt.type === 'textarea') {
     const fieldId = `${screenId}-${prompt.key}`;
 
@@ -469,6 +499,7 @@ function CompassPromptField({
         aria-label={prompt.label}
         value={answers[prompt.key] ?? ''}
         onChange={event => onAnswerChange(prompt.key, event.target.value)}
+        onKeyDown={handleTextareaKeyDown}
         placeholder={prompt.placeholder ?? 'Write here...'}
         rows={8}
         className="w-full rounded-3xl border border-gray-800 bg-gray-950/70 px-4 py-4 text-sm leading-7 text-gray-100 placeholder:text-gray-500 focus:border-amber-300/50 focus:outline-none focus:ring-1 focus:ring-amber-300/20"
@@ -486,6 +517,7 @@ function CompassPromptField({
         type="text"
         value={answers[prompt.key] ?? ''}
         onChange={event => onAnswerChange(prompt.key, event.target.value)}
+        onKeyDown={handleShortTextKeyDown}
         placeholder={prompt.placeholder ?? 'Write here...'}
         className="w-full rounded-full border border-gray-800 bg-gray-950/70 px-4 py-3 text-sm text-gray-100 placeholder:text-gray-500 focus:border-amber-300/50 focus:outline-none focus:ring-1 focus:ring-amber-300/20"
       />
@@ -551,15 +583,18 @@ function CompassPromptField({
 
   if (prompt.type === 'multi-input') {
     return (
-      <MultiInputEditor
-        key={`${screenId}-${prompt.key}`}
-        items={parseMultiInputItems(answers[prompt.key])}
-        placeholder={prompt.placeholder ?? 'Add an item...'}
-        inputLabelPrefix={prompt.label}
-        addItemLabel={`Add item for ${prompt.label}`}
-        onChange={items => onMultiInputChange(prompt.key, items)}
-      />
-    );
+        <MultiInputEditor
+          key={`${screenId}-${prompt.key}`}
+          items={parseMultiInputItems(answers[prompt.key])}
+          placeholder={prompt.placeholder ?? 'Add an item...'}
+          inputLabelPrefix={prompt.label}
+          addItemLabel={`Add item for ${prompt.label}`}
+          minItems={prompt.minItems}
+          maxItems={prompt.maxItems}
+          onChange={items => onMultiInputChange(prompt.key, items)}
+          onAdvanceRequest={onAdvanceRequest}
+        />
+      );
   }
 
   if (prompt.type === 'signature') {
@@ -727,12 +762,15 @@ function ReadOnlyField({ label, value }: { label: string; value: string }) {
 function resolveInitialCompassIndex(
   session: CompassSessionDetail,
   screens: CompassScreenDefinition[],
+  screenMap: Map<string, CompassScreenDefinition>,
 ): number {
   const sessionCreatedAt = new Date(session.createdAt);
   const storedIndex = Math.min(Math.max(session.currentScreen, 0), screens.length - 1);
   const hasEarlierAnswers = screens
     .slice(0, storedIndex)
-    .some(screen => Object.values(session.answers?.[screen.id] ?? {}).some(value => value?.trim().length > 0));
+    .some(screen =>
+      Object.entries(session.answers?.[screen.id] ?? {}).some(([key, value]) => hasMeaningfulAnswerValue(key, value)),
+    );
 
   if (!hasEarlierAnswers) {
     return storedIndex;
@@ -740,7 +778,7 @@ function resolveInitialCompassIndex(
 
   for (let index = 0; index <= storedIndex; index += 1) {
     const screen = screens[index];
-    const resolvedAnswers = resolveScreenAnswers(screen, session.answers ?? {}, sessionCreatedAt);
+    const resolvedAnswers = resolveScreenAnswers(screen, session.answers ?? {}, sessionCreatedAt, screenMap);
 
     if (
       screen.id === PAST_MONTHLY_EVENTS_SCREEN_ID &&
@@ -762,6 +800,7 @@ function resolveScreenAnswers(
   screen: CompassScreenDefinition,
   answers: CompassAnswers,
   sessionCreatedAt: Date,
+  screenMap: Map<string, CompassScreenDefinition>,
 ): CompassAnswerRecord {
   if (screen.id === PAST_MONTHS_SCREEN_ID) {
     const state = resolvePastMonthsState(answers[PAST_MONTHS_SCREEN_ID], sessionCreatedAt);
@@ -770,16 +809,12 @@ function resolveScreenAnswers(
     };
   }
 
-  const current = answers[screen.id] ?? {};
+  const current = normalizeScreenPromptAnswers(screen, answers[screen.id] ?? {});
 
   if (screen.prefillFrom && Object.keys(current).length === 0) {
-    const source = answers[screen.prefillFrom];
-
-    if (source) {
-      const values = Object.values(source).filter(Boolean);
-      if (values.length > 0) {
-        return { main: values.join('\n') };
-      }
+    const prefilled = resolvePrefillAnswers(screen, answers, screenMap);
+    if (prefilled) {
+      return prefilled;
     }
   }
 
@@ -817,7 +852,8 @@ function canProceed(screen: CompassScreenDefinition, answers: CompassAnswerRecor
     }
 
     if (prompt.type === 'multi-input') {
-      return parseMultiInputItems(answers[prompt.key]).length > 0;
+      const minItems = prompt.minItems ?? 1;
+      return parseMultiInputItems(answers[prompt.key]).length >= minItems;
     }
 
     if (prompt.type === 'signature') {
@@ -829,32 +865,27 @@ function canProceed(screen: CompassScreenDefinition, answers: CompassAnswerRecor
 }
 
 function extractCompassionItems(answers: CompassAnswers): string[] {
-  return (answers['past-compassion-box']?.main ?? '')
-    .split('\n')
-    .map(item => item.trim())
-    .filter(Boolean);
+  return resolveCompassListItems(answers['past-compassion-box'], { key: 'main' });
 }
 
 function parseMultiInputItems(value: string | undefined): string[] {
-  if (!value) {
-    return [];
-  }
-
-  try {
-    const parsed = JSON.parse(value);
-    return Array.isArray(parsed)
-      ? parsed.map(item => String(item).trim()).filter(Boolean)
-      : [];
-  } catch {
-    return value
-      .split('\n')
-      .map(item => item.trim())
-      .filter(Boolean);
-  }
+  return parseCompassListAnswer(value);
 }
 
 function hasPastMonthlyEventEntries(answers: CompassAnswerRecord): boolean {
-  return LEGACY_PAST_MONTH_KEYS.some(key => (answers[key] ?? '').trim().length > 0);
+  return LEGACY_PAST_MONTH_KEYS.some(key => parseMultiInputItems(answers[key]).length > 0);
+}
+
+function hasMeaningfulAnswerValue(key: string, value: string | undefined): boolean {
+  if (!value) {
+    return false;
+  }
+
+  if (value === 'true' || value === 'false') {
+    return key === PAST_MONTHS_INCLUDE_CURRENT_KEY ? true : value === 'true';
+  }
+
+  return parseCompassListAnswer(value).length > 0;
 }
 
 function normalizeMonthName(value: string): string {
@@ -920,29 +951,148 @@ function normalizeAnswersForCurrentScreenPersistence(
   screen: CompassScreenDefinition,
   answers: CompassAnswers,
   sessionCreatedAt: Date,
+  screenMap: Map<string, CompassScreenDefinition>,
 ): CompassAnswers {
-  if (screen.id !== PAST_MONTHS_SCREEN_ID) {
-    return answers;
+  let nextAnswers = answers;
+
+  if (screen.id === PAST_MONTHS_SCREEN_ID) {
+    const state = resolvePastMonthsState(answers[PAST_MONTHS_SCREEN_ID], sessionCreatedAt);
+    const normalizedRecord = {
+      [PAST_MONTHS_INCLUDE_CURRENT_KEY]: String(state.includeCurrentMonth),
+    };
+    const currentRecord = answers[PAST_MONTHS_SCREEN_ID];
+
+    if (
+      !currentRecord ||
+      Object.keys(currentRecord).length !== 1 ||
+      currentRecord[PAST_MONTHS_INCLUDE_CURRENT_KEY] !== normalizedRecord[PAST_MONTHS_INCLUDE_CURRENT_KEY]
+    ) {
+      nextAnswers = {
+        ...nextAnswers,
+        [PAST_MONTHS_SCREEN_ID]: normalizedRecord,
+      };
+    }
   }
 
-  const state = resolvePastMonthsState(answers[PAST_MONTHS_SCREEN_ID], sessionCreatedAt);
-  const normalizedRecord = {
-    [PAST_MONTHS_INCLUDE_CURRENT_KEY]: String(state.includeCurrentMonth),
-  };
-  const currentRecord = answers[PAST_MONTHS_SCREEN_ID];
+  if (!screen.prompts?.length) {
+    return nextAnswers;
+  }
 
-  if (
-    currentRecord &&
-    Object.keys(currentRecord).length === 1 &&
-    currentRecord[PAST_MONTHS_INCLUDE_CURRENT_KEY] === normalizedRecord[PAST_MONTHS_INCLUDE_CURRENT_KEY]
-  ) {
-    return answers;
+  const currentRecord = nextAnswers[screen.id] ?? {};
+  const normalizedRecord = normalizeScreenPromptAnswers(screen, currentRecord, { stripLegacyKeys: true });
+
+  if (screen.prefillFrom && Object.keys(normalizedRecord).length === 0) {
+    const prefilled = resolvePrefillAnswers(screen, nextAnswers, screenMap);
+    if (prefilled) {
+      return {
+        ...nextAnswers,
+        [screen.id]: prefilled,
+      };
+    }
+  }
+
+  if (recordsEqual(currentRecord, normalizedRecord)) {
+    return nextAnswers;
   }
 
   return {
-    ...answers,
-    [PAST_MONTHS_SCREEN_ID]: normalizedRecord,
+    ...nextAnswers,
+    [screen.id]: normalizedRecord,
   };
+}
+
+function normalizeScreenPromptAnswers(
+  screen: CompassScreenDefinition,
+  record: CompassAnswerRecord,
+  options: { stripLegacyKeys?: boolean } = {},
+): CompassAnswerRecord {
+  if (!screen.prompts?.length) {
+    return record;
+  }
+
+  const normalizedRecord: CompassAnswerRecord = { ...record };
+
+  for (const prompt of screen.prompts) {
+    if (prompt.type !== 'multi-input') {
+      continue;
+    }
+
+    const items = resolveCompassListItems(record, {
+      key: prompt.key,
+      legacyInputKeys: prompt.legacyInputKeys,
+    });
+
+    if (items.length > 0 || record[prompt.key] !== undefined) {
+      normalizedRecord[prompt.key] = encodeCompassListAnswer(items);
+    }
+
+    if (options.stripLegacyKeys) {
+      for (const legacyKey of prompt.legacyInputKeys ?? []) {
+        delete normalizedRecord[legacyKey];
+      }
+    }
+  }
+
+  return normalizedRecord;
+}
+
+function resolvePrefillAnswers(
+  screen: CompassScreenDefinition,
+  answers: CompassAnswers,
+  screenMap: Map<string, CompassScreenDefinition>,
+): CompassAnswerRecord | null {
+  if (!screen.prefillFrom || !screen.prompts?.length) {
+    return null;
+  }
+
+  const sourceScreen = screenMap.get(screen.prefillFrom);
+  const sourcePrompt = sourceScreen?.prompts?.[0];
+  const targetPrompt = screen.prompts[0];
+
+  if (!sourceScreen || !sourcePrompt || !targetPrompt) {
+    return null;
+  }
+
+  if (sourcePrompt.type === 'multi-input' && targetPrompt.type === 'multi-input') {
+    const items = resolveCompassListItems(answers[sourceScreen.id], {
+      key: sourcePrompt.key,
+      legacyInputKeys: sourcePrompt.legacyInputKeys,
+    });
+
+    if (items.length === 0) {
+      return null;
+    }
+
+    const cappedItems =
+      targetPrompt.maxItems !== undefined ? items.slice(0, targetPrompt.maxItems) : items;
+
+    return {
+      [targetPrompt.key]: encodeCompassListAnswer(cappedItems),
+    };
+  }
+
+  const sourceValues = Object.values(answers[sourceScreen.id] ?? {}).filter(value => value?.trim().length > 0);
+  if (sourceValues.length === 0) {
+    return null;
+  }
+
+  return {
+    [targetPrompt.key]: sourceValues.join('\n'),
+  };
+}
+
+function recordsEqual(left: CompassAnswerRecord, right: CompassAnswerRecord): boolean {
+  const leftEntries = Object.entries(left).sort(([leftKey], [rightKey]) => leftKey.localeCompare(rightKey));
+  const rightEntries = Object.entries(right).sort(([leftKey], [rightKey]) => leftKey.localeCompare(rightKey));
+
+  if (leftEntries.length !== rightEntries.length) {
+    return false;
+  }
+
+  return leftEntries.every(([key, value], index) => {
+    const [otherKey, otherValue] = rightEntries[index] ?? [];
+    return key === otherKey && value === otherValue;
+  });
 }
 
 function CompletedCompassSummary({

@@ -21,16 +21,16 @@ export interface CompassAdvisorPastContext {
   biggestLesson: string;
   proud: string;
   yearWords: string[];
-  goldenMoments: string;
+  goldenMoments: string[];
   biggestChallenges: string[];
-  challengeSupport: string;
-  challengeLessons: string;
+  challengeSupport: string[];
+  challengeLessons: string[];
   notProud: string;
-  selfForgiveness: string;
+  selfForgiveness: string[];
 }
 
 export interface CompassAdvisorFutureContext {
-  perfectDayBrainstorm: string;
+  perfectDayBrainstorm: string[];
   nextYearSummary: {
     workLife: string;
     relationships: string;
@@ -41,13 +41,13 @@ export interface CompassAdvisorFutureContext {
 export interface CompassAdvisorPerfectDayContext {
   wakeTime: string;
   bodyFeeling: string;
-  firstThoughts: string;
+  firstThoughts: string[];
   morningView: string;
   location: string;
   salesMessage: string;
   autonomyFeeling: string;
-  workPlans: string;
-  funPlans: string;
+  workPlans: string[];
+  funPlans: string[];
   mirrorView: string;
   selfImageFeeling: string;
   outfit: string;
@@ -59,12 +59,12 @@ export interface CompassAdvisorPerfectDayContext {
   charity: string;
   givingBack: string;
   weekendTrip: string;
-  weekendActivities: string;
+  weekendActivities: string[];
   weekendFood: string;
   homeAtmosphere: string;
   windowView: string;
-  houseHighlights: string;
-  garageHighlights: string;
+  houseHighlights: string[];
+  garageHighlights: string[];
   specialSomeoneMessage: string;
   nightClose: string;
   gratitude: string[];
@@ -86,11 +86,11 @@ export interface CompassAdvisorLightingPathContext {
 }
 
 export interface CompassAdvisorGoldenPathContext {
-  pointA: string;
-  pointB: string;
+  pointA: string[];
+  pointB: string[];
   obstacles: string[];
-  pleasurableProcess: string;
-  fasterHelp: string;
+  pleasurableProcess: string[];
+  fasterHelp: string[];
   finalNotes: string;
   movieTitle: string;
   timeCapsuleLocation: string;
@@ -154,6 +154,9 @@ export interface CompassPromptDefinition {
   requireAllChecked?: boolean;
   isRequired?: boolean;
   copyLines?: string[];
+  minItems?: number;
+  maxItems?: number;
+  legacyInputKeys?: string[];
 }
 
 export interface CompassScreenDefinition {

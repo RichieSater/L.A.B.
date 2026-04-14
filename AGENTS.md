@@ -42,3 +42,8 @@
 - Refresh the harness only after command, path, or architecture changes with `harness refresh .`.
 - Validate the harness with `harness validate .` before calling it current.
 - Global workspace behavior lives in `~/.codex/AGENTS.md`; this file should stay repo-specific.
+- LAB repo boundary:
+  work on LAB only inside `/Users/richiesater/dev/L.A.B/L.A.B.`.
+  Sibling `GoldenCompass` and `weekly` repos are legacy reference-only and must not receive LAB feature work, verification, deploys, or release claims.
+- Golden Compass preflight:
+  run `pwd`, run `git rev-parse --show-toplevel`, and confirm the active repo root is `/Users/richiesater/dev/L.A.B/L.A.B.` before editing or deploying Compass changes.

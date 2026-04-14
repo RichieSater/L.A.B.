@@ -94,4 +94,45 @@ describe('COMPASS_FLOW', () => {
     expect(screens.get('time-capsule')?.headline).toContain('Universal Time Capsule');
     expect(screens.get('congratulations')?.headline).toContain('Congratulations');
   });
+
+  it('uses add-item builders and constraints for the audited Golden Moments-forward prompts', () => {
+    const screens = new Map(getAllCompassScreens().map(screen => [screen.id, screen]));
+
+    expect(screens.get('past-golden-moments')?.prompts?.[0]).toMatchObject({
+      type: 'multi-input',
+      minItems: 3,
+      maxItems: 5,
+    });
+    expect(screens.get('past-challenges')?.prompts?.[0]).toMatchObject({
+      type: 'multi-input',
+      minItems: 3,
+      maxItems: 3,
+      legacyInputKeys: ['challenge1', 'challenge2', 'challenge3'],
+    });
+    expect(screens.get('future-brainstorm')?.prompts?.[0]?.type).toBe('multi-input');
+    expect(screens.get('perfect-day-evening')?.prompts?.[2]).toMatchObject({
+      type: 'multi-input',
+      minItems: 3,
+      maxItems: 3,
+      legacyInputKeys: ['word1', 'word2', 'word3'],
+    });
+    expect(screens.get('top-3-goals')?.prompts?.[0]).toMatchObject({
+      type: 'multi-input',
+      minItems: 3,
+      maxItems: 3,
+      legacyInputKeys: ['goal1', 'goal2', 'goal3'],
+    });
+    expect(screens.get('point-a')?.prompts?.[0]).toMatchObject({
+      type: 'multi-input',
+      minItems: 3,
+      maxItems: 3,
+    });
+    expect(screens.get('point-b')?.prompts?.[0]).toMatchObject({
+      type: 'multi-input',
+      minItems: 3,
+      maxItems: 3,
+    });
+    expect(screens.get('movie-title')?.prompts?.[0]?.type).toBe('short-text');
+    expect(screens.get('golden-path-final-notes')?.prompts?.[0]?.type).toBe('textarea');
+  });
 });

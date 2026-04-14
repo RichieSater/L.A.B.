@@ -166,6 +166,57 @@ describe('CompassDashboard', () => {
     expect(refreshBootstrap).toHaveBeenCalled();
   });
 
+  it('shows delete on in-progress cards and removes the card immediately after confirmation', async () => {
+    const refreshBootstrap = vi.fn().mockResolvedValue(undefined);
+    useAuth.mockReturnValue({ refreshBootstrap });
+    apiClient.listCompassSessions
+      .mockResolvedValueOnce([
+        createCompassTestSession({
+          id: 'compass-in-progress',
+          title: 'Golden Compass In Progress',
+        }),
+      ])
+      .mockResolvedValue([]);
+
+    render(
+      <MemoryRouter>
+        <CompassDashboard />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText('Golden Compass In Progress')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
+
+    expect(apiClient.deleteCompassSession).toHaveBeenCalledWith('compass-in-progress');
+    await waitFor(() => {
+      expect(screen.queryByText('Golden Compass In Progress')).not.toBeInTheDocument();
+    });
+    expect(refreshBootstrap).toHaveBeenCalled();
+  });
+
+  it('does not delete a Compass card when confirm is cancelled', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(false);
+    apiClient.listCompassSessions.mockResolvedValue([
+      createCompassTestSession({
+        id: 'compass-in-progress',
+        title: 'Golden Compass In Progress',
+      }),
+    ]);
+
+    render(
+      <MemoryRouter>
+        <CompassDashboard />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText('Golden Compass In Progress')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
+
+    expect(apiClient.deleteCompassSession).not.toHaveBeenCalled();
+    expect(screen.getByText('Golden Compass In Progress')).toBeInTheDocument();
+  });
+
   it('shows load and create errors without breaking the dashboard shell', async () => {
     apiClient.listCompassSessions.mockRejectedValue(new Error('Failed to load Compass sessions.'));
     apiClient.createCompassSession.mockRejectedValue(new Error('Failed to create Compass session.'));

@@ -2,6 +2,16 @@
 
 The L.A.B. is a personal "Life Advisory Board" app. It gives the user a set of domain-specific advisors, tracks shared metrics across them, captures quick daily logs, adds an advisor-attention radar for next-action triage, adds a planning queue plus a daily planning loop for deciding what truly belongs in `today`, surfaces a small weekly-focus layer for objective-setting, folds weekly momentum digests into the weekly review flow, stores short daily and weekly reflections, and supports scheduled sessions with optional Google Calendar sync.
 
+## Critical repo boundary
+
+- The active LAB product repo is `/Users/richiesater/dev/L.A.B/L.A.B.`.
+- Sibling `GoldenCompass` and `weekly` repos are legacy reference apps only.
+- Do not implement, verify, or deploy LAB Golden Compass work from those legacy repos.
+- Before Compass work, confirm:
+  `pwd`
+  `git rev-parse --show-toplevel`
+  expected root = `/Users/richiesater/dev/L.A.B/L.A.B.`
+
 ## Current shape
 
 - Frontend: Vite + React 19 + TypeScript

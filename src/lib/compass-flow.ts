@@ -340,9 +340,12 @@ const pastScreens: CompassScreenDefinition[] = [
     prompts: [
       {
         key: 'main',
-        type: 'textarea',
+        type: 'multi-input',
         label: 'Golden moments from the last year',
+        placeholder: 'Add a golden moment from the last year...',
         isRequired: true,
+        minItems: 3,
+        maxItems: 5,
       },
     ],
   }),
@@ -355,30 +358,31 @@ const pastScreens: CompassScreenDefinition[] = [
     prompts: [
       {
         key: 'challenges',
-        type: 'multi-textarea',
+        type: 'multi-input',
         label: 'What are your three biggest challenges from the last year?',
-        inputs: [
-          { key: 'challenge1', label: 'Challenge 1', placeholder: 'Biggest challenge 1' },
-          { key: 'challenge2', label: 'Challenge 2', placeholder: 'Biggest challenge 2' },
-          { key: 'challenge3', label: 'Challenge 3', placeholder: 'Biggest challenge 3' },
-        ],
+        placeholder: 'Add a challenge from the last year...',
         isRequired: true,
+        minItems: 3,
+        maxItems: 3,
+        legacyInputKeys: ['challenge1', 'challenge2', 'challenge3'],
       },
       {
         key: 'support',
-        type: 'textarea',
+        type: 'multi-input',
         label: 'What or who helped you overcome these challenges?',
+        placeholder: 'Add someone or something that helped...',
         isRequired: true,
       },
       {
         key: 'lessons',
-        type: 'textarea',
+        type: 'multi-input',
         label: 'What did you learn about yourself whilst overcoming these challenges?',
+        placeholder: 'Add a lesson you learned...',
         isRequired: true,
       },
       {
         key: 'notProud',
-        type: 'textarea',
+        type: 'short-text',
         label: 'What are you not proud of yourself for?',
         isRequired: true,
       },
@@ -399,8 +403,9 @@ const pastScreens: CompassScreenDefinition[] = [
     prompts: [
       {
         key: 'main',
-        type: 'textarea',
+        type: 'multi-input',
         label: 'What are you ready to forgive yourself for?',
+        placeholder: 'Add something you are ready to forgive...',
         isRequired: true,
       },
     ],
@@ -451,8 +456,9 @@ const futureScreens: CompassScreenDefinition[] = [
     prompts: [
       {
         key: 'main',
-        type: 'textarea',
+        type: 'multi-input',
         label: 'Brainstorm your absolutely perfect day',
+        placeholder: 'Add something from your absolutely perfect day...',
         isRequired: true,
       },
     ],
@@ -469,7 +475,7 @@ const futureScreens: CompassScreenDefinition[] = [
     prompts: [
       {
         key: 'summary',
-        type: 'multi-textarea',
+        type: 'multi-short-text',
         label: 'What your next year will be about',
         inputs: [
           { key: 'workLife', label: 'Work life & wealth', placeholder: 'What will next year be about in work life & wealth?' },
@@ -522,19 +528,22 @@ const perfectDayScreens: CompassScreenDefinition[] = [
       },
       {
         key: 'bodyFeeling',
-        type: 'textarea',
+        type: 'short-text',
         label: 'What is the feeling of your body when you wake up?',
         isRequired: true,
       },
       {
         key: 'firstThoughts',
-        type: 'textarea',
+        type: 'multi-input',
         label: 'What are the first three things that come into your head?',
+        placeholder: 'Add one of the first thoughts...',
         isRequired: true,
+        minItems: 3,
+        maxItems: 3,
       },
       {
         key: 'morningView',
-        type: 'textarea',
+        type: 'short-text',
         label: 'When you sit up out of bed, what do you see?',
         isRequired: true,
       },
@@ -546,7 +555,7 @@ const perfectDayScreens: CompassScreenDefinition[] = [
       },
       {
         key: 'salesMessage',
-        type: 'textarea',
+        type: 'short-text',
         label: 'Your phone beeps with some sales stats for the last day. What does this message say?',
         isRequired: true,
       },
@@ -567,20 +576,22 @@ const perfectDayScreens: CompassScreenDefinition[] = [
     prompts: [
       {
         key: 'autonomyFeeling',
-        type: 'textarea',
+        type: 'short-text',
         label: 'How does this make you feel?',
         isRequired: true,
       },
       {
         key: 'workPlans',
-        type: 'textarea',
+        type: 'multi-input',
         label: 'What are the exciting work strategy plans for the day?',
+        placeholder: 'Add a work plan for the day...',
         isRequired: true,
       },
       {
         key: 'funPlans',
-        type: 'textarea',
+        type: 'multi-input',
         label: 'What adventure or fun plans are part of the day?',
+        placeholder: 'Add a fun plan for the day...',
         isRequired: true,
       },
     ],
@@ -599,25 +610,25 @@ const perfectDayScreens: CompassScreenDefinition[] = [
     prompts: [
       {
         key: 'mirrorView',
-        type: 'textarea',
+        type: 'short-text',
         label: 'What do you see?',
         isRequired: true,
       },
       {
         key: 'selfImageFeeling',
-        type: 'textarea',
+        type: 'short-text',
         label: 'How do you feel about yourself when you look in the mirror?',
         isRequired: true,
       },
       {
         key: 'outfit',
-        type: 'textarea',
+        type: 'short-text',
         label: 'You put on the coolest outfit for the day. What does this look like?',
         isRequired: true,
       },
       {
         key: 'outfitFeeling',
-        type: 'textarea',
+        type: 'short-text',
         label: 'How does this outfit make you feel?',
         isRequired: true,
       },
@@ -631,7 +642,7 @@ const perfectDayScreens: CompassScreenDefinition[] = [
     prompts: [
       {
         key: 'breakfast',
-        type: 'textarea',
+        type: 'short-text',
         label: 'What is your favourite healthy breakfast to start the day with? Visualise and feel how good it tastes.',
         isRequired: true,
       },
@@ -691,14 +702,15 @@ const perfectDayScreens: CompassScreenDefinition[] = [
       },
       {
         key: 'weekendTrip',
-        type: 'textarea',
+        type: 'short-text',
         label: 'Where are you going and who are you going with?',
         isRequired: true,
       },
       {
         key: 'weekendActivities',
-        type: 'textarea',
+        type: 'multi-input',
         label: 'What activities are planned for the weekend?',
+        placeholder: 'Add a weekend activity...',
         isRequired: true,
       },
     ],
@@ -716,7 +728,7 @@ const perfectDayScreens: CompassScreenDefinition[] = [
     prompts: [
       {
         key: 'weekendFood',
-        type: 'textarea',
+        type: 'short-text',
         label: 'What sort of food are you guys going to eat?',
         isRequired: true,
       },
@@ -728,20 +740,22 @@ const perfectDayScreens: CompassScreenDefinition[] = [
       },
       {
         key: 'windowView',
-        type: 'textarea',
+        type: 'short-text',
         label: 'What can you see out the window?',
         isRequired: true,
       },
       {
         key: 'houseHighlights',
-        type: 'textarea',
+        type: 'multi-input',
         label: 'What are some of the cool things in your house?',
+        placeholder: 'Add something cool in the house...',
         isRequired: true,
       },
       {
         key: 'garageHighlights',
-        type: 'textarea',
+        type: 'multi-input',
         label: 'What’s in your garage?',
+        placeholder: 'Add something in the garage...',
         isRequired: true,
       },
     ],
@@ -775,13 +789,13 @@ const perfectDayScreens: CompassScreenDefinition[] = [
       },
       {
         key: 'gratitude',
-        type: 'multi-short-text',
+        type: 'multi-input',
         label: 'What are the three things you are most grateful for that you think about as you drift off to sleep?',
-        inputs: THREE_WORD_INPUTS.map((input, index) => ({
-          ...input,
-          placeholder: `Gratitude ${index + 1}`,
-        })),
+        placeholder: 'Add something you are grateful for...',
         isRequired: true,
+        minItems: 3,
+        maxItems: 3,
+        legacyInputKeys: ['word1', 'word2', 'word3'],
       },
     ],
   }),
@@ -800,7 +814,7 @@ const calibrationScreens: CompassScreenDefinition[] = [
     prompts: [
       {
         key: 'main',
-        type: 'textarea',
+        type: 'short-text',
         label: 'How does your perfect day make you feel?',
         isRequired: true,
       },
@@ -859,14 +873,13 @@ const lightingScreens: CompassScreenDefinition[] = [
     prompts: [
       {
         key: 'goals',
-        type: 'multi-short-text',
+        type: 'multi-input',
         label: 'These are the top 3 goals I will achieve in the next 12 months',
-        inputs: [
-          { key: 'goal1', placeholder: 'Goal 1' },
-          { key: 'goal2', placeholder: 'Goal 2' },
-          { key: 'goal3', placeholder: 'Goal 3' },
-        ],
+        placeholder: 'Add a top goal...',
         isRequired: true,
+        minItems: 3,
+        maxItems: 3,
+        legacyInputKeys: ['goal1', 'goal2', 'goal3'],
       },
     ],
   }),
@@ -878,14 +891,13 @@ const lightingScreens: CompassScreenDefinition[] = [
     prompts: [
       {
         key: 'rituals',
-        type: 'multi-short-text',
+        type: 'multi-input',
         label: 'These are the three things I will do every morning to feel good about myself',
-        inputs: [
-          { key: 'routine1', placeholder: 'Morning ritual 1' },
-          { key: 'routine2', placeholder: 'Morning ritual 2' },
-          { key: 'routine3', placeholder: 'Morning ritual 3' },
-        ],
+        placeholder: 'Add a morning ritual...',
         isRequired: true,
+        minItems: 3,
+        maxItems: 3,
+        legacyInputKeys: ['routine1', 'routine2', 'routine3'],
       },
     ],
   }),
@@ -897,14 +909,13 @@ const lightingScreens: CompassScreenDefinition[] = [
     prompts: [
       {
         key: 'environmentJoy',
-        type: 'multi-short-text',
+        type: 'multi-input',
         label: 'I’ll use these three things to make my daily environment an absolute joy to be in',
-        inputs: [
-          { key: 'joy1', placeholder: 'Environment joy 1' },
-          { key: 'joy2', placeholder: 'Environment joy 2' },
-          { key: 'joy3', placeholder: 'Environment joy 3' },
-        ],
+        placeholder: 'Add something that makes your environment joyful...',
         isRequired: true,
+        minItems: 3,
+        maxItems: 3,
+        legacyInputKeys: ['joy1', 'joy2', 'joy3'],
       },
     ],
   }),
@@ -916,7 +927,7 @@ const lightingScreens: CompassScreenDefinition[] = [
     prompts: [
       {
         key: 'main',
-        type: 'textarea',
+        type: 'short-text',
         label: 'This is the person or thing I will count on to help me achieve my financial goals',
         isRequired: true,
       },
@@ -930,7 +941,7 @@ const lightingScreens: CompassScreenDefinition[] = [
     prompts: [
       {
         key: 'main',
-        type: 'textarea',
+        type: 'short-text',
         label: 'This is the person or thing I will count on to help me achieve my health goals',
         isRequired: true,
       },
@@ -944,7 +955,7 @@ const lightingScreens: CompassScreenDefinition[] = [
     prompts: [
       {
         key: 'main',
-        type: 'textarea',
+        type: 'short-text',
         label: 'This is the person or thing I will count on to help me achieve my relationship goals',
         isRequired: true,
       },
@@ -987,14 +998,13 @@ const lightingScreens: CompassScreenDefinition[] = [
     prompts: [
       {
         key: 'people',
-        type: 'multi-short-text',
+        type: 'multi-input',
         label: 'These are the three people I will call on, and be vulnerable with, to help me during tough times',
-        inputs: [
-          { key: 'person1', placeholder: 'Support person 1' },
-          { key: 'person2', placeholder: 'Support person 2' },
-          { key: 'person3', placeholder: 'Support person 3' },
-        ],
+        placeholder: 'Add a support person...',
         isRequired: true,
+        minItems: 3,
+        maxItems: 3,
+        legacyInputKeys: ['person1', 'person2', 'person3'],
       },
     ],
   }),
@@ -1006,14 +1016,13 @@ const lightingScreens: CompassScreenDefinition[] = [
     prompts: [
       {
         key: 'places',
-        type: 'multi-short-text',
+        type: 'multi-input',
         label: 'Here’s the 3 places I will visit this year',
-        inputs: [
-          { key: 'place1', placeholder: 'Place 1' },
-          { key: 'place2', placeholder: 'Place 2' },
-          { key: 'place3', placeholder: 'Place 3' },
-        ],
+        placeholder: 'Add a place to visit...',
         isRequired: true,
+        minItems: 3,
+        maxItems: 3,
+        legacyInputKeys: ['place1', 'place2', 'place3'],
       },
     ],
   }),
@@ -1025,14 +1034,13 @@ const lightingScreens: CompassScreenDefinition[] = [
     prompts: [
       {
         key: 'lovedOnes',
-        type: 'multi-short-text',
+        type: 'multi-input',
         label: 'Here’s the three things I will do for my loved ones',
-        inputs: [
-          { key: 'loved1', placeholder: 'Thing for loved ones 1' },
-          { key: 'loved2', placeholder: 'Thing for loved ones 2' },
-          { key: 'loved3', placeholder: 'Thing for loved ones 3' },
-        ],
+        placeholder: 'Add something you will do for a loved one...',
         isRequired: true,
+        minItems: 3,
+        maxItems: 3,
+        legacyInputKeys: ['loved1', 'loved2', 'loved3'],
       },
     ],
   }),
@@ -1044,14 +1052,13 @@ const lightingScreens: CompassScreenDefinition[] = [
     prompts: [
       {
         key: 'rewards',
-        type: 'multi-short-text',
+        type: 'multi-input',
         label: 'Here’s the three things I will buy myself as a reward this year',
-        inputs: [
-          { key: 'reward1', placeholder: 'Reward 1' },
-          { key: 'reward2', placeholder: 'Reward 2' },
-          { key: 'reward3', placeholder: 'Reward 3' },
-        ],
+        placeholder: 'Add a reward...',
         isRequired: true,
+        minItems: 3,
+        maxItems: 3,
+        legacyInputKeys: ['reward1', 'reward2', 'reward3'],
       },
     ],
   }),
@@ -1094,9 +1101,12 @@ const goldenPathScreens: CompassScreenDefinition[] = [
     prompts: [
       {
         key: 'main',
-        type: 'textarea',
+        type: 'multi-input',
         label: 'Point A — Summarise where you are at today in a few lines',
+        placeholder: 'Add a line that describes where you are now...',
         isRequired: true,
+        minItems: 3,
+        maxItems: 3,
       },
     ],
   }),
@@ -1108,9 +1118,12 @@ const goldenPathScreens: CompassScreenDefinition[] = [
     prompts: [
       {
         key: 'main',
-        type: 'textarea',
+        type: 'multi-input',
         label: 'Point B — Restate the top three goals that define the year you want to build',
+        placeholder: 'Add a Point B goal...',
         isRequired: true,
+        minItems: 3,
+        maxItems: 3,
       },
     ],
     prefillFrom: 'top-3-goals',
@@ -1158,14 +1171,16 @@ const goldenPathScreens: CompassScreenDefinition[] = [
     prompts: [
       {
         key: 'pleasure',
-        type: 'textarea',
+        type: 'multi-input',
         label: 'How can I make the process of solving this challenge fun and pleasurable for me?',
+        placeholder: 'Add a way to make the process more pleasurable...',
         isRequired: true,
       },
       {
         key: 'help',
-        type: 'textarea',
+        type: 'multi-input',
         label: 'Who can help me solve this challenge faster and easier?',
+        placeholder: 'Add someone who can help...',
         isRequired: true,
       },
     ],

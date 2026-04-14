@@ -69,19 +69,45 @@ const COMPASS_TEST_SCREEN_OVERRIDES: Record<string, CompassTestScreenValue> = {
     word2: 'demanding',
     word3: 'clarifying',
   },
-  'past-golden-moments':
-    'The best moments were calmer, slower, and more honest than the frantic versions I used to chase.',
+  'past-golden-moments': {
+    main: JSON.stringify([
+      'Long calm conversations with people who mattered.',
+      'Clean focused work that felt quiet instead of frantic.',
+      'Moments where my body and mind both felt fully online.',
+    ]),
+  },
   'past-challenges': {
-    challenge1: 'Fragmented attention',
-    challenge2: 'Financial pressure',
-    challenge3: 'Letting ambiguity sit too long',
-    support: 'A tighter support circle, cleaner systems, and more direct conversations.',
-    lessons: 'I need visible constraints and faster honesty with myself.',
+    challenges: JSON.stringify([
+      'Fragmented attention',
+      'Financial pressure',
+      'Letting ambiguity sit too long',
+    ]),
+    support: JSON.stringify([
+      'A tighter support circle',
+      'Cleaner systems',
+      'More direct conversations',
+    ]),
+    lessons: JSON.stringify([
+      'I need visible constraints',
+      'I need faster honesty with myself',
+    ]),
     notProud: 'How often I let stress become an excuse for staying scattered.',
   },
-  'past-compassion-box': 'I am ready to stop dragging old false starts into every new plan.',
-  'future-brainstorm':
-    'A calm business, stronger body, steadier money, deeper relationships, and work that feels precise instead of frantic.',
+  'past-compassion-box': {
+    main: JSON.stringify([
+      'Dragging old false starts into every new plan',
+      'Letting shame speak louder than action',
+    ]),
+  },
+  'future-brainstorm': {
+    main: JSON.stringify([
+      'A calm business',
+      'A stronger body',
+      'Steadier money',
+      'Deeper relationships',
+      'Work that feels precise instead of frantic',
+    ]),
+  },
   'future-next-year': {
     workLife: 'Durable creative work, cleaner money, and less reactive decision-making.',
     relationships: 'Closer, warmer, and more available relationships.',
@@ -90,15 +116,26 @@ const COMPASS_TEST_SCREEN_OVERRIDES: Record<string, CompassTestScreenValue> = {
   'perfect-day-morning': {
     wakeTime: '6:18 AM',
     bodyFeeling: 'Rested, strong, and lightly energized instead of stiff or overcaffeinated.',
-    firstThoughts: 'I know what matters, I have enough time, and I trust the direction.',
+    firstThoughts: JSON.stringify([
+      'I know what matters',
+      'I have enough time',
+      'I trust the direction',
+    ]),
     morningView: 'Soft light, a clean room, and the kind of calm that makes the day feel chosen.',
     location: 'New York',
     salesMessage: 'Yesterday was clean, profitable, and fully handled without frantic effort.',
   },
   'perfect-day-plans': {
     autonomyFeeling: 'Supported, trusted, and free to spend the day on the work that actually matters.',
-    workPlans: 'A long creative strategy block and one sharp decision that clears a major bottleneck.',
-    funPlans: 'A walk, a great lunch, and an adventure with someone I love.',
+    workPlans: JSON.stringify([
+      'A long creative strategy block',
+      'One sharp decision that clears a major bottleneck',
+    ]),
+    funPlans: JSON.stringify([
+      'A walk',
+      'A great lunch',
+      'An adventure with someone I love',
+    ]),
   },
   'perfect-day-style': {
     mirrorView: 'Someone who looks awake, capable, and fully in his own life.',
@@ -119,39 +156,48 @@ const COMPASS_TEST_SCREEN_OVERRIDES: Record<string, CompassTestScreenValue> = {
   'perfect-day-difference': {
     givingBack: 'I fund useful work, mentor honestly, and make calmer ambition feel possible for other people.',
     weekendTrip: 'A coastal weekend away with someone I adore.',
-    weekendActivities: 'Great food, long walks, a little mischief, and total presence.',
+    weekendActivities: JSON.stringify([
+      'Great food',
+      'Long walks',
+      'A little mischief',
+      'Total presence',
+    ]),
   },
   'perfect-day-home': {
     weekendFood: 'Fresh food, beautiful wine, and something a little indulgent.',
     homeAtmosphere: 'Calm, warm, perfectly arranged, and carrying that just-cleaned hotel feeling.',
     windowView: 'City lights and enough distance to feel spacious.',
-    houseHighlights: 'Books, records, art, and tools that make me want to build.',
-    garageHighlights: 'A car I love and the gear for spontaneous escapes.',
+    houseHighlights: JSON.stringify([
+      'Books',
+      'Records',
+      'Art',
+      'Tools that make me want to build',
+    ]),
+    garageHighlights: JSON.stringify([
+      'A car I love',
+      'The gear for spontaneous escapes',
+    ]),
   },
   'perfect-day-evening': {
     specialSomeoneMessage: 'Meet me upstairs. Everything is handled. I love you.',
     nightClose: 'Slow dinner, laughter, soft light, and zero urge to check out of my own life.',
-    word1: 'Love',
-    word2: 'Health',
-    word3: 'Freedom',
+    gratitude: JSON.stringify(['Love', 'Health', 'Freedom']),
   },
   'perfect-day-feeling': 'Calm, turned on, and completely aligned with the life I am building.',
   'perfect-day-commitment':
     'I trust in the direction that my compass has set for me.\nFrom this day forward, I commit, with every fibre of my being, to moving towards my perfect day.',
   'top-3-goals': {
-    goal1: COMPASS_TEST_INSIGHTS.annualGoals[0],
-    goal2: COMPASS_TEST_INSIGHTS.annualGoals[1],
-    goal3: COMPASS_TEST_INSIGHTS.annualGoals[2],
+    goals: JSON.stringify(COMPASS_TEST_INSIGHTS.annualGoals),
   },
   'morning-routine': {
-    routine1: COMPASS_TEST_INSIGHTS.dailyRituals[0],
-    routine2: COMPASS_TEST_INSIGHTS.dailyRituals[1],
-    routine3: COMPASS_TEST_INSIGHTS.dailyRituals[2],
+    rituals: JSON.stringify(COMPASS_TEST_INSIGHTS.dailyRituals),
   },
   'lighting-environment-joy': {
-    joy1: 'Beautiful light',
-    joy2: 'Great music',
-    joy3: 'A workspace that feels intentional',
+    environmentJoy: JSON.stringify([
+      'Beautiful light',
+      'Great music',
+      'A workspace that feels intentional',
+    ]),
   },
   'financial-help': 'A tighter runway plan, weekly cash visibility, and fewer parallel bets.',
   'health-help': 'Strength training, sleep boundaries, and simple meal defaults.',
@@ -162,37 +208,55 @@ const COMPASS_TEST_SCREEN_OVERRIDES: Record<string, CompassTestScreenValue> = {
     guiltFreeEnjoyment: JSON.stringify(['Rest', 'Pleasure', 'Spending on beauty when it actually matters']),
   },
   'vulnerability-partners': {
-    person1: COMPASS_TEST_INSIGHTS.supportPeople[0],
-    person2: COMPASS_TEST_INSIGHTS.supportPeople[1],
-    person3: COMPASS_TEST_INSIGHTS.supportPeople[2],
+    people: JSON.stringify(COMPASS_TEST_INSIGHTS.supportPeople),
   },
   'lighting-places': {
-    place1: 'Tokyo',
-    place2: 'Lisbon',
-    place3: 'Big Sur',
+    places: JSON.stringify(['Tokyo', 'Lisbon', 'Big Sur']),
   },
   'lighting-loved-ones': {
-    loved1: 'Take one person I love somewhere beautiful',
-    loved2: 'Say the hard honest thing sooner',
-    loved3: 'Show up without hiding behind busyness',
+    lovedOnes: JSON.stringify([
+      'Take one person I love somewhere beautiful',
+      'Say the hard honest thing sooner',
+      'Show up without hiding behind busyness',
+    ]),
   },
   'lighting-self-rewards': {
-    reward1: 'A watch I will keep forever',
-    reward2: 'A proper writing trip',
-    reward3: 'A piece of art that marks the year',
+    rewards: JSON.stringify([
+      'A watch I will keep forever',
+      'A proper writing trip',
+      'A piece of art that marks the year',
+    ]),
   },
-  'point-a':
-    'Right now I have momentum, but too much drag from scattered commitments and avoidable context switching.',
-  'point-b':
-    'A year defined by calmer execution, stronger finances, and a body that feels reliable again.',
+  'point-a': {
+    main: JSON.stringify([
+      'I have momentum.',
+      'I still have too much drag from scattered commitments.',
+      'Avoidable context switching is stealing a lot of energy.',
+    ]),
+  },
+  'point-b': {
+    main: JSON.stringify([
+      'Calmer execution',
+      'Stronger finances',
+      'A body that feels reliable again',
+    ]),
+  },
   'challenges-obstacles': [
     'Too many active threads at once',
     'Stress-driven overcommitment',
     'Letting ambiguity sit too long before making the hard call',
   ],
   'golden-path-process': {
-    pleasure: 'By making the work visible, rhythmic, and connected to people and places I actually enjoy.',
-    help: 'Therapist, trusted peers, and systems that keep the real bottleneck visible.',
+    pleasure: JSON.stringify([
+      'Make the work visible',
+      'Keep the rhythm steady',
+      'Connect it to people and places I actually enjoy',
+    ]),
+    help: JSON.stringify([
+      'Therapist',
+      'Trusted peers',
+      'Systems that keep the real bottleneck visible',
+    ]),
   },
   'golden-path-final-notes': {
     finalNotes:
