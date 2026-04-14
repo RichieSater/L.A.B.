@@ -2,7 +2,10 @@ import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { GOLDEN_COMPASS_PATH } from '../../../constants/routes';
+import {
+  GOLDEN_COMPASS_PATH,
+  getGoldenCompassSessionViewPath,
+} from '../../../constants/routes';
 import {
   COMPASS_TEST_INSIGHTS,
   createCompassTestAnswers,
@@ -523,6 +526,24 @@ describe('CompassSessionRunner', () => {
     expect(screen.getByRole('button', { name: 'Continue' })).toBeEnabled();
   });
 
+  it('routes month-by-month review into the past preview checkpoint before the snapshot screens', async () => {
+    const user = userEvent.setup();
+
+    renderRunner(
+      createCompassTestSession({
+        currentScreen: getCompassScreenIndex('past-monthly-events'),
+      }),
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Continue' }));
+
+    expect(await screen.findByText('Preview Your Past Year')).toBeInTheDocument();
+    expect(screen.getByText('Month-by-month review')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Continue' }));
+    expect(await screen.findByText('The Snapshot Of Your Past Year')).toBeInTheDocument();
+  });
+
   it('hydrates legacy newline month notes into add-item rows', () => {
     const answers = createCompassTestAnswers();
     answers['past-monthly-events'] = {
@@ -616,8 +637,40 @@ describe('CompassSessionRunner', () => {
     });
   });
 
+  it('shows the lighting preview checkpoint before the Golden Path starts', async () => {
+    const user = userEvent.setup();
+
+    renderRunner(
+      createCompassTestSession({
+        currentScreen: getCompassScreenIndex('lighting-self-rewards'),
+      }),
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Continue' }));
+
+    expect(await screen.findByText('Preview The Direction You Set')).toBeInTheDocument();
+    expect(screen.getAllByText('Lighting The Path')).toHaveLength(2);
+
+    await user.click(screen.getByRole('button', { name: 'Continue' }));
+    expect(
+      await screen.findByText('We are now going to draw a direct path to your perfect day, along with milestones to achieve this.'),
+    ).toBeInTheDocument();
+  });
+
+  it('can resume directly onto a preview checkpoint', () => {
+    renderRunner(
+      createCompassTestSession({
+        currentScreen: getCompassScreenIndex('lighting-preview'),
+      }),
+    );
+
+    expect(screen.getByText('Preview The Direction You Set')).toBeInTheDocument();
+  });
+
   it('completes the Compass session, refreshes bootstrap, and shows the completion summary', async () => {
     const user = userEvent.setup();
+    const navigate = vi.fn();
+    useNavigate.mockReturnValue(navigate);
     const refreshBootstrap = vi.fn();
     useAuth.mockReturnValue({
       refreshBootstrap,
@@ -642,5 +695,9 @@ describe('CompassSessionRunner', () => {
     expect(await screen.findByText('Compass Completed')).toBeInTheDocument();
     expect(screen.getByText(COMPASS_TEST_INSIGHTS.annualGoals[0])).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Back to Weekly LAB' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'View Compass' })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'View Compass' }));
+    expect(navigate).toHaveBeenCalledWith(getGoldenCompassSessionViewPath(initialSession.id));
   });
 });

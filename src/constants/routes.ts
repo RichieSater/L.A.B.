@@ -26,3 +26,7 @@ export function getAdvisorSessionPath(advisorId: string): string {
 export function getGoldenCompassSessionPath(sessionId: string): string {
   return `${GOLDEN_COMPASS_PATH}/${sessionId}`;
 }
+
+export function getGoldenCompassSessionViewPath(sessionId: string): string {
+  return `${GOLDEN_COMPASS_PATH}/${sessionId}/view`;
+}

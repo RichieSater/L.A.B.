@@ -55,6 +55,9 @@ const CompassPage = lazy(() =>
 const CompassSessionPage = lazy(() =>
   import('./pages/CompassSessionPage').then(module => ({ default: module.CompassSessionPage })),
 );
+const CompassSessionViewPage = lazy(() =>
+  import('./pages/CompassSessionViewPage').then(module => ({ default: module.CompassSessionViewPage })),
+);
 const SettingsPage = lazy(() =>
   import('./pages/SettingsPage').then(module => ({ default: module.SettingsPage })),
 );
@@ -77,6 +80,10 @@ function RouteFallback() {
 }
 
 function App() {
+  const compassPageRoute = <EntitledRoute requiredTier={GOLDEN_COMPASS_MINIMUM_TIER}><CompassPage /></EntitledRoute>;
+  const compassSessionRoute = <EntitledRoute requiredTier={GOLDEN_COMPASS_MINIMUM_TIER}><CompassSessionPage /></EntitledRoute>;
+  const compassSessionViewRoute = <EntitledRoute requiredTier={GOLDEN_COMPASS_MINIMUM_TIER}><CompassSessionViewPage /></EntitledRoute>;
+
   return (
     <ErrorBoundary>
       <AuthProvider>
@@ -92,10 +99,12 @@ function App() {
                 <Route path={HOME_PATH} element={<ModuleHubPage />} />
                 <Route path={QUANTUM_PLANNER_PATH} element={<EntitledRoute requiredTier={QUANTUM_PLANNER_MINIMUM_TIER}><DashboardPage /></EntitledRoute>} />
                 <Route path={ADVISORY_BOARD_PATH} element={<EntitledRoute requiredTier={ADVISORY_BOARD_MINIMUM_TIER}><AdvisoryBoardPage /></EntitledRoute>} />
-                <Route path={GOLDEN_COMPASS_PATH} element={<EntitledRoute requiredTier={GOLDEN_COMPASS_MINIMUM_TIER}><CompassPage /></EntitledRoute>} />
-                <Route path={LEGACY_GOLDEN_COMPASS_PATH} element={<EntitledRoute requiredTier={GOLDEN_COMPASS_MINIMUM_TIER}><CompassPage /></EntitledRoute>} />
-                <Route path={GOLDEN_COMPASS_SESSION_ROUTE} element={<EntitledRoute requiredTier={GOLDEN_COMPASS_MINIMUM_TIER}><CompassSessionPage /></EntitledRoute>} />
-                <Route path={LEGACY_GOLDEN_COMPASS_SESSION_ROUTE} element={<EntitledRoute requiredTier={GOLDEN_COMPASS_MINIMUM_TIER}><CompassSessionPage /></EntitledRoute>} />
+                <Route path={GOLDEN_COMPASS_PATH} element={compassPageRoute} />
+                <Route path={LEGACY_GOLDEN_COMPASS_PATH} element={compassPageRoute} />
+                <Route path="/golden-compass/:sessionId/view" element={compassSessionViewRoute} />
+                <Route path="/compass/:sessionId/view" element={compassSessionViewRoute} />
+                <Route path={GOLDEN_COMPASS_SESSION_ROUTE} element={compassSessionRoute} />
+                <Route path={LEGACY_GOLDEN_COMPASS_SESSION_ROUTE} element={compassSessionRoute} />
                 <Route path={SESSION_ROUTE} element={<EntitledRoute requiredTier={ADVISORY_BOARD_MINIMUM_TIER}><SessionPage /></EntitledRoute>} />
                 <Route path={ADVISOR_ROUTE} element={<EntitledRoute requiredTier={ADVISORY_BOARD_MINIMUM_TIER}><AdvisorPage /></EntitledRoute>} />
                 <Route path={ADMIN_DASHBOARD_PATH} element={<EntitledRoute requiredTier={ADMIN_DASHBOARD_MINIMUM_TIER}><AdminDashboardPage /></EntitledRoute>} />

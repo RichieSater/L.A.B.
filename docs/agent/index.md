@@ -41,4 +41,6 @@
 
 This repo is a personal "Life Advisory Board" application rather than a starter template. The critical paths are advisor state management in `src/state/`, server-owned persistence in `api/` plus `server/`, and the dashboard workflow that now spans advisor-attention triage, planning buckets, a daily planning loop, weekly focus, weekly review, weekly momentum digests, and scheduling/calendar sync.
 
+Treat `/Users/richiesater/dev/L.A.B/L.A.B.` as the only LAB repo root and `https://lab-three-alpha.vercel.app/` as the only canonical production URL. Preview, claim, copied-tree, temporary, or alternate Vercel deploys are invalid for LAB; if production deploy prerequisites fail, stop and report the blocker instead of deploying somewhere else. The standalone `GoldenCompass` app is decommissioned; do not use it as a LAB reference or deploy target.
+
 The generated harness summary is still generic, so use these repo notes plus `docs/agent/architecture.md` as the reliable startup context until the harness tool gains better project inference for this layout.

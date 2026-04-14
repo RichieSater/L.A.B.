@@ -60,7 +60,7 @@ The next run after maintenance should choose one verified extension of that slic
 
 1. add the deferred weekly-specific extras only if they still fit the single-store architecture: brainstorm capture, QL scorecards, and automatic time-block suggestions
 2. deepen the advisor-to-planner loop with more intentional write actions and review surfaces
-3. decide when to archive or retire the legacy `weekly` and `GoldenCompass` repos after the LAB cutover is stable
+3. decide when to archive or retire the legacy `weekly` repo after the LAB cutover is stable
 
 ## Later
 
@@ -73,4 +73,5 @@ The next run after maintenance should choose one verified extension of that slic
 ## Do Not Repeat Notes
 
 - The dev API bootstrap regression is already part of the documented baseline via guardrails and should stay archived unless a proof command goes red again.
+- Do not reopen the decommissioned standalone `GoldenCompass` app as if it were still part of the LAB product surface.
 - Do not treat generic harness refresh work as the product roadmap while `harness validate .` is green and maintenance is closed.

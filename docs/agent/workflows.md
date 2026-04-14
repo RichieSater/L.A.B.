@@ -25,12 +25,16 @@
 
 Compass and deploy preflight:
 
+- Run `npm run preflight:lab-root`.
 - Confirm `pwd`.
 - Confirm `git rev-parse --show-toplevel`.
 - Confirm the active repo root is `/Users/richiesater/dev/L.A.B/L.A.B.`.
+- Treat `https://lab-three-alpha.vercel.app/` as the only canonical LAB production URL.
+- Use `./deploy.sh` as the only approved LAB deploy path.
+- If production deploy prerequisites fail, stop and report the blocker instead of using a preview, claim, copied-tree, or alternate Vercel deploy.
 - If it is not, stop and switch repos before doing any LAB Golden Compass work.
 
-Use `npm run test:dev-api`, `npm run lint`, `npm run test`, and `npm run build` as the standard local verification sequence when work touches startup, auth, or the Vite dev/API boundary. The focused dev-api suite covers local handler execution plus env hydration; the broader test suite covers API handlers, auth flow guards, parser logic, reducer behavior, and server-side data bootstrap/reset logic.
+Use `npm run test:guardrails`, `npm run lint`, `npm run test`, and `npm run build` as the standard local verification sequence when work touches startup, auth, deploy safety, or the Vite dev/API boundary. The guardrail suite covers local handler execution, env hydration, and dynamic Vercel routing; the broader test suite covers API handlers, auth flow guards, parser logic, reducer behavior, and server-side data bootstrap/reset logic.
 
 When changing auth or persistence behavior, inspect both `api/` and `server/` because handler files are intentionally thin wrappers around shared server utilities.
 

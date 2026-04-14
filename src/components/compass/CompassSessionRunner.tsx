@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   GOLDEN_COMPASS_PATH,
+  getGoldenCompassSessionViewPath,
   QUANTUM_PLANNER_PATH,
 } from '../../constants/routes';
 import { useAuth } from '../../auth/auth-context';
@@ -13,9 +14,14 @@ import {
 import { apiClient } from '../../lib/api';
 import { COMPASS_FLOW, getAllCompassScreens } from '../../lib/compass-flow';
 import {
-  getCompassPastMonthNames,
-  getDefaultCompassPastMonthsIncludeCurrentMonth,
-} from '../../utils/date';
+  hasPastMonthlyEventEntries,
+  LEGACY_PAST_MONTH_KEYS,
+  PAST_MONTHLY_EVENTS_SCREEN_ID,
+  PAST_MONTHS_INCLUDE_CURRENT_KEY,
+  PAST_MONTHS_SCREEN_ID,
+  resolvePastMonthsState,
+} from '../../lib/compass-past-months';
+import { CompassPreviewDocument } from './CompassPreviewDocument';
 import { MultiInputEditor } from './MultiInputEditor';
 import type {
   CompassAnswerRecord,
@@ -28,18 +34,6 @@ import type {
 } from '../../types/compass';
 
 type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
-type CompassPastMonthsStateSource = 'saved' | 'legacy' | 'default';
-
-interface CompassPastMonthsState {
-  includeCurrentMonth: boolean;
-  monthNames: string[];
-  source: CompassPastMonthsStateSource;
-}
-
-const PAST_MONTHS_SCREEN_ID = 'past-months';
-const PAST_MONTHLY_EVENTS_SCREEN_ID = 'past-monthly-events';
-const PAST_MONTHS_INCLUDE_CURRENT_KEY = 'includeCurrentMonth';
-const LEGACY_PAST_MONTH_KEYS = Array.from({ length: 12 }, (_, index) => `month${index + 1}`);
 
 export function CompassSessionRunner({
   initialSession,
@@ -82,6 +76,13 @@ export function CompassSessionRunner({
   );
   const currentSection = COMPASS_FLOW.find(section => section.key === screen.sectionKey) ?? COMPASS_FLOW[0];
   const progress = Math.round(((currentIndex + 1) / totalScreens) * 100);
+  const previewSession = useMemo(
+    () => ({
+      ...session,
+      answers,
+    }),
+    [answers, session],
+  );
 
   if (session.status === 'completed') {
     return (
@@ -89,6 +90,7 @@ export function CompassSessionRunner({
         session={session}
         onBackToCompass={() => navigate(GOLDEN_COMPASS_PATH)}
         onBackToWeek={() => navigate(QUANTUM_PLANNER_PATH)}
+        onViewCompass={() => navigate(getGoldenCompassSessionViewPath(session.id))}
       />
     );
   }
@@ -304,7 +306,15 @@ export function CompassSessionRunner({
           <RitualPreview items={extractCompassionItems(answers)} />
         ) : null}
 
-        {screen.id === PAST_MONTHS_SCREEN_ID ? (
+        {screen.type === 'preview' && screen.previewConfig ? (
+          <div className="mt-8">
+            <CompassPreviewDocument
+              session={previewSession}
+              config={screen.previewConfig}
+              showDocumentIntro={false}
+            />
+          </div>
+        ) : screen.id === PAST_MONTHS_SCREEN_ID ? (
           <PastMonthsToggle
             includeCurrentMonth={pastMonthsState.includeCurrentMonth}
             monthNames={pastMonthsState.monthNames}
@@ -872,10 +882,6 @@ function parseMultiInputItems(value: string | undefined): string[] {
   return parseCompassListAnswer(value);
 }
 
-function hasPastMonthlyEventEntries(answers: CompassAnswerRecord): boolean {
-  return LEGACY_PAST_MONTH_KEYS.some(key => parseMultiInputItems(answers[key]).length > 0);
-}
-
 function hasMeaningfulAnswerValue(key: string, value: string | undefined): boolean {
   if (!value) {
     return false;
@@ -886,65 +892,6 @@ function hasMeaningfulAnswerValue(key: string, value: string | undefined): boole
   }
 
   return parseCompassListAnswer(value).length > 0;
-}
-
-function normalizeMonthName(value: string): string {
-  return value.trim().toLowerCase();
-}
-
-function collectLegacyPastMonthNames(record: CompassAnswerRecord | undefined): string[] {
-  return LEGACY_PAST_MONTH_KEYS.map(key => record?.[key]?.trim() ?? '').filter(Boolean);
-}
-
-function matchesMonthWindow(savedMonths: string[], generatedMonths: string[]): boolean {
-  return (
-    savedMonths.length === generatedMonths.length &&
-    savedMonths.every((month, index) => normalizeMonthName(month) === normalizeMonthName(generatedMonths[index] ?? ''))
-  );
-}
-
-function resolvePastMonthsState(
-  record: CompassAnswerRecord | undefined,
-  sessionCreatedAt: Date,
-): CompassPastMonthsState {
-  const explicitMode = record?.[PAST_MONTHS_INCLUDE_CURRENT_KEY];
-  if (explicitMode === 'true' || explicitMode === 'false') {
-    const includeCurrentMonth = explicitMode === 'true';
-
-    return {
-      includeCurrentMonth,
-      monthNames: getCompassPastMonthNames(sessionCreatedAt, includeCurrentMonth),
-      source: 'saved',
-    };
-  }
-
-  const legacyMonths = collectLegacyPastMonthNames(record);
-  if (legacyMonths.length === LEGACY_PAST_MONTH_KEYS.length) {
-    const includeCurrentMonthMonths = getCompassPastMonthNames(sessionCreatedAt, true);
-    if (matchesMonthWindow(legacyMonths, includeCurrentMonthMonths)) {
-      return {
-        includeCurrentMonth: true,
-        monthNames: includeCurrentMonthMonths,
-        source: 'legacy',
-      };
-    }
-
-    const lastFullMonths = getCompassPastMonthNames(sessionCreatedAt, false);
-    if (matchesMonthWindow(legacyMonths, lastFullMonths)) {
-      return {
-        includeCurrentMonth: false,
-        monthNames: lastFullMonths,
-        source: 'legacy',
-      };
-    }
-  }
-
-  const includeCurrentMonth = getDefaultCompassPastMonthsIncludeCurrentMonth(sessionCreatedAt);
-  return {
-    includeCurrentMonth,
-    monthNames: getCompassPastMonthNames(sessionCreatedAt, includeCurrentMonth),
-    source: 'default',
-  };
 }
 
 function normalizeAnswersForCurrentScreenPersistence(
@@ -1099,10 +1046,12 @@ function CompletedCompassSummary({
   session,
   onBackToCompass,
   onBackToWeek,
+  onViewCompass,
 }: {
   session: CompassSessionDetail;
   onBackToCompass: () => void;
   onBackToWeek: () => void;
+  onViewCompass: () => void;
 }) {
   return (
     <div className="mx-auto max-w-4xl space-y-6">
@@ -1127,6 +1076,13 @@ function CompletedCompassSummary({
           className="rounded-full border border-amber-300 bg-amber-50 px-5 py-2.5 text-sm font-semibold text-amber-950 transition hover:border-amber-200 hover:bg-amber-100"
         >
           Back to Weekly LAB
+        </button>
+        <button
+          type="button"
+          onClick={onViewCompass}
+          className="rounded-full border border-amber-300/40 bg-amber-500/10 px-5 py-2.5 text-sm font-semibold text-amber-100 transition hover:border-amber-200/60 hover:bg-amber-500/20"
+        >
+          View Compass
         </button>
         <button
           type="button"

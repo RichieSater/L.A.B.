@@ -5,8 +5,11 @@ The L.A.B. is a personal "Life Advisory Board" app. It gives the user a set of d
 ## Critical repo boundary
 
 - The active LAB product repo is `/Users/richiesater/dev/L.A.B/L.A.B.`.
-- Sibling `GoldenCompass` and `weekly` repos are legacy reference apps only.
-- Do not implement, verify, or deploy LAB Golden Compass work from those legacy repos.
+- The only canonical LAB production URL is `https://lab-three-alpha.vercel.app/`.
+- The standalone `GoldenCompass` app is decommissioned. LAB is the only live codebase for Golden Compass work.
+- The legacy `weekly` repo is not a valid LAB feature or deploy target.
+- Preview, claim, temporary, copied-tree, or alternate Vercel deploys are invalid for LAB.
+- If the production deploy path is blocked, stop and report the blocker instead of deploying somewhere else.
 - Before Compass work, confirm:
   `pwd`
   `git rev-parse --show-toplevel`
@@ -75,16 +78,21 @@ npm run dev
 ## Useful commands
 
 ```bash
+npm run preflight:lab-root
 npm run lint
 npm run test
+npm run test:guardrails
 npm run test:dev-api
 npm run build
 npm run bundle:check
+npm run db:migrate
+./deploy.sh
 npm run e2e:provision-user
 npm run test:e2e
 npm run db:generate
-npm run db:migrate
 ```
+
+Deploy LAB only with `./deploy.sh` from the canonical repo root on a clean `main` branch. That script is the only approved LAB deploy path; do not use preview deploy helpers, claim URLs, copied worktrees, or alternate Vercel targets.
 
 Install the browser once before the first local Playwright run:
 
@@ -97,7 +105,8 @@ npx playwright install chromium
 Before closing substantial work, run:
 
 ```bash
-npm run test:dev-api
+npm run preflight:lab-root
+npm run test:guardrails
 npm run lint
 npm run test
 npm run build
@@ -105,6 +114,6 @@ npm run build
 
 `npm run build` now includes a stable bundle-budget gate for the main entry chunk plus the long-lived `router`, `clerk`, and `react-vendor` bundles. Use `npm run bundle:check` after an existing build if you only want to re-evaluate the emitted asset sizes.
 
-Use `npm run test:dev-api` whenever you touch local bootstrap, `vite.config.ts`, `api/`, `server/`, or the auth-to-API boundary. It catches the specific regression where Vite serves `api/*.ts` as source instead of executing the handlers, and it also verifies that local server-side env vars are hydrated from `.env.local`.
+Use `npm run test:guardrails` whenever you touch local bootstrap, `vite.config.ts`, `api/`, `server/`, `vercel.json`, `deploy.sh`, or the auth-to-API boundary. That suite covers the local `/api/*` execution bridge, server-side `.env.local` hydration, and dynamic Vercel API rewrites. `npm run test:dev-api` remains as a compatibility alias to the same guardrail suite.
 
 For architecture, workflows, and repo-specific guardrails, use the harness docs in [`docs/agent/`](docs/agent).

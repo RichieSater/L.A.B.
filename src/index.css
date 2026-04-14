@@ -1,1 +1,36 @@
 @import "tailwindcss";
+
+@media print {
+  header,
+  [data-compass-print-hidden="true"] {
+    display: none !important;
+  }
+
+  html,
+  body {
+    background: #ffffff !important;
+    color: #111827 !important;
+  }
+
+  main {
+    max-width: none !important;
+    padding: 0 !important;
+  }
+
+  .compass-print-document,
+  .compass-print-document * {
+    color: #111827 !important;
+  }
+
+  .compass-print-document {
+    background: #ffffff !important;
+  }
+
+  .compass-print-section {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    border-color: #d1d5db !important;
+    background: #ffffff !important;
+    box-shadow: none !important;
+  }
+}

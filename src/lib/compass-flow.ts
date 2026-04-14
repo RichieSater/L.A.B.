@@ -263,6 +263,23 @@ const pastScreens: CompassScreenDefinition[] = [
     ],
   }),
   screen({
+    id: 'past-review-preview',
+    sectionIndex: 2,
+    sectionKey: 'past',
+    sectionTitle: 'The Past',
+    type: 'preview',
+    headline: 'Preview Your Past Year',
+    narrativeText:
+      'Here is a clean read-only view of what you have captured so far before you turn those months into the story and lessons of the year.',
+    previewConfig: {
+      title: 'Past-Year Preview',
+      description: 'A polished checkpoint of the Bonfire and Past sections so far.',
+      sectionKeys: ['bonfire', 'past'],
+      emphasisSectionKey: 'past',
+      availability: 'checkpoint',
+    },
+  }),
+  screen({
     id: 'past-highlights',
     sectionIndex: 2,
     sectionKey: 'past',
@@ -1061,6 +1078,23 @@ const lightingScreens: CompassScreenDefinition[] = [
         legacyInputKeys: ['reward1', 'reward2', 'reward3'],
       },
     ],
+  }),
+  screen({
+    id: 'lighting-preview',
+    sectionIndex: 6,
+    sectionKey: 'lighting',
+    sectionTitle: 'Lighting The Path',
+    type: 'preview',
+    headline: 'Preview The Direction You Set',
+    narrativeText:
+      'Review the direction, rituals, supports, and year themes you have named so far before you map the Golden Path.',
+    previewConfig: {
+      title: 'Direction Preview',
+      description: 'A read-only summary of the reset you have built before the Golden Path mapping begins.',
+      sectionKeys: ['bonfire', 'past', 'future', 'perfect-day', 'calibration', 'lighting'],
+      emphasisSectionKey: 'lighting',
+      availability: 'checkpoint',
+    },
   }),
 ];
 

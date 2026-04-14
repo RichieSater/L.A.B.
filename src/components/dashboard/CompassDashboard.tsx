@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getGoldenCompassSessionPath } from '../../constants/routes';
+import {
+  getGoldenCompassSessionPath,
+  getGoldenCompassSessionViewPath,
+} from '../../constants/routes';
 import { apiClient } from '../../lib/api';
 import type { CompassSessionSummary } from '../../types/compass';
 import { useAuth } from '../../auth/auth-context';
@@ -198,7 +201,8 @@ export function CompassDashboard() {
               description="Review what you set for the year and reopen the session summary if needed."
               sessions={completed}
               busyActionKey={busyActionKey}
-              onOpen={id => navigate(getGoldenCompassSessionPath(id))}
+              onOpen={id => navigate(getGoldenCompassSessionViewPath(id))}
+              openLabel="View Compass"
               onUseInLab={handleUseInLab}
               onToggleAchieved={handleToggleAchieved}
               onDelete={handleDeleteSession}
@@ -216,6 +220,7 @@ function SessionGroup({
   sessions,
   busyActionKey,
   onOpen,
+  openLabel = 'Open',
   onUseInLab,
   onToggleAchieved,
   onDelete,
@@ -225,6 +230,7 @@ function SessionGroup({
   sessions: CompassSessionSummary[];
   busyActionKey: string | null;
   onOpen: (id: string) => void;
+  openLabel?: string;
   onUseInLab?: (id: string) => Promise<void>;
   onToggleAchieved?: (session: CompassSessionSummary) => Promise<void>;
   onDelete?: (session: CompassSessionSummary) => Promise<void>;
@@ -276,7 +282,7 @@ function SessionGroup({
                 onClick={() => onOpen(session.id)}
                 className="rounded-full border border-gray-700 bg-gray-950/80 px-4 py-2 text-sm font-semibold text-gray-100 transition hover:border-amber-300/40 hover:text-amber-100"
               >
-                Open
+                {openLabel}
               </button>
               {session.status === 'completed' && onUseInLab ? (
                 <button

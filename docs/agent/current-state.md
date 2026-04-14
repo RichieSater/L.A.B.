@@ -5,7 +5,7 @@
 <!-- harness:begin generated -->
 ## Last verified
 
-- Generated baseline on `2026-04-11`. Update repo notes after running proof commands when the snapshot changes.
+- Generated baseline on `2026-04-14`. Update repo notes after running proof commands when the snapshot changes.
 
 ## Verified baseline
 
@@ -38,7 +38,11 @@
 ## Active Repo Boundary
 
 - The only active LAB product repo is `/Users/richiesater/dev/L.A.B/L.A.B.`.
-- Legacy `weekly` and `GoldenCompass` repos remain external reference apps and are not valid targets for LAB feature work, verification, deploys, or release claims.
+- The only canonical LAB production URL is `https://lab-three-alpha.vercel.app/`.
+- The standalone `GoldenCompass` repo/project is decommissioned and must not receive LAB feature work, verification, deploys, or release claims.
+- The legacy `weekly` repo remains outside LAB and is not a valid target for LAB feature work, verification, deploys, or release claims.
+- Preview, claim, copied-tree, temporary, or alternate Vercel deploys are invalid for LAB under any circumstance.
+- If the production deploy path is blocked by repo state or release checks, stop and report the blocker instead of using another deploy surface.
 - Before any Golden Compass task, confirm `pwd`, confirm `git rev-parse --show-toplevel`, and confirm the repo root matches `/Users/richiesater/dev/L.A.B/L.A.B.`.
 
 ## Product Surface
@@ -107,7 +111,8 @@ The durable product baseline is a planning-first "Life Advisory Board" app:
 - The latest planning-loop routing polish also verifies that daily-planning action cards and weekly-focus cards can reopen the matching advisor-scoped Weekly LAB lane directly, keeping the canonical preset plus advisor scope intact instead of forcing the user to re-find that task in the raw list.
 - The latest task-list polish also verifies that Recommended Next Move only offers other non-empty planner lanes and that those alternate shortcuts keep the current advisor scope applied while switching presets.
 - The current repo also contains additional in-flight dirty worktree changes across Compass, calendar, server, and dashboard files. Those changes are not evidence that the documented product is missing; they are simply not yet re-recorded as a new verified baseline.
-- Legacy `weekly` and `GoldenCompass` repos remain reference apps outside this repo; LAB is the active product surface and source of truth.
+- The standalone `GoldenCompass` app has been replaced by LAB; LAB is the active product surface and source of truth.
+- The legacy `weekly` repo remains outside this repo until a separate retirement pass removes it.
 
 ## Next Approved Slice
 

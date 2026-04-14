@@ -35,8 +35,11 @@
 
 - Active repo boundary:
   treat `/Users/richiesater/dev/L.A.B/L.A.B.` as the only LAB product root.
-  Do not perform LAB Golden Compass work in sibling legacy repos such as `GoldenCompass` or `weekly`.
+  Treat `https://lab-three-alpha.vercel.app/` as the only canonical LAB production URL.
+  Preview, claim, copied-tree, temporary, or alternate Vercel deploys are invalid for LAB.
+  The standalone `GoldenCompass` app is decommissioned, and `weekly` remains a separate legacy repo.
 - Golden Compass preflight:
+  run `npm run preflight:lab-root` before editing, testing, or deploying Compass changes.
   confirm `pwd`, confirm `git rev-parse --show-toplevel`, and confirm the root path above before editing, testing, or deploying Compass changes.
 
 - `src/main.tsx` is the true browser entrypoint. Changes to auth bootstrapping, global providers, or deploy-time recovery behavior should start there before drilling into page code.

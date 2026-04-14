@@ -111,7 +111,17 @@ export interface CompassAdvisorContext {
 
 export type CompassSessionStatus = 'in_progress' | 'completed' | 'abandoned';
 
-export type CompassScreenType = 'page' | 'ritual' | 'animation';
+export type CompassPreviewAvailability = 'checkpoint' | 'full-view' | 'both';
+
+export interface CompassPreviewConfig {
+  title: string;
+  description?: string;
+  sectionKeys: string[];
+  emphasisSectionKey?: string;
+  availability: CompassPreviewAvailability;
+}
+
+export type CompassScreenType = 'page' | 'ritual' | 'animation' | 'preview';
 
 export type CompassPromptType =
   | 'short-text'
@@ -170,6 +180,7 @@ export interface CompassScreenDefinition {
   contentBlocks?: CompassContentBlock[];
   prompts?: CompassPromptDefinition[];
   prefillFrom?: string;
+  previewConfig?: CompassPreviewConfig;
 }
 
 export interface CompassSectionDefinition {

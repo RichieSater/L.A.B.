@@ -1,7 +1,10 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { getGoldenCompassSessionPath } from '../../../constants/routes';
+import {
+  getGoldenCompassSessionPath,
+  getGoldenCompassSessionViewPath,
+} from '../../../constants/routes';
 import { createCompassTestSession } from '../../../testing/compass-test-data';
 import { CompassDashboard } from '../CompassDashboard';
 
@@ -82,7 +85,7 @@ describe('CompassDashboard', () => {
     expect(navigate).toHaveBeenCalledWith(getGoldenCompassSessionPath('compass-created-from-dashboard'));
   });
 
-  it('renders in-progress and completed sessions and opens the selected session', async () => {
+  it('renders in-progress and completed sessions and routes them to the right Compass surface', async () => {
     const navigate = vi.fn();
     useNavigate.mockReturnValue(navigate);
     apiClient.listCompassSessions.mockResolvedValue([
@@ -113,8 +116,11 @@ describe('CompassDashboard', () => {
     expect(screen.getByText('Active')).toBeInTheDocument();
     expect(screen.getByText('Achieved')).toBeInTheDocument();
 
-    fireEvent.click(screen.getAllByRole('button', { name: 'Open' })[0]!);
+    fireEvent.click(screen.getByRole('button', { name: 'Open' }));
     expect(navigate).toHaveBeenCalledWith(getGoldenCompassSessionPath('compass-in-progress'));
+
+    fireEvent.click(screen.getByRole('button', { name: 'View Compass' }));
+    expect(navigate).toHaveBeenCalledWith(getGoldenCompassSessionViewPath('compass-complete'));
   });
 
   it('runs completed-session lifecycle actions and refreshes bootstrap', async () => {
