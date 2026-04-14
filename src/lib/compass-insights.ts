@@ -1,5 +1,5 @@
 import type { CompassAdvisorContext, CompassAnswers, CompassInsights } from '../types/compass.js';
-import { parseCompassListAnswer, resolveCompassListItems } from './compass-answer-normalization';
+import { parseCompassListAnswer, resolveCompassListItems } from './compass-answer-normalization.js';
 
 const ADVISOR_CONTEXT_TEXT_LIMIT = 600;
 const ADVISOR_CONTEXT_LIST_ITEM_LIMIT = 180;
