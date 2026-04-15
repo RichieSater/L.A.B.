@@ -5,9 +5,11 @@ import { useBufferedCommit } from '../use-buffered-commit';
 function BufferedCommitHarness({
   value,
   onCommit,
+  idleMs,
 }: {
   value: string;
   onCommit: (value: string) => string | void | Promise<string | void>;
+  idleMs?: number | null;
 }) {
   const {
     draftValue,
@@ -18,6 +20,7 @@ function BufferedCommitHarness({
   } = useBufferedCommit<string>({
     value,
     onCommit,
+    idleMs,
   });
 
   return (
@@ -144,5 +147,27 @@ describe('useBufferedCommit', () => {
 
     expect(onCommit).toHaveBeenCalledTimes(1);
     expect(onCommit).toHaveBeenCalledWith('epsilon');
+  });
+
+  it('can disable idle commits while still allowing blur flushes', async () => {
+    const onCommit = vi.fn((value: string) => value);
+
+    render(<BufferedCommitHarness value="alpha" onCommit={onCommit} idleMs={null} />);
+
+    const input = screen.getByLabelText('Draft');
+    fireEvent.change(input, { target: { value: 'zeta' } });
+
+    await act(async () => {
+      vi.advanceTimersByTime(6000);
+    });
+
+    expect(onCommit).not.toHaveBeenCalled();
+
+    await act(async () => {
+      fireEvent.blur(input);
+    });
+
+    expect(onCommit).toHaveBeenCalledTimes(1);
+    expect(onCommit).toHaveBeenCalledWith('zeta');
   });
 });

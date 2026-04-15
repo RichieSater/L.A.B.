@@ -629,6 +629,48 @@ describe('CompassSessionRunner', () => {
     });
   });
 
+  it('does not idle-save month-event typing before blur or continue', async () => {
+    const answers = createCompassTestAnswers();
+    answers['past-months'] = {
+      includeCurrentMonth: 'false',
+    };
+    delete answers['past-monthly-events'];
+
+    renderRunner(
+      createCompassTestSession({
+        currentScreen: getCompassScreenIndex('past-monthly-events'),
+        answers,
+        createdAt: '2026-04-10T12:00:00.000Z',
+      }),
+    );
+
+    const aprilInput = screen.getByRole('textbox', { name: 'April event 1' });
+    fireEvent.change(aprilInput, {
+      target: { value: 'Signed the lease' },
+    });
+
+    await new Promise(resolve => window.setTimeout(resolve, 4500));
+
+    expect(aprilInput).toHaveValue('Signed the lease');
+    expect(apiClient.updateCompassSession).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+
+    await waitFor(() => {
+      expect(apiClient.updateCompassSession).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          answers: expect.objectContaining({
+            'past-monthly-events': expect.objectContaining({
+              month1: JSON.stringify(['Signed the lease']),
+            }),
+          }),
+          currentScreen: getCompassScreenIndex('past-review-preview'),
+        }),
+      );
+    });
+  }, 10000);
+
   it('shows month-specific event fields before the snapshot and gates progress until at least one month has content', async () => {
     const user = userEvent.setup();
     const answers = createCompassTestAnswers();

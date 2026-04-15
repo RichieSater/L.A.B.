@@ -12,7 +12,7 @@ type CommitResult<T> = T | void | Promise<T | void>;
 interface UseBufferedCommitOptions<T> {
   value: T;
   onCommit: (value: T) => CommitResult<T>;
-  idleMs?: number;
+  idleMs?: number | null;
   isEqual?: (left: T, right: T) => boolean;
 }
 
@@ -60,6 +60,10 @@ export function useBufferedCommit<T>({
   }, []);
 
   const scheduleCommit = useCallback(() => {
+    if (idleMs == null) {
+      return;
+    }
+
     clearScheduledCommit();
     timerRef.current = setTimeout(() => {
       void commitOnceRef.current(true);

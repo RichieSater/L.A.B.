@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { MultiInputEditor } from '../MultiInputEditor';
 
 function MultiInputHarness({ initialItems = [] }: { initialItems?: string[] }) {
@@ -20,6 +20,10 @@ function MultiInputHarness({ initialItems = [] }: { initialItems?: string[] }) {
 }
 
 describe('MultiInputEditor', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it('keeps focus and uninterrupted typing while deferring parent commits until blur', async () => {
     const user = userEvent.setup();
 
@@ -37,6 +41,32 @@ describe('MultiInputEditor', () => {
 
     expect(screen.getByTestId('persisted-items')).toHaveTextContent(
       '["Need to simplify my week before it simplifies me"]',
+    );
+  });
+
+  it('does not idle-commit list typing before the field blurs', async () => {
+    vi.useFakeTimers();
+
+    render(<MultiInputHarness />);
+
+    const firstInput = screen.getByRole('textbox', { name: 'Compass item 1' });
+    fireEvent.change(firstInput, {
+      target: { value: 'A slower, more deliberate entry' },
+    });
+
+    await act(async () => {
+      vi.advanceTimersByTime(6000);
+    });
+
+    expect(firstInput).toHaveValue('A slower, more deliberate entry');
+    expect(screen.getByTestId('persisted-items')).toHaveTextContent('[]');
+
+    await act(async () => {
+      fireEvent.blur(firstInput);
+    });
+
+    expect(screen.getByTestId('persisted-items')).toHaveTextContent(
+      '["A slower, more deliberate entry"]',
     );
   });
 

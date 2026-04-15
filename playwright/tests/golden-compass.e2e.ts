@@ -162,9 +162,9 @@ test('typing request budgets stay bounded across Compass and planner notes', asy
     const aprilInput = cleanLabPage.getByRole('textbox', { name: 'April event 1' });
     await aprilInput.click();
     await aprilInput.pressSequentially('Signed the', { delay: 45 });
-    await cleanLabPage.waitForTimeout(1200);
+    await cleanLabPage.waitForTimeout(2500);
     await aprilInput.pressSequentially(' lease', { delay: 45 });
-    await cleanLabPage.waitForTimeout(1200);
+    await cleanLabPage.waitForTimeout(4500);
 
     await expect(aprilInput).toHaveValue('Signed the lease');
     await expect.poll(() => new URL(cleanLabPage.url()).pathname).toBe(compassPath);
@@ -176,11 +176,13 @@ test('typing request budgets stay bounded across Compass and planner notes', asy
 
     const aprilSecondInput = cleanLabPage.getByRole('textbox', { name: 'April event 2' });
     await aprilSecondInput.pressSequentially('Took the first real trip', { delay: 45 });
-    await cleanLabPage.waitForTimeout(1200);
+    await cleanLabPage.waitForTimeout(2500);
     await aprilSecondInput.pressSequentially(' and stayed present', { delay: 45 });
+    await cleanLabPage.waitForTimeout(4500);
 
     await expect(aprilSecondInput).toHaveValue('Took the first real trip and stayed present');
     await expect(cleanLabPage.getByText('Loading your advisory board...')).toHaveCount(0);
+    expect(budget.compassPatchResponses).toHaveLength(1);
 
     await cleanLabPage.getByRole('button', { name: 'Continue' }).click();
 

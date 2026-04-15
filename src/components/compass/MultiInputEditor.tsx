@@ -128,6 +128,8 @@ export function MultiInputEditor({
     dirty,
   } = useBufferedCommit<string[]>({
     value: committedBaseline,
+    // List-builder typing should stay local until blur or an explicit structural/navigation action.
+    idleMs: null,
     onCommit: nextItems => {
       const nextCommittedItems = normalizeCommittedItems(nextItems);
       if (!areStringArraysEqual(nextCommittedItems, committedBaselineRef.current)) {
