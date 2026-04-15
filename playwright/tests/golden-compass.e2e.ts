@@ -182,11 +182,11 @@ test('typing request budgets stay bounded across Compass and planner notes', asy
 
     await expect(aprilSecondInput).toHaveValue('Took the first real trip and stayed present');
     await expect(cleanLabPage.getByText('Loading your advisory board...')).toHaveCount(0);
-    expect(budget.compassPatchResponses).toHaveLength(1);
+    expect(budget.compassPatchResponses).toHaveLength(0);
 
     await cleanLabPage.getByRole('button', { name: 'Continue' }).click();
 
-    await expect.poll(() => budget.compassPatchResponses.length).toBeLessThanOrEqual(2);
+    await expect.poll(() => budget.compassPatchResponses.length).toBe(1);
     await expect.poll(() => new URL(cleanLabPage.url()).pathname).toBe(compassPath);
 
     await cleanLabPage.goto('/planner');

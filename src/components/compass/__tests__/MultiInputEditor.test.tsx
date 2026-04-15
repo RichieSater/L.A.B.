@@ -1,10 +1,16 @@
-import { useState } from 'react';
+import { useState, type ComponentProps } from 'react';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { MultiInputEditor } from '../MultiInputEditor';
 
-function MultiInputHarness({ initialItems = [] }: { initialItems?: string[] }) {
+function MultiInputHarness({
+  initialItems = [],
+  editorProps,
+}: {
+  initialItems?: string[];
+  editorProps?: Partial<ComponentProps<typeof MultiInputEditor>>;
+}) {
   const [persistedItems, setPersistedItems] = useState(initialItems);
 
   return (
@@ -13,6 +19,7 @@ function MultiInputHarness({ initialItems = [] }: { initialItems?: string[] }) {
         items={persistedItems}
         placeholder="Add a worry, loose end, or stressor..."
         onChange={items => setPersistedItems(items.filter(item => item.trim().length > 0))}
+        {...editorProps}
       />
       <output data-testid="persisted-items">{JSON.stringify(persistedItems)}</output>
     </div>
@@ -68,6 +75,30 @@ describe('MultiInputEditor', () => {
     expect(screen.getByTestId('persisted-items')).toHaveTextContent(
       '["A slower, more deliberate entry"]',
     );
+  });
+
+  it('can keep blur and add-item actions local until a later explicit commit', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <MultiInputHarness
+        editorProps={{
+          flushOnBlur: false,
+          flushOnStructuralChange: false,
+        }}
+      />,
+    );
+
+    const firstInput = screen.getByRole('textbox', { name: 'Compass item 1' });
+    await user.click(firstInput);
+    await user.type(firstInput, 'A month note that should stay local');
+    await user.tab();
+
+    expect(screen.getByTestId('persisted-items')).toHaveTextContent('[]');
+
+    await user.click(screen.getByRole('button', { name: 'Add item' }));
+    expect(screen.getByTestId('persisted-items')).toHaveTextContent('[]');
+    expect(await screen.findByRole('textbox', { name: 'Compass item 2' })).toHaveValue('');
   });
 
   it('keeps blank draft rows visible until they are filled', async () => {

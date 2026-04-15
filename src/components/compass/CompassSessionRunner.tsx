@@ -36,6 +36,7 @@ import type {
 
 type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
 const COMPASS_IDLE_SAVE_MS = 4000;
+const COMPASS_MONTHLY_EVENTS_IDLE_SAVE_MS = 5 * 60 * 1000;
 
 function areCompassAnswerRecordsEqual(left: CompassAnswerRecord, right: CompassAnswerRecord): boolean {
   const leftEntries = Object.entries(left).sort(([leftKey], [rightKey]) => leftKey.localeCompare(rightKey));
@@ -172,11 +173,11 @@ export function CompassSessionRunner({
     }
   }
 
-  function scheduleAnswerSave() {
+  function scheduleAnswerSave(idleMs = COMPASS_IDLE_SAVE_MS) {
     clearScheduledAnswerSave();
     saveTimerRef.current = setTimeout(() => {
       void persistAnswerDraft({}, { rescheduleIfDirty: true });
-    }, COMPASS_IDLE_SAVE_MS);
+    }, idleMs);
   }
 
   function getNormalizedCurrentAnswers(): CompassAnswers {
@@ -201,7 +202,7 @@ export function CompassSessionRunner({
 
   function setAnswerDraft(
     updater: (previous: CompassAnswers) => CompassAnswers,
-    options: { flush?: boolean; schedule?: boolean } = {},
+    options: { flush?: boolean; schedule?: boolean; scheduleMs?: number } = {},
   ) {
     const nextAnswers = updater(answersRef.current);
 
@@ -216,7 +217,7 @@ export function CompassSessionRunner({
     }
 
     if (options.schedule !== false) {
-      scheduleAnswerSave();
+      scheduleAnswerSave(options.scheduleMs);
     }
   }
 
@@ -315,7 +316,7 @@ export function CompassSessionRunner({
   function updateAnswer(
     key: string,
     value: string,
-    options: { flush?: boolean; schedule?: boolean } = {},
+    options: { flush?: boolean; schedule?: boolean; scheduleMs?: number } = {},
   ) {
     setAnswerDraft(previous => ({
       ...previous,
@@ -329,7 +330,7 @@ export function CompassSessionRunner({
   function setMultiInputItems(
     key: string,
     items: string[],
-    options: { flush?: boolean; schedule?: boolean } = {},
+    options: { flush?: boolean; schedule?: boolean; scheduleMs?: number } = {},
   ) {
     updateAnswer(key, encodeCompassListAnswer(items), options);
   }
@@ -468,7 +469,10 @@ export function CompassSessionRunner({
             persistedAnswers={persistedScreenAnswers}
             onItemsChange={setMultiInputItems}
             onItemsDraftChange={(key, items) => {
-              setMultiInputItems(key, items, { schedule: false });
+              setMultiInputItems(key, items, {
+                schedule: true,
+                scheduleMs: COMPASS_MONTHLY_EVENTS_IDLE_SAVE_MS,
+              });
             }}
           />
         ) : screen.prompts?.length ? (
@@ -647,8 +651,8 @@ function CompassPromptField({
   prompt: CompassPromptDefinition;
   answers: CompassAnswerRecord;
   persistedAnswers: CompassAnswerRecord;
-  onAnswerChange: (key: string, value: string, options?: { flush?: boolean; schedule?: boolean }) => void;
-  onMultiInputChange: (key: string, items: string[], options?: { flush?: boolean; schedule?: boolean }) => void;
+  onAnswerChange: (key: string, value: string, options?: { flush?: boolean; schedule?: boolean; scheduleMs?: number }) => void;
+  onMultiInputChange: (key: string, items: string[], options?: { flush?: boolean; schedule?: boolean; scheduleMs?: number }) => void;
   onMultiInputDraftChange: (key: string, items: string[]) => void;
   onCommitRequest: () => void;
   onAdvanceRequest: () => void;
@@ -874,7 +878,7 @@ function PastMonthlyEventsEditor({
   monthNames: string[];
   answers: CompassAnswerRecord;
   persistedAnswers: CompassAnswerRecord;
-  onItemsChange: (key: string, items: string[], options?: { flush?: boolean; schedule?: boolean }) => void;
+  onItemsChange: (key: string, items: string[], options?: { flush?: boolean; schedule?: boolean; scheduleMs?: number }) => void;
   onItemsDraftChange: (key: string, items: string[]) => void;
 }) {
   return (
@@ -901,7 +905,14 @@ function PastMonthlyEventsEditor({
                 inputLabelPrefix={`${monthName} event`}
                 addItemLabel={`Add event for ${monthName}`}
                 onDraftChange={items => onItemsDraftChange(fieldKey, items)}
-                onChange={items => onItemsChange(fieldKey, items, { flush: true, schedule: false })}
+                idleMs={null}
+                flushOnBlur={false}
+                flushOnStructuralChange={false}
+                onChange={items => onItemsChange(fieldKey, items, {
+                  flush: false,
+                  schedule: true,
+                  scheduleMs: COMPASS_MONTHLY_EVENTS_IDLE_SAVE_MS,
+                })}
               />
             </div>
           );

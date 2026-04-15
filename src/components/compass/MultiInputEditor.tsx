@@ -97,6 +97,9 @@ export function MultiInputEditor({
   addItemLabel = 'Add item',
   minItems,
   maxItems,
+  idleMs = null,
+  flushOnBlur = true,
+  flushOnStructuralChange = true,
   onChange,
   onDraftChange,
   onAdvanceRequest,
@@ -109,6 +112,9 @@ export function MultiInputEditor({
   addItemLabel?: string;
   minItems?: number;
   maxItems?: number;
+  idleMs?: number | null;
+  flushOnBlur?: boolean;
+  flushOnStructuralChange?: boolean;
   onChange: (items: string[]) => void;
   onDraftChange?: (items: string[]) => void;
   onAdvanceRequest?: () => void;
@@ -128,8 +134,7 @@ export function MultiInputEditor({
     dirty,
   } = useBufferedCommit<string[]>({
     value: committedBaseline,
-    // List-builder typing should stay local until blur or an explicit structural/navigation action.
-    idleMs: null,
+    idleMs,
     onCommit: nextItems => {
       const nextCommittedItems = normalizeCommittedItems(nextItems);
       if (!areStringArraysEqual(nextCommittedItems, committedBaselineRef.current)) {
@@ -206,16 +211,16 @@ export function MultiInputEditor({
     const nextRows = [...rows];
     nextRows.splice(afterIndex + 1, 0, newRow);
     pendingFocusRowIdRef.current = newRow.id;
-    commitRows(nextRows, { flush: true });
+    commitRows(nextRows, { flush: flushOnStructuralChange });
   }
 
   function removeItem(id: string) {
     if (rows.length === 1) {
-      commitRows([{ ...rows[0], value: '' }], { flush: true });
+      commitRows([{ ...rows[0], value: '' }], { flush: flushOnStructuralChange });
       return;
     }
 
-    commitRows(rows.filter(row => row.id !== id), { flush: true });
+    commitRows(rows.filter(row => row.id !== id), { flush: flushOnStructuralChange });
   }
 
   function handleKeyDown(event: React.KeyboardEvent<HTMLInputElement>, row: MultiInputRow, index: number) {
@@ -272,6 +277,10 @@ export function MultiInputEditor({
               value={row.value}
               onChange={event => updateItem(row.id, event.target.value)}
               onBlur={() => {
+                if (!flushOnBlur) {
+                  return;
+                }
+
                 void requestBufferedCommit();
               }}
               onKeyDown={event => handleKeyDown(event, row, index)}
