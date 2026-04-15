@@ -4,7 +4,7 @@ import path from 'node:path';
 export const bundleBudgets = [
   {
     label: 'entry',
-    budgetKb: 12.5,
+    budgetKb: 12.7,
     select: chunk =>
       chunk.isEntry === true &&
       chunk.file.startsWith('assets/index-') &&

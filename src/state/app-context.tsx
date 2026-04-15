@@ -24,20 +24,39 @@ interface AppContextValue {
 
 const AppContext = createContext<AppContextValue | null>(null);
 
+function serializeAppStateSnapshot(state: AppState): string {
+  return JSON.stringify(state);
+}
+
 export function AppProvider({ children }: { children: ReactNode }) {
   const { bootstrapData, bootstrapError, loading: authLoading } = useAuth();
   const [state, dispatch] = useReducer(appReducer, null, createDefaultAppState);
   const [saveError, setSaveError] = useState<string | null>(null);
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const initializedRef = useRef(false);
+  const stateSnapshotRef = useRef(serializeAppStateSnapshot(state));
+  const persistedSnapshotRef = useRef<string | null>(null);
   const dismissSaveError = useCallback(() => setSaveError(null), []);
 
   const saveState = useCallback(async (stateToSave: AppState) => {
     await apiClient.saveAppState(stateToSave);
+    persistedSnapshotRef.current = serializeAppStateSnapshot(stateToSave);
   }, []);
 
   useEffect(() => {
+    stateSnapshotRef.current = serializeAppStateSnapshot(state);
+  }, [state]);
+
+  useEffect(() => {
     if (authLoading || !bootstrapData) {
+      return;
+    }
+
+    const nextSnapshot = serializeAppStateSnapshot(bootstrapData.appState);
+    persistedSnapshotRef.current = nextSnapshot;
+    initializedRef.current = true;
+
+    if (stateSnapshotRef.current === nextSnapshot) {
       return;
     }
 
@@ -52,13 +71,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
       return;
     }
 
+    const nextSnapshot = serializeAppStateSnapshot(state);
+
+    if (nextSnapshot === persistedSnapshotRef.current) {
+      return;
+    }
+
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current);
     }
 
     saveTimeoutRef.current = setTimeout(() => {
       setSaveError(null);
-      apiClient.saveAppState(state).catch(err => {
+      saveState(state).catch(err => {
         console.error('Failed to save app state:', err);
         setSaveError(err instanceof Error ? err.message : 'Failed to save data. Changes may not persist.');
       });
@@ -69,7 +94,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         clearTimeout(saveTimeoutRef.current);
       }
     };
-  }, [state, loading]);
+  }, [loading, saveState, state]);
 
   if (loading) {
     return (

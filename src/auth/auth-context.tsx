@@ -4,6 +4,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useRef,
   useState,
   type ReactNode,
 } from 'react';
@@ -32,36 +33,36 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-function mapUser(user: ReturnType<typeof useUser>['user']): AuthUser | null {
-  if (!user) {
-    return null;
-  }
-
-  return {
-    id: user.id,
-    primaryEmailAddress: user.primaryEmailAddress?.emailAddress ?? null,
-  };
-}
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { isLoaded, user: clerkUser } = useUser();
   const clerk = useClerk();
+  const clerkUserId = clerkUser?.id ?? null;
   const [bootstrapData, setBootstrapData] = useState<BootstrapResponse | null>(null);
+  const [bootstrapDataUserId, setBootstrapDataUserId] = useState<string | null>(null);
   const [bootstrapError, setBootstrapError] = useState<Error | ApiClientError | ApiError | null>(null);
-  const [bootstrapping, setBootstrapping] = useState(false);
+  const [bootstrapErrorUserId, setBootstrapErrorUserId] = useState<string | null>(null);
+  const activeUserIdRef = useRef<string | null>(clerkUserId);
+  const bootstrapRequestIdRef = useRef(0);
 
-  const fetchBootstrap = useCallback(async (showRecoveryScreen: boolean) => {
-    if (!clerkUser) {
-      setBootstrapData(null);
-      setBootstrapError(null);
-      return;
-    }
+  useEffect(() => {
+    activeUserIdRef.current = clerkUserId;
+  }, [clerkUserId]);
 
-    setBootstrapping(true);
+  const fetchBootstrap = useCallback(async (
+    userId: string,
+    showRecoveryScreen: boolean,
+  ) => {
+    const requestId = bootstrapRequestIdRef.current + 1;
+    bootstrapRequestIdRef.current = requestId;
     setBootstrapError(null);
+    setBootstrapErrorUserId(null);
 
     try {
       const nextData = await apiClient.getBootstrap();
+
+      if (activeUserIdRef.current !== userId || bootstrapRequestIdRef.current !== requestId) {
+        return;
+      }
 
       if (nextData.buildVersion !== APP_BUILD_VERSION && typeof window !== 'undefined') {
         const reloadKey = `lab-build-reload:${nextData.buildVersion}`;
@@ -72,9 +73,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       }
 
+      setBootstrapDataUserId(userId);
       setBootstrapData(nextData);
       setBootstrapError(null);
+      setBootstrapErrorUserId(null);
     } catch (error) {
+      if (activeUserIdRef.current !== userId || bootstrapRequestIdRef.current !== requestId) {
+        return;
+      }
+
       const normalizedError = isApiClientError(error)
         ? error
         : error instanceof Error
@@ -83,46 +90,64 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (showRecoveryScreen) {
         setBootstrapData(null);
+        setBootstrapDataUserId(null);
         setBootstrapError(normalizedError);
+        setBootstrapErrorUserId(userId);
         return;
       }
 
       throw normalizedError;
-    } finally {
-      setBootstrapping(false);
     }
-  }, [clerkUser]);
+  }, []);
+
+  const currentBootstrapData = clerkUserId && bootstrapDataUserId === clerkUserId ? bootstrapData : null;
+  const currentBootstrapError = clerkUserId && bootstrapErrorUserId === clerkUserId ? bootstrapError : null;
 
   const refreshBootstrap = useCallback(async () => {
-    await fetchBootstrap(!bootstrapData);
-  }, [bootstrapData, fetchBootstrap]);
+    if (!clerkUserId) {
+      return;
+    }
 
-  const retryBootstrap = useCallback(async () => {
-    await fetchBootstrap(true);
-  }, [fetchBootstrap]);
+    await fetchBootstrap(clerkUserId, !currentBootstrapData);
+  }, [clerkUserId, currentBootstrapData, fetchBootstrap]);
+
+  const retryBootstrap = refreshBootstrap;
 
   useEffect(() => {
     if (!isLoaded) {
       return;
     }
 
-    if (!clerkUser) {
-      setBootstrapData(null);
-      setBootstrapError(null);
-      setBootstrapping(false);
+    if (!clerkUserId) {
+      bootstrapRequestIdRef.current += 1;
+      queueMicrotask(() => {
+        if (activeUserIdRef.current !== null) {
+          return;
+        }
+
+        setBootstrapData(null);
+        setBootstrapDataUserId(null);
+        setBootstrapError(null);
+        setBootstrapErrorUserId(null);
+      });
       return;
     }
 
-    retryBootstrap().catch(error => {
-      console.error('Failed to bootstrap app state:', error);
-      setBootstrapping(false);
+    queueMicrotask(() => {
+      if (activeUserIdRef.current !== clerkUserId) {
+        return;
+      }
+
+      fetchBootstrap(clerkUserId, true).catch(error => {
+        console.error('Failed to bootstrap app state:', error);
+      });
     });
-  }, [isLoaded, clerkUser, retryBootstrap]);
+  }, [clerkUserId, fetchBootstrap, isLoaded]);
 
   const updateProfile = useCallback(async (updates: UpdateUserProfileInput) => {
     const profile = await apiClient.updateProfile(updates);
     setBootstrapData(prev => {
-      if (!prev) {
+      if (!prev || bootstrapDataUserId !== clerkUserId) {
         return prev;
       }
 
@@ -131,24 +156,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         profile,
       };
     });
-  }, []);
+  }, [bootstrapDataUserId, clerkUserId]);
 
   const signOut = useCallback(async () => {
     await clerk.signOut();
+    bootstrapRequestIdRef.current += 1;
     setBootstrapData(null);
+    setBootstrapDataUserId(null);
     setBootstrapError(null);
+    setBootstrapErrorUserId(null);
   }, [clerk]);
 
-  const loading = !isLoaded || (!!clerkUser && (bootstrapping || (!bootstrapData && !bootstrapError)));
-  const user = mapUser(clerkUser);
+  const loading = !isLoaded || (!!clerkUserId && !currentBootstrapData && !currentBootstrapError);
+  const user: AuthUser | null = clerkUser
+    ? {
+        id: clerkUser.id,
+        primaryEmailAddress: clerkUser.primaryEmailAddress?.emailAddress ?? null,
+      }
+    : null;
 
   return (
     <AuthContext.Provider
       value={{
         user,
-        profile: bootstrapData?.profile ?? null,
-        bootstrapData,
-        bootstrapError,
+        profile: currentBootstrapData?.profile ?? null,
+        bootstrapData: currentBootstrapData,
+        bootstrapError: currentBootstrapError,
         loading,
         signOut,
         updateProfile,
