@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -176,6 +176,11 @@ describe('CompassSessionRunner', () => {
 
     await waitFor(() => {
       expect(apiClient.updateCompassSession).toHaveBeenCalledWith(initialSession.id, {
+        answers: {
+          'bonfire-write': {
+            items: JSON.stringify(['Clear the noise first']),
+          },
+        },
         currentScreen: getCompassScreenIndex('bonfire-release'),
       });
     });
@@ -194,6 +199,56 @@ describe('CompassSessionRunner', () => {
     });
     expect(screen.getByText('What is causing discomfort in your life right now?')).toBeInTheDocument();
     expect(navigate).not.toHaveBeenCalled();
+  });
+
+  it('does not repeatedly patch the session while typing uninterrupted drafts', async () => {
+    vi.useFakeTimers();
+
+    renderRunner(
+      createCompassTestSession({
+        currentScreen: getCompassScreenIndex('past-compassion-box'),
+        answers: {},
+        answerCount: 0,
+      }),
+    );
+
+    const input = screen.getByRole('textbox', {
+      name: 'What are you ready to forgive yourself for? 1',
+    });
+
+    fireEvent.focus(input);
+    fireEvent.change(input, {
+      target: { value: 'I am ready' },
+    });
+
+    await act(async () => {
+      vi.advanceTimersByTime(2500);
+    });
+
+    fireEvent.change(input, {
+      target: { value: 'I am ready to stop hiding' },
+    });
+
+    await act(async () => {
+      vi.advanceTimersByTime(2500);
+    });
+
+    expect(apiClient.updateCompassSession).not.toHaveBeenCalled();
+
+    await act(async () => {
+      fireEvent.blur(input);
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(apiClient.updateCompassSession).toHaveBeenCalledTimes(1);
+    expect(apiClient.updateCompassSession).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({
+      answers: {
+        'past-compassion-box': {
+          main: JSON.stringify(['I am ready to stop hiding']),
+        },
+      },
+    }));
   });
 
   it('flushes pending autosave work before saving and exiting', async () => {
@@ -225,13 +280,45 @@ describe('CompassSessionRunner', () => {
             main: JSON.stringify([proudAnswer]),
           },
         },
-        currentScreen: getCompassScreenIndex('past-compassion-box'),
       });
     });
     expect(navigate).toHaveBeenCalledWith(GOLDEN_COMPASS_PATH);
 
     await act(async () => {
-      await new Promise(resolve => window.setTimeout(resolve, 1100));
+      await new Promise(resolve => window.setTimeout(resolve, 4100));
+    });
+    expect(apiClient.updateCompassSession).toHaveBeenCalledTimes(1);
+  });
+
+  it('flushes dirty answers before going back from a typed screen', async () => {
+    const user = userEvent.setup();
+    const initialSession = createCompassTestSession({
+      currentScreen: getCompassScreenIndex('bonfire-release'),
+      answers: {},
+      answerCount: 0,
+    });
+
+    renderRunner(initialSession);
+
+    await user.type(
+      screen.getByRole('textbox', {
+        name: 'How would it feel to mentally let go of everything that’s in the box?',
+      }),
+      'Lighter and less split.',
+    );
+    apiClient.updateCompassSession.mockClear();
+
+    await user.click(screen.getByRole('button', { name: 'Back' }));
+
+    await waitFor(() => {
+      expect(apiClient.updateCompassSession).toHaveBeenNthCalledWith(1, initialSession.id, {
+        answers: {
+          'bonfire-release': {
+            main: 'Lighter and less split.',
+          },
+        },
+        currentScreen: getCompassScreenIndex('bonfire-write'),
+      });
     });
     expect(apiClient.updateCompassSession).toHaveBeenCalledTimes(1);
   });
@@ -293,12 +380,12 @@ describe('CompassSessionRunner', () => {
     );
     await user.click(addItemButton);
     await user.type(
-      screen.getByRole('textbox', { name: 'Point A — Summarise where you are at today in a few lines 2' }),
+      await screen.findByRole('textbox', { name: 'Point A — Summarise where you are at today in a few lines 2' }),
       'I still have too many live threads.',
     );
     await user.click(addItemButton);
     await user.type(
-      screen.getByRole('textbox', { name: 'Point A — Summarise where you are at today in a few lines 3' }),
+      await screen.findByRole('textbox', { name: 'Point A — Summarise where you are at today in a few lines 3' }),
       'I need a calmer operating rhythm.',
     );
 
@@ -321,20 +408,20 @@ describe('CompassSessionRunner', () => {
     await user.keyboard('{Enter}');
 
     expect(
-      screen.getByRole('textbox', { name: 'Golden moments from the last year 2' }),
+      await screen.findByRole('textbox', { name: 'Golden moments from the last year 2' }),
     ).toHaveFocus();
 
-    await user.type(screen.getByRole('textbox', { name: 'Golden moments from the last year 2' }), 'A body breakthrough');
+    await user.type(await screen.findByRole('textbox', { name: 'Golden moments from the last year 2' }), 'A body breakthrough');
     await user.click(screen.getByRole('button', { name: 'Add item for Golden moments from the last year' }));
-    await user.type(screen.getByRole('textbox', { name: 'Golden moments from the last year 3' }), 'A great conversation');
+    await user.type(await screen.findByRole('textbox', { name: 'Golden moments from the last year 3' }), 'A great conversation');
     apiClient.updateCompassSession.mockClear();
 
     await user.keyboard('{Control>}{Enter}{/Control}');
 
     await waitFor(() => {
-      expect(apiClient.updateCompassSession).toHaveBeenCalledWith(initialSession.id, {
+      expect(apiClient.updateCompassSession).toHaveBeenCalledWith(initialSession.id, expect.objectContaining({
         currentScreen: getCompassScreenIndex('past-challenges'),
-      });
+      }));
     });
   });
 
@@ -482,9 +569,6 @@ describe('CompassSessionRunner', () => {
       'April',
     ]);
 
-    apiClient.updateCompassSession.mockClear();
-    await user.click(screen.getByRole('button', { name: 'Continue' }));
-
     await waitFor(() => {
       expect(apiClient.updateCompassSession).toHaveBeenCalledWith(initialSession.id, {
         answers: {
@@ -492,8 +576,56 @@ describe('CompassSessionRunner', () => {
             includeCurrentMonth: 'true',
           },
         },
+      });
+    });
+
+    apiClient.updateCompassSession.mockClear();
+    await user.click(screen.getByRole('button', { name: 'Continue' }));
+
+    await waitFor(() => {
+      expect(apiClient.updateCompassSession).toHaveBeenCalledWith(initialSession.id, {
         currentScreen: getCompassScreenIndex('past-monthly-events'),
       });
+    });
+  });
+
+  it('keeps month-event typing stable and flushes on blur', async () => {
+    const user = userEvent.setup();
+    const answers = createCompassTestAnswers();
+    answers['past-months'] = {
+      includeCurrentMonth: 'false',
+    };
+    delete answers['past-monthly-events'];
+
+    renderRunner(
+      createCompassTestSession({
+        currentScreen: getCompassScreenIndex('past-monthly-events'),
+        answers,
+        createdAt: '2026-04-10T12:00:00.000Z',
+      }),
+    );
+
+    const aprilInput = screen.getByRole('textbox', { name: 'April event 1' });
+
+    await user.click(aprilInput);
+    await user.type(aprilInput, 'Signed the lease');
+    expect(aprilInput).toHaveValue('Signed the lease');
+    expect(apiClient.updateCompassSession).not.toHaveBeenCalled();
+
+    await user.tab();
+
+    expect(aprilInput).toHaveValue('Signed the lease');
+    await waitFor(() => {
+      expect(apiClient.updateCompassSession).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          answers: expect.objectContaining({
+            'past-monthly-events': expect.objectContaining({
+              month1: JSON.stringify(['Signed the lease']),
+            }),
+          }),
+        }),
+      );
     });
   });
 
@@ -521,7 +653,7 @@ describe('CompassSessionRunner', () => {
 
     await user.type(screen.getByRole('textbox', { name: 'April event 1' }), 'Signed the lease');
     await user.click(screen.getByRole('button', { name: 'Add event for April' }));
-    await user.type(screen.getByRole('textbox', { name: 'April event 2' }), 'Took the first real trip');
+    await user.type(await screen.findByRole('textbox', { name: 'April event 2' }), 'Took the first real trip');
 
     expect(screen.getByRole('button', { name: 'Continue' })).toBeEnabled();
   });
@@ -686,8 +818,6 @@ describe('CompassSessionRunner', () => {
 
     await waitFor(() => {
       expect(apiClient.updateCompassSession).toHaveBeenCalledWith(initialSession.id, {
-        answers: initialSession.answers,
-        currentScreen: getCompassScreenIndex('congratulations'),
         status: 'completed',
       });
     });

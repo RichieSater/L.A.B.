@@ -31,9 +31,39 @@ import type {
   CompassPromptDefinition,
   CompassScreenDefinition,
   CompassSessionDetail,
+  UpdateCompassSessionInput,
 } from '../../types/compass';
 
 type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
+const COMPASS_IDLE_SAVE_MS = 4000;
+
+function areCompassAnswerRecordsEqual(left: CompassAnswerRecord, right: CompassAnswerRecord): boolean {
+  const leftEntries = Object.entries(left).sort(([leftKey], [rightKey]) => leftKey.localeCompare(rightKey));
+  const rightEntries = Object.entries(right).sort(([leftKey], [rightKey]) => leftKey.localeCompare(rightKey));
+
+  if (leftEntries.length !== rightEntries.length) {
+    return false;
+  }
+
+  return leftEntries.every(([key, value], index) => {
+    const [otherKey, otherValue] = rightEntries[index] ?? [];
+    return key === otherKey && value === otherValue;
+  });
+}
+
+function areCompassAnswersEqual(left: CompassAnswers, right: CompassAnswers): boolean {
+  const leftEntries = Object.entries(left).sort(([leftKey], [rightKey]) => leftKey.localeCompare(rightKey));
+  const rightEntries = Object.entries(right).sort(([leftKey], [rightKey]) => leftKey.localeCompare(rightKey));
+
+  if (leftEntries.length !== rightEntries.length) {
+    return false;
+  }
+
+  return leftEntries.every(([screenId, record], index) => {
+    const [otherScreenId, otherRecord] = rightEntries[index] ?? [];
+    return screenId === otherScreenId && areCompassAnswerRecordsEqual(record, otherRecord ?? {});
+  });
+}
 
 export function CompassSessionRunner({
   initialSession,
@@ -55,7 +85,11 @@ export function CompassSessionRunner({
   const [session, setSession] = useState(initialSession);
   const [completing, setCompleting] = useState(false);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pendingAnswersRef = useRef<CompassAnswers>(initialSession.answers ?? {});
+  const answersRef = useRef<CompassAnswers>(initialSession.answers ?? {});
+  const persistedAnswersRef = useRef<CompassAnswers>(initialSession.answers ?? {});
+  const sessionRef = useRef(initialSession);
+  const currentIndexRef = useRef(currentIndex);
+  const persistPromiseRef = useRef<Promise<CompassSessionDetail | null> | null>(null);
 
   useEffect(() => {
     return () => {
@@ -65,6 +99,14 @@ export function CompassSessionRunner({
     };
   }, []);
 
+  useEffect(() => {
+    answersRef.current = answers;
+  }, [answers]);
+
+  useEffect(() => {
+    currentIndexRef.current = currentIndex;
+  }, [currentIndex]);
+
   const screen = allScreens[currentIndex];
   const pastMonthsState = useMemo(
     () => resolvePastMonthsState(answers[PAST_MONTHS_SCREEN_ID], sessionCreatedAt),
@@ -73,6 +115,10 @@ export function CompassSessionRunner({
   const screenAnswers = useMemo(
     () => resolveScreenAnswers(screen, answers, sessionCreatedAt, screenMap),
     [answers, screen, screenMap, sessionCreatedAt],
+  );
+  const persistedScreenAnswers = useMemo(
+    () => resolveScreenAnswers(screen, session.answers ?? {}, sessionCreatedAt, screenMap),
+    [screen, screenMap, session.answers, sessionCreatedAt],
   );
   const currentSection = COMPASS_FLOW.find(section => section.key === screen.sectionKey) ?? COMPASS_FLOW[0];
   const progress = Math.round(((currentIndex + 1) / totalScreens) * 100);
@@ -105,11 +151,12 @@ export function CompassSessionRunner({
     }
   }
 
-  async function persist(input: { answers?: CompassAnswers; currentScreen?: number }) {
+  async function persist(input: UpdateCompassSessionInput) {
     try {
       setSaveStatus('saving');
       const updated = await apiClient.updateCompassSession(initialSession.id, input);
       setSession(updated);
+      sessionRef.current = updated;
       pulseSaveStatus('saved');
       return updated;
     } catch {
@@ -118,48 +165,173 @@ export function CompassSessionRunner({
     }
   }
 
-  function scheduleAnswerSave(nextAnswers: CompassAnswers) {
-    pendingAnswersRef.current = nextAnswers;
-
-    if (saveTimerRef.current) {
-      clearTimeout(saveTimerRef.current);
-    }
-
-    saveTimerRef.current = setTimeout(() => {
-      void persist({ answers: pendingAnswersRef.current });
-    }, 900);
-  }
-
-  async function flushAnswerSave(): Promise<void> {
+  function clearScheduledAnswerSave() {
     if (saveTimerRef.current) {
       clearTimeout(saveTimerRef.current);
       saveTimerRef.current = null;
     }
-
-    const nextAnswers = prepareAnswersForPersistence();
-
-    await persist({
-      answers: nextAnswers,
-      currentScreen: currentIndex,
-    });
   }
 
-  function updateAnswer(key: string, value: string) {
-    setAnswers(previous => {
-      const nextAnswers = {
-        ...previous,
-        [screen.id]: {
-          ...(previous[screen.id] ?? {}),
-          [key]: value,
-        },
-      };
-      scheduleAnswerSave(nextAnswers);
-      return nextAnswers;
-    });
+  function scheduleAnswerSave() {
+    clearScheduledAnswerSave();
+    saveTimerRef.current = setTimeout(() => {
+      void persistAnswerDraft({}, { rescheduleIfDirty: true });
+    }, COMPASS_IDLE_SAVE_MS);
   }
 
-  function setMultiInputItems(key: string, items: string[]) {
-    updateAnswer(key, encodeCompassListAnswer(items));
+  function getNormalizedCurrentAnswers(): CompassAnswers {
+    const normalizedAnswers = normalizeAnswersForCurrentScreenPersistence(
+      allScreens[currentIndexRef.current],
+      answersRef.current,
+      sessionCreatedAt,
+      screenMap,
+    );
+
+    if (!areCompassAnswersEqual(normalizedAnswers, answersRef.current)) {
+      answersRef.current = normalizedAnswers;
+      setAnswers(normalizedAnswers);
+    }
+
+    return normalizedAnswers;
+  }
+
+  function hasDirtyAnswers(answersSnapshot = getNormalizedCurrentAnswers()): boolean {
+    return !areCompassAnswersEqual(answersSnapshot, persistedAnswersRef.current);
+  }
+
+  function setAnswerDraft(
+    updater: (previous: CompassAnswers) => CompassAnswers,
+    options: { flush?: boolean; schedule?: boolean } = {},
+  ) {
+    const nextAnswers = updater(answersRef.current);
+
+    if (!areCompassAnswersEqual(nextAnswers, answersRef.current)) {
+      answersRef.current = nextAnswers;
+      setAnswers(nextAnswers);
+    }
+
+    if (options.flush) {
+      void flushAnswerSave();
+      return;
+    }
+
+    if (options.schedule !== false) {
+      scheduleAnswerSave();
+    }
+  }
+
+  async function persistAnswerDraft(
+    extra: UpdateCompassSessionInput = {},
+    options: { rescheduleIfDirty?: boolean } = {},
+  ): Promise<CompassSessionDetail | null> {
+    clearScheduledAnswerSave();
+
+    if (persistPromiseRef.current) {
+      await persistPromiseRef.current;
+      return persistAnswerDraft(extra, options);
+    }
+
+    const normalizedAnswers = getNormalizedCurrentAnswers();
+    const answersChanged = !areCompassAnswersEqual(normalizedAnswers, persistedAnswersRef.current);
+    const payload: UpdateCompassSessionInput = {};
+
+    if (answersChanged) {
+      payload.answers = normalizedAnswers;
+    }
+
+    if (
+      extra.currentScreen !== undefined &&
+      extra.currentScreen !== sessionRef.current.currentScreen
+    ) {
+      payload.currentScreen = extra.currentScreen;
+    }
+
+    if (extra.status !== undefined && extra.status !== sessionRef.current.status) {
+      payload.status = extra.status;
+    }
+
+    if (Object.keys(payload).length === 0) {
+      return null;
+    }
+
+    const draftSnapshot = normalizedAnswers;
+    const persistPromise = persist(payload)
+      .then(updated => {
+        if (!updated) {
+          if (options.rescheduleIfDirty && hasDirtyAnswers(draftSnapshot)) {
+            scheduleAnswerSave();
+          }
+          return null;
+        }
+
+        const persistedAnswers = updated.answers ?? draftSnapshot;
+        const draftChangedDuringPersist = !areCompassAnswersEqual(answersRef.current, draftSnapshot);
+
+        persistedAnswersRef.current = persistedAnswers;
+
+        if (!draftChangedDuringPersist && !areCompassAnswersEqual(answersRef.current, persistedAnswers)) {
+          answersRef.current = persistedAnswers;
+          setAnswers(persistedAnswers);
+        }
+
+        if (options.rescheduleIfDirty && hasDirtyAnswers()) {
+          scheduleAnswerSave();
+        }
+
+        return updated;
+      })
+      .finally(() => {
+        if (persistPromiseRef.current === persistPromise) {
+          persistPromiseRef.current = null;
+        }
+      });
+
+    persistPromiseRef.current = persistPromise;
+    return persistPromise;
+  }
+
+  async function flushAnswerSave(extra: UpdateCompassSessionInput = {}): Promise<CompassSessionDetail | null> {
+    clearScheduledAnswerSave();
+
+    let nextExtra = extra;
+
+    while (persistPromiseRef.current || hasDirtyAnswers() || Object.keys(nextExtra).length > 0) {
+      if (persistPromiseRef.current) {
+        await persistPromiseRef.current;
+        continue;
+      }
+
+      const updated = await persistAnswerDraft(nextExtra);
+      nextExtra = {};
+
+      if (!updated) {
+        return hasDirtyAnswers() ? null : sessionRef.current;
+      }
+    }
+
+    return sessionRef.current;
+  }
+
+  function updateAnswer(
+    key: string,
+    value: string,
+    options: { flush?: boolean; schedule?: boolean } = {},
+  ) {
+    setAnswerDraft(previous => ({
+      ...previous,
+      [screen.id]: {
+        ...(previous[screen.id] ?? {}),
+        [key]: value,
+      },
+    }), options);
+  }
+
+  function setMultiInputItems(
+    key: string,
+    items: string[],
+    options: { flush?: boolean; schedule?: boolean } = {},
+  ) {
+    updateAnswer(key, encodeCompassListAnswer(items), options);
   }
 
   function setPastMonthsIncludeCurrentMonth(includeCurrentMonth: boolean) {
@@ -167,49 +339,18 @@ export function CompassSessionRunner({
       [PAST_MONTHS_INCLUDE_CURRENT_KEY]: String(includeCurrentMonth),
     };
 
-    setAnswers(previous => {
-      const nextAnswers = {
+    setAnswerDraft(previous => ({
         ...previous,
         [PAST_MONTHS_SCREEN_ID]: nextRecord,
-      };
-      scheduleAnswerSave(nextAnswers);
-      return nextAnswers;
-    });
-  }
-
-  function prepareAnswersForPersistence(): CompassAnswers {
-    const nextAnswers = normalizeAnswersForCurrentScreenPersistence(
-      screen,
-      pendingAnswersRef.current,
-      sessionCreatedAt,
-      screenMap,
+      }),
+      { flush: true },
     );
-
-    pendingAnswersRef.current = nextAnswers;
-    setAnswers(previous => (previous === nextAnswers ? previous : nextAnswers));
-
-    return nextAnswers;
   }
 
   async function moveTo(nextIndex: number) {
+    await flushAnswerSave({ currentScreen: nextIndex });
+    currentIndexRef.current = nextIndex;
     setCurrentIndex(nextIndex);
-    const previousAnswers = pendingAnswersRef.current;
-    const nextAnswers = prepareAnswersForPersistence();
-
-    if (screen.id === PAST_MONTHS_SCREEN_ID || nextAnswers !== previousAnswers) {
-      if (saveTimerRef.current) {
-        clearTimeout(saveTimerRef.current);
-        saveTimerRef.current = null;
-      }
-
-      await persist({
-        answers: nextAnswers,
-        currentScreen: nextIndex,
-      });
-      return;
-    }
-
-    await persist({ currentScreen: nextIndex });
   }
 
   async function handleNext() {
@@ -219,16 +360,16 @@ export function CompassSessionRunner({
 
     if (currentIndex >= totalScreens - 1) {
       setCompleting(true);
-      await flushAnswerSave();
 
       try {
-        const updated = await apiClient.updateCompassSession(initialSession.id, {
-          answers: pendingAnswersRef.current,
+        const updated = await flushAnswerSave({
           currentScreen: currentIndex,
           status: 'completed',
         });
-        setSession(updated);
-        await refreshBootstrap();
+
+        if (updated?.status === 'completed') {
+          await refreshBootstrap();
+        }
       } finally {
         setCompleting(false);
       }
@@ -247,7 +388,7 @@ export function CompassSessionRunner({
   }
 
   async function handleSaveAndExit() {
-    await flushAnswerSave();
+    await flushAnswerSave({ currentScreen: currentIndexRef.current });
     navigate(GOLDEN_COMPASS_PATH);
   }
 
@@ -324,7 +465,11 @@ export function CompassSessionRunner({
           <PastMonthlyEventsEditor
             monthNames={pastMonthsState.monthNames}
             answers={screenAnswers}
+            persistedAnswers={persistedScreenAnswers}
             onItemsChange={setMultiInputItems}
+            onItemsDraftChange={(key, items) => {
+              setMultiInputItems(key, items, { schedule: false });
+            }}
           />
         ) : screen.prompts?.length ? (
           <div className="mt-8 space-y-6">
@@ -355,8 +500,15 @@ export function CompassSessionRunner({
                   screenId={screen.id}
                   prompt={prompt}
                   answers={screenAnswers}
+                  persistedAnswers={persistedScreenAnswers}
                   onAnswerChange={updateAnswer}
                   onMultiInputChange={setMultiInputItems}
+                  onMultiInputDraftChange={(key, items) => {
+                    setMultiInputItems(key, items, { schedule: false });
+                  }}
+                  onCommitRequest={() => {
+                    void flushAnswerSave();
+                  }}
                   onAdvanceRequest={() => {
                     void handleNext();
                   }}
@@ -378,6 +530,9 @@ export function CompassSessionRunner({
           <div className="flex gap-3">
             <button
               type="button"
+              onMouseDown={event => {
+                event.preventDefault();
+              }}
               onClick={handleBack}
               disabled={currentIndex === 0 || completing}
               className="rounded-full border border-gray-700 px-4 py-2 text-sm font-semibold text-gray-200 transition hover:border-gray-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
@@ -386,6 +541,9 @@ export function CompassSessionRunner({
             </button>
             <button
               type="button"
+              onMouseDown={event => {
+                event.preventDefault();
+              }}
               onClick={handleSaveAndExit}
               disabled={completing}
               className="rounded-full border border-gray-700 bg-gray-950/80 px-4 py-2 text-sm font-semibold text-gray-300 transition hover:border-gray-500 hover:text-gray-100 disabled:cursor-not-allowed disabled:opacity-50"
@@ -395,6 +553,9 @@ export function CompassSessionRunner({
           </div>
           <button
             type="button"
+            onMouseDown={event => {
+              event.preventDefault();
+            }}
             onClick={() => void handleNext()}
             disabled={!canProceed(screen, screenAnswers) || completing}
             className="rounded-full border border-amber-300 bg-amber-50 px-5 py-2.5 text-sm font-semibold text-amber-950 transition hover:border-amber-200 hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-50"
@@ -475,15 +636,21 @@ function CompassPromptField({
   screenId,
   prompt,
   answers,
+  persistedAnswers,
   onAnswerChange,
   onMultiInputChange,
+  onMultiInputDraftChange,
+  onCommitRequest,
   onAdvanceRequest,
 }: {
   screenId: string;
   prompt: CompassPromptDefinition;
   answers: CompassAnswerRecord;
-  onAnswerChange: (key: string, value: string) => void;
-  onMultiInputChange: (key: string, items: string[]) => void;
+  persistedAnswers: CompassAnswerRecord;
+  onAnswerChange: (key: string, value: string, options?: { flush?: boolean; schedule?: boolean }) => void;
+  onMultiInputChange: (key: string, items: string[], options?: { flush?: boolean; schedule?: boolean }) => void;
+  onMultiInputDraftChange: (key: string, items: string[]) => void;
+  onCommitRequest: () => void;
   onAdvanceRequest: () => void;
 }) {
   function handleShortTextKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
@@ -509,6 +676,7 @@ function CompassPromptField({
         aria-label={prompt.label}
         value={answers[prompt.key] ?? ''}
         onChange={event => onAnswerChange(prompt.key, event.target.value)}
+        onBlur={onCommitRequest}
         onKeyDown={handleTextareaKeyDown}
         placeholder={prompt.placeholder ?? 'Write here...'}
         rows={8}
@@ -527,6 +695,7 @@ function CompassPromptField({
         type="text"
         value={answers[prompt.key] ?? ''}
         onChange={event => onAnswerChange(prompt.key, event.target.value)}
+        onBlur={onCommitRequest}
         onKeyDown={handleShortTextKeyDown}
         placeholder={prompt.placeholder ?? 'Write here...'}
         className="w-full rounded-full border border-gray-800 bg-gray-950/70 px-4 py-3 text-sm text-gray-100 placeholder:text-gray-500 focus:border-amber-300/50 focus:outline-none focus:ring-1 focus:ring-amber-300/20"
@@ -553,6 +722,7 @@ function CompassPromptField({
                   aria-label={inputLabel}
                   value={answers[input.key] ?? ''}
                   onChange={event => onAnswerChange(input.key, event.target.value)}
+                  onBlur={onCommitRequest}
                   placeholder={input.placeholder ?? 'Write here...'}
                   rows={4}
                   className="w-full rounded-3xl border border-gray-800 bg-gray-950/70 px-4 py-4 text-sm leading-7 text-gray-100 placeholder:text-gray-500 focus:border-amber-300/50 focus:outline-none focus:ring-1 focus:ring-amber-300/20"
@@ -564,6 +734,7 @@ function CompassPromptField({
                   type="text"
                   value={answers[input.key] ?? ''}
                   onChange={event => onAnswerChange(input.key, event.target.value)}
+                  onBlur={onCommitRequest}
                   placeholder={input.placeholder ?? 'Write here...'}
                   className="w-full rounded-full border border-gray-800 bg-gray-950/70 px-4 py-3 text-sm text-gray-100 placeholder:text-gray-500 focus:border-amber-300/50 focus:outline-none focus:ring-1 focus:ring-amber-300/20"
                 />
@@ -584,7 +755,7 @@ function CompassPromptField({
             item={item}
             screenId={screenId}
             checked={answers[item.key] === 'true'}
-            onChange={value => onAnswerChange(item.key, value)}
+            onChange={value => onAnswerChange(item.key, value, { flush: true })}
           />
         ))}
       </div>
@@ -596,12 +767,14 @@ function CompassPromptField({
         <MultiInputEditor
           key={`${screenId}-${prompt.key}`}
           items={parseMultiInputItems(answers[prompt.key])}
+          committedItems={parseMultiInputItems(persistedAnswers[prompt.key])}
           placeholder={prompt.placeholder ?? 'Add an item...'}
           inputLabelPrefix={prompt.label}
           addItemLabel={`Add item for ${prompt.label}`}
           minItems={prompt.minItems}
           maxItems={prompt.maxItems}
-          onChange={items => onMultiInputChange(prompt.key, items)}
+          onDraftChange={items => onMultiInputDraftChange(prompt.key, items)}
+          onChange={items => onMultiInputChange(prompt.key, items, { flush: true, schedule: false })}
           onAdvanceRequest={onAdvanceRequest}
         />
       );
@@ -618,6 +791,7 @@ function CompassPromptField({
           aria-label="Your name"
           value={answers.name ?? ''}
           onChange={event => onAnswerChange('name', event.target.value)}
+          onBlur={onCommitRequest}
           placeholder="Your name"
           className="w-full rounded-full border border-gray-800 bg-gray-950/70 px-4 py-3 text-sm text-gray-100 placeholder:text-gray-500 focus:border-amber-300/50 focus:outline-none focus:ring-1 focus:ring-amber-300/20"
         />
@@ -625,6 +799,7 @@ function CompassPromptField({
           aria-label="Your signature"
           value={answers.signature ?? ''}
           onChange={event => onAnswerChange('signature', event.target.value)}
+          onBlur={onCommitRequest}
           placeholder="Type your signature or commitment line"
           rows={3}
           className="w-full rounded-3xl border border-gray-800 bg-gray-950/70 px-4 py-4 text-sm leading-7 text-gray-100 placeholder:text-gray-500 focus:border-amber-300/50 focus:outline-none focus:ring-1 focus:ring-amber-300/20"
@@ -692,11 +867,15 @@ function PastMonthsToggle({
 function PastMonthlyEventsEditor({
   monthNames,
   answers,
+  persistedAnswers,
   onItemsChange,
+  onItemsDraftChange,
 }: {
   monthNames: string[];
   answers: CompassAnswerRecord;
-  onItemsChange: (key: string, items: string[]) => void;
+  persistedAnswers: CompassAnswerRecord;
+  onItemsChange: (key: string, items: string[], options?: { flush?: boolean; schedule?: boolean }) => void;
+  onItemsDraftChange: (key: string, items: string[]) => void;
 }) {
   return (
     <div className="mt-8 space-y-6 rounded-3xl border border-gray-800/80 bg-gray-950/40 p-5">
@@ -717,10 +896,12 @@ function PastMonthlyEventsEditor({
               <MultiInputEditor
                 key={`${fieldKey}-${monthName}`}
                 items={parseMultiInputItems(answers[fieldKey])}
+                committedItems={parseMultiInputItems(persistedAnswers[fieldKey])}
                 placeholder={`What mattered in ${monthName}?`}
                 inputLabelPrefix={`${monthName} event`}
                 addItemLabel={`Add event for ${monthName}`}
-                onChange={items => onItemsChange(fieldKey, items)}
+                onDraftChange={items => onItemsDraftChange(fieldKey, items)}
+                onChange={items => onItemsChange(fieldKey, items, { flush: true, schedule: false })}
               />
             </div>
           );

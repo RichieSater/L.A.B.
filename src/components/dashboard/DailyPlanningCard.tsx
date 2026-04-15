@@ -6,6 +6,7 @@ import type {
 import type { TaskListPreset } from '../../types/dashboard-navigation';
 import type { TaskPlanningBucket } from '../../types/task-planning';
 import { formatDate, formatDateKey, formatDaysAgo } from '../../utils/date';
+import { useBufferedCommit } from '../../hooks/use-buffered-commit';
 import { getTaskWeeklyLabRoute } from './weekly-lab-routing';
 
 interface DailyPlanningCardProps {
@@ -250,13 +251,27 @@ function PlanningField({
   value: string;
   onChange: (value: string) => void;
 }) {
+  const { draftValue, setDraftValue, flush } = useBufferedCommit<string>({
+    value,
+    onCommit: nextValue => {
+      if (nextValue !== value) {
+        onChange(nextValue);
+      }
+
+      return nextValue;
+    },
+  });
+
   return (
     <label className="block">
       <span className="text-xs font-medium uppercase tracking-wide text-gray-400">{label}</span>
       <textarea
         aria-label={label}
-        value={value}
-        onChange={event => onChange(event.target.value)}
+        value={draftValue}
+        onChange={event => setDraftValue(event.target.value)}
+        onBlur={() => {
+          void flush();
+        }}
         placeholder={placeholder}
         rows={3}
         className="mt-1 w-full rounded-lg border border-gray-800 bg-gray-900 px-3 py-2 text-sm text-gray-100 placeholder:text-gray-600 focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600"

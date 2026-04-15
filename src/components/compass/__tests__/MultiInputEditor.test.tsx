@@ -20,7 +20,7 @@ function MultiInputHarness({ initialItems = [] }: { initialItems?: string[] }) {
 }
 
 describe('MultiInputEditor', () => {
-  it('keeps focus and uninterrupted typing through parent re-renders', async () => {
+  it('keeps focus and uninterrupted typing while deferring parent commits until blur', async () => {
     const user = userEvent.setup();
 
     render(<MultiInputHarness />);
@@ -31,6 +31,10 @@ describe('MultiInputEditor', () => {
 
     expect(firstInput).toHaveValue('Need to simplify my week before it simplifies me');
     expect(firstInput).toHaveFocus();
+    expect(screen.getByTestId('persisted-items')).toHaveTextContent('[]');
+
+    await user.tab();
+
     expect(screen.getByTestId('persisted-items')).toHaveTextContent(
       '["Need to simplify my week before it simplifies me"]',
     );
@@ -43,7 +47,7 @@ describe('MultiInputEditor', () => {
 
     await user.click(screen.getByRole('button', { name: 'Add item' }));
 
-    const textboxes = screen.getAllByRole('textbox');
+    const textboxes = await screen.findAllByRole('textbox');
     expect(textboxes).toHaveLength(2);
     expect(textboxes[1]).toHaveValue('');
     expect(screen.getByTestId('persisted-items')).toHaveTextContent('["Need more white space on the calendar"]');
@@ -52,6 +56,10 @@ describe('MultiInputEditor', () => {
 
     expect(textboxes[0]).toHaveValue('Need more white space on the calendar');
     expect(textboxes[1]).toHaveValue('Protect deeper focus blocks');
+    expect(screen.getByTestId('persisted-items')).toHaveTextContent('["Need more white space on the calendar"]');
+
+    await user.tab();
+
     expect(screen.getByTestId('persisted-items')).toHaveTextContent(
       '["Need more white space on the calendar","Protect deeper focus blocks"]',
     );

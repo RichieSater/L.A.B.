@@ -1,5 +1,5 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   getGoldenCompassSessionPath,
   GOLDEN_COMPASS_PATH,
@@ -41,6 +41,10 @@ describe('StrategicPlannerPanel', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     apiClient.listCompassSessions.mockResolvedValue([]);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it('shows linked canonical task status and reuses the same promotion action', async () => {
@@ -166,6 +170,7 @@ describe('StrategicPlannerPanel', () => {
         year: currentYear,
         sectionKey: 'yearGoals',
         index: 0,
+        goalText: 'Turn strategy into this-week priorities',
         advisorId: 'prioritization',
         bucket: 'later',
         addToWeeklyFocusWeekStart: null,
@@ -316,5 +321,111 @@ describe('StrategicPlannerPanel', () => {
 
     expect(await screen.findByText(/Active Compass:/i)).toBeInTheDocument();
     expect(screen.getByText('Golden Compass 2025')).toBeInTheDocument();
+  });
+
+  it('buffers strategic goal typing and uses the live draft when promoting a goal', async () => {
+    const dispatch = vi.fn();
+    const currentYear = new Date().getFullYear();
+    const appState = createDefaultAppState();
+
+    useAppState.mockReturnValue({
+      state: appState,
+      dispatch,
+    });
+    apiClient.listCompassSessions.mockResolvedValue([]);
+
+    const { container } = render(<StrategicPlannerPanel />);
+
+    await waitFor(() => {
+      expect(apiClient.listCompassSessions).toHaveBeenCalledTimes(1);
+    });
+
+    const row = container.querySelector('[data-goal-key="yearGoals-0"]');
+    expect(row).not.toBeNull();
+
+    const goalInput = within(row as HTMLElement).getByLabelText('yearGoals 1 goal');
+    fireEvent.change(goalInput, {
+      target: { value: 'Protect the real quarterly bottleneck' },
+    });
+
+    expect(goalInput).toHaveValue('Protect the real quarterly bottleneck');
+    expect(dispatch).not.toHaveBeenCalled();
+
+    fireEvent.click(within(row as HTMLElement).getByRole('button', { name: 'Queue as task' }));
+
+    expect(dispatch).toHaveBeenCalledTimes(1);
+    expect(dispatch).toHaveBeenCalledWith({
+      type: 'PROMOTE_STRATEGIC_GOAL_TO_TASK',
+      payload: {
+        year: currentYear,
+        sectionKey: 'yearGoals',
+        index: 0,
+        goalText: 'Protect the real quarterly bottleneck',
+        advisorId: 'prioritization',
+        bucket: 'later',
+        addToWeeklyFocusWeekStart: null,
+      },
+    });
+  });
+
+  it('buffers strategic win list typing until blur or idle', async () => {
+    const dispatch = vi.fn();
+    const currentYear = new Date().getFullYear();
+    const appState = createDefaultAppState();
+
+    useAppState.mockReturnValue({
+      state: appState,
+      dispatch,
+    });
+    apiClient.listCompassSessions.mockResolvedValue([]);
+
+    render(<StrategicPlannerPanel />);
+
+    await waitFor(() => {
+      expect(apiClient.listCompassSessions).toHaveBeenCalledTimes(1);
+    });
+
+    vi.useFakeTimers();
+    const currentWin = screen.getByLabelText('Current wins 1');
+    fireEvent.change(currentWin, {
+      target: { value: 'Closed the real bottleneck this week' },
+    });
+
+    expect(currentWin).toHaveValue('Closed the real bottleneck this week');
+    expect(dispatch).not.toHaveBeenCalled();
+
+    await act(async () => {
+      fireEvent.blur(currentWin);
+    });
+
+    expect(dispatch).toHaveBeenCalledTimes(1);
+    expect(dispatch).toHaveBeenCalledWith({
+      type: 'SET_STRATEGIC_WIN',
+      payload: {
+        year: currentYear,
+        field: 'currentWins',
+        index: 0,
+        value: 'Closed the real bottleneck this week',
+      },
+    });
+
+    fireEvent.change(screen.getByLabelText('Previous wins 1'), {
+      target: { value: 'Protected focus blocks before drift set in' },
+    });
+
+    await act(async () => {
+      vi.advanceTimersByTime(4000);
+    });
+
+    expect(dispatch).toHaveBeenCalledTimes(2);
+    expect(dispatch).toHaveBeenLastCalledWith({
+      type: 'SET_STRATEGIC_WIN',
+      payload: {
+        year: currentYear,
+        field: 'previousWins',
+        index: 0,
+        value: 'Protected focus blocks before drift set in',
+      },
+    });
   });
 });

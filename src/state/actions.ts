@@ -53,6 +53,7 @@ export type AppAction =
         year: number;
         sectionKey: StrategicDashboardSectionKey;
         index: number;
+        goalText?: string;
         advisorId: AdvisorId;
         bucket: TaskPlanningBucket;
         addToWeeklyFocusWeekStart?: string | null;

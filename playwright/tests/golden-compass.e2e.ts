@@ -10,6 +10,38 @@ import {
   startCompassAudit,
 } from '../helpers/compass';
 
+function trackRequestBudget(page: Parameters<typeof startCompassAudit>[0]) {
+  const compassPatchResponses: string[] = [];
+  const appStatePutResponses: string[] = [];
+
+  const handleResponse = (response: Awaited<ReturnType<typeof page.waitForResponse>>) => {
+    const method = response.request().method();
+    const url = response.url();
+
+    if (method === 'PATCH' && /\/api\/compass-sessions\/[^/]+$/.test(url)) {
+      compassPatchResponses.push(url);
+    }
+
+    if (method === 'PUT' && url.includes('/api/app-state')) {
+      appStatePutResponses.push(url);
+    }
+  };
+
+  page.on('response', handleResponse);
+
+  return {
+    compassPatchResponses,
+    appStatePutResponses,
+    reset() {
+      compassPatchResponses.length = 0;
+      appStatePutResponses.length = 0;
+    },
+    stop() {
+      page.off('response', handleResponse);
+    },
+  };
+}
+
 async function runGoldenCompassRegression(page: Parameters<typeof startCompassAudit>[0]) {
   const audit = startCompassAudit(page);
 
@@ -114,6 +146,72 @@ async function runGoldenCompassRegression(page: Parameters<typeof startCompassAu
 
 test('golden compass ux is stable on desktop', async ({ authedPage }) => {
   await runGoldenCompassRegression(authedPage);
+});
+
+test('typing request budgets stay bounded across Compass and planner notes', async ({ cleanLabPage }) => {
+  const budget = trackRequestBudget(cleanLabPage);
+
+  try {
+    await openGoldenCompassFromModuleHub(cleanLabPage);
+    const sessionId = await createCompassSessionFromDashboard(cleanLabPage);
+
+    await advanceCompassUntilScreen(cleanLabPage, 'past-monthly-events');
+    budget.reset();
+
+    const compassPath = `/golden-compass/${sessionId}`;
+    const aprilInput = cleanLabPage.getByRole('textbox', { name: 'April event 1' });
+    await aprilInput.click();
+    await aprilInput.pressSequentially('Signed the', { delay: 45 });
+    await cleanLabPage.waitForTimeout(1200);
+    await aprilInput.pressSequentially(' lease', { delay: 45 });
+    await cleanLabPage.waitForTimeout(1200);
+
+    await expect(aprilInput).toHaveValue('Signed the lease');
+    await expect.poll(() => new URL(cleanLabPage.url()).pathname).toBe(compassPath);
+    await expect(cleanLabPage.getByText('Loading your advisory board...')).toHaveCount(0);
+    expect(budget.compassPatchResponses).toHaveLength(0);
+
+    const addAprilEvent = cleanLabPage.getByRole('button', { name: 'Add event for April' });
+    await addAprilEvent.click();
+
+    const aprilSecondInput = cleanLabPage.getByRole('textbox', { name: 'April event 2' });
+    await aprilSecondInput.pressSequentially('Took the first real trip', { delay: 45 });
+    await cleanLabPage.waitForTimeout(1200);
+    await aprilSecondInput.pressSequentially(' and stayed present', { delay: 45 });
+
+    await expect(aprilSecondInput).toHaveValue('Took the first real trip and stayed present');
+    await expect(cleanLabPage.getByText('Loading your advisory board...')).toHaveCount(0);
+
+    await cleanLabPage.getByRole('button', { name: 'Continue' }).click();
+
+    await expect.poll(() => budget.compassPatchResponses.length).toBeLessThanOrEqual(2);
+    await expect.poll(() => new URL(cleanLabPage.url()).pathname).toBe(compassPath);
+
+    await cleanLabPage.goto('/planner');
+    await expect(cleanLabPage.getByRole('heading', { name: 'Daily Plan' })).toBeVisible();
+    budget.reset();
+
+    const headline = cleanLabPage.getByLabel('Headline');
+    await headline.click();
+    await headline.pressSequentially('Protect the real bottleneck', { delay: 45 });
+    await cleanLabPage.waitForTimeout(1500);
+    await headline.pressSequentially(' before anything cosmetic', { delay: 45 });
+    await cleanLabPage.waitForTimeout(1500);
+
+    await expect(headline).toHaveValue('Protect the real bottleneck before anything cosmetic');
+    expect(budget.appStatePutResponses).toHaveLength(0);
+    await expect(cleanLabPage.getByText('Loading your advisory board...')).toHaveCount(0);
+
+    await cleanLabPage.waitForTimeout(1500);
+    await expect.poll(() => budget.appStatePutResponses.length).toBe(1);
+
+    await headline.fill('Protect the bottleneck before cosmetic cleanup');
+    await cleanLabPage.getByLabel('Guardrail').click();
+    await expect.poll(() => budget.appStatePutResponses.length).toBe(2);
+    await expect(cleanLabPage.getByText('Loading your advisory board...')).toHaveCount(0);
+  } finally {
+    budget.stop();
+  }
 });
 
 test.describe('golden compass mobile', () => {

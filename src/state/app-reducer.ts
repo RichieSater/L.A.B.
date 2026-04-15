@@ -545,7 +545,7 @@ export function appReducer(state: AppState, action: AppAction): AppState {
     }
 
     case 'PROMOTE_STRATEGIC_GOAL_TO_TASK': {
-      const { year, sectionKey, index, advisorId, bucket, addToWeeklyFocusWeekStart = null } = action.payload;
+      const { year, sectionKey, index, advisorId, bucket, addToWeeklyFocusWeekStart = null, goalText } = action.payload;
       const strategicYear = state.strategicDashboard.years.find(entry => entry.year === year) ?? createStrategicDashboardYear(year);
       const goal = strategicYear.sections[sectionKey].goals[index];
       const nextAdvisorState = state.advisors[advisorId];
@@ -554,7 +554,7 @@ export function appReducer(state: AppState, action: AppAction): AppState {
         return state;
       }
 
-      const trimmedText = goal.text.trim();
+      const trimmedText = (goalText ?? goal.text).trim();
       if (!trimmedText) {
         return state;
       }

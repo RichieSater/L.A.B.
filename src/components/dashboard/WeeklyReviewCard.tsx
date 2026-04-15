@@ -8,6 +8,7 @@ import type {
 } from '../../state/selectors';
 import type { TaskPlanningBucket } from '../../types/task-planning';
 import { formatDate, formatDaysAgo, formatDateKey } from '../../utils/date';
+import { useBufferedCommit } from '../../hooks/use-buffered-commit';
 
 interface WeeklyReviewCardProps {
   summary: WeeklyReviewSummary;
@@ -420,12 +421,27 @@ function ReviewField({
   placeholder: string;
   onChange: (value: string) => void;
 }) {
+  const { draftValue, setDraftValue, flush } = useBufferedCommit<string>({
+    value,
+    onCommit: nextValue => {
+      if (nextValue !== value) {
+        onChange(nextValue);
+      }
+
+      return nextValue;
+    },
+  });
+
   return (
     <label className="block">
       <span className="text-xs font-medium uppercase tracking-wide text-gray-500">{label}</span>
       <textarea
-        value={value}
-        onChange={event => onChange(event.target.value)}
+        aria-label={label}
+        value={draftValue}
+        onChange={event => setDraftValue(event.target.value)}
+        onBlur={() => {
+          void flush();
+        }}
         placeholder={placeholder}
         rows={3}
         className="mt-2 w-full rounded-lg border border-gray-800 bg-gray-900/70 px-3 py-2 text-sm text-gray-100 placeholder:text-gray-600 focus:border-gray-600 focus:outline-none"

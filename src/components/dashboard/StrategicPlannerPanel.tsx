@@ -16,6 +16,7 @@ import type { DashboardNavigationState, TaskListPreset } from '../../types/dashb
 import type { TaskPlanningBucket } from '../../types/task-planning';
 import type { TaskStatus } from '../../types/action-item';
 import { today } from '../../utils/date';
+import { useBufferedCommit } from '../../hooks/use-buffered-commit';
 
 const PROMOTION_BUCKETS: Record<StrategicDashboardSectionKey, 'today' | 'this_week' | 'later'> = {
   biggestGoals: 'later',
@@ -167,9 +168,12 @@ export function StrategicPlannerPanel() {
     index: number,
     advisorId: AdvisorId,
     addToFocus: boolean,
+    goalText?: string,
   ) {
     const goal = strategicYear.sections[sectionKey].goals[index];
-    if (!goal.text.trim()) {
+    const nextGoalText = goalText ?? goal.text;
+
+    if (!nextGoalText.trim()) {
       return;
     }
 
@@ -179,6 +183,7 @@ export function StrategicPlannerPanel() {
         year: planningYear,
         sectionKey,
         index,
+        goalText: nextGoalText,
         advisorId,
         bucket: addToFocus ? 'this_week' : PROMOTION_BUCKETS[sectionKey],
         addToWeeklyFocusWeekStart: addToFocus ? weeklyFocus.weekStart : null,
@@ -393,8 +398,8 @@ export function StrategicPlannerPanel() {
                       type: 'TOGGLE_STRATEGIC_GOAL_COMPLETED',
                       payload: { year: planningYear, sectionKey, index },
                     })}
-                    onQueue={() => promoteGoal(sectionKey, index, getAdvisorChoice(goalKey, lockedAdvisorId), false)}
-                    onFocus={() => promoteGoal(sectionKey, index, getAdvisorChoice(goalKey, lockedAdvisorId), true)}
+                    onQueue={goalText => promoteGoal(sectionKey, index, getAdvisorChoice(goalKey, lockedAdvisorId), false, goalText)}
+                    onFocus={goalText => promoteGoal(sectionKey, index, getAdvisorChoice(goalKey, lockedAdvisorId), true, goalText)}
                     onSetLinkedTaskBucket={bucket => {
                       if (linkedTaskSummary) {
                         setLinkedTaskBucket(linkedTaskSummary, bucket);
@@ -460,8 +465,8 @@ export function StrategicPlannerPanel() {
                       type: 'TOGGLE_STRATEGIC_GOAL_COMPLETED',
                       payload: { year: planningYear, sectionKey, index },
                     })}
-                    onQueue={() => promoteGoal(sectionKey, index, getAdvisorChoice(goalKey, lockedAdvisorId), false)}
-                    onFocus={() => promoteGoal(sectionKey, index, getAdvisorChoice(goalKey, lockedAdvisorId), true)}
+                    onQueue={goalText => promoteGoal(sectionKey, index, getAdvisorChoice(goalKey, lockedAdvisorId), false, goalText)}
+                    onFocus={goalText => promoteGoal(sectionKey, index, getAdvisorChoice(goalKey, lockedAdvisorId), true, goalText)}
                     onSetLinkedTaskBucket={bucket => {
                       if (linkedTaskSummary) {
                         setLinkedTaskBucket(linkedTaskSummary, bucket);
@@ -606,13 +611,23 @@ function GoalRow({
   onAdvisorChange: (advisorId: AdvisorId) => void;
   onTextChange: (text: string) => void;
   onToggleComplete: () => void;
-  onQueue: () => void;
-  onFocus: () => void;
+  onQueue: (text: string) => void;
+  onFocus: (text: string) => void;
   onSetLinkedTaskBucket: (bucket: TaskPlanningBucket) => void;
   onClearLinkedTaskBucket: () => void;
   onToggleLinkedTaskFocus: () => void;
   onOpenLinkedTaskInWeeklyLab: () => void;
 }) {
+  const { draftValue, setDraftValue, flush } = useBufferedCommit<string>({
+    value: text,
+    onCommit: nextText => {
+      if (nextText !== text) {
+        onTextChange(nextText);
+      }
+
+      return nextText;
+    },
+  });
   const reusableLinkedTask = linkedTaskSummary?.state === 'open';
 
   return (
@@ -642,8 +657,12 @@ function GoalRow({
             )}
           </div>
           <input
-            value={text}
-            onChange={event => onTextChange(event.target.value)}
+            aria-label={`${sectionKey} ${index + 1} goal`}
+            value={draftValue}
+            onChange={event => setDraftValue(event.target.value)}
+            onBlur={() => {
+              void flush();
+            }}
             placeholder="Write the goal in concrete language"
             className="w-full rounded-2xl border border-stone-300 bg-white px-4 py-3 text-sm text-stone-900 shadow-sm outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-200"
           />
@@ -733,16 +752,16 @@ function GoalRow({
             </select>
             <button
               type="button"
-              onClick={onQueue}
-              disabled={!text.trim()}
+              onClick={() => onQueue(draftValue)}
+              disabled={!draftValue.trim()}
               className="rounded-full border border-stone-300 px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-stone-700 transition hover:border-stone-500 hover:bg-white disabled:cursor-not-allowed disabled:opacity-40"
             >
               {reusableLinkedTask ? 'Update linked task' : 'Queue as task'}
             </button>
             <button
               type="button"
-              onClick={onFocus}
-              disabled={!text.trim()}
+              onClick={() => onFocus(draftValue)}
+              disabled={!draftValue.trim()}
               className="rounded-full bg-stone-900 px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-white transition hover:bg-stone-800 disabled:cursor-not-allowed disabled:bg-stone-300"
             >
               {reusableLinkedTask ? 'Sync to weekly focus' : 'Add to weekly focus'}
@@ -877,15 +896,51 @@ function WinList({
       <h4 className="text-sm font-semibold text-stone-700">{label}</h4>
       <div className="mt-3 space-y-3">
         {values.map((value, index) => (
-          <input
+          <BufferedWinInput
             key={`${label}-${index}`}
+            label={label}
+            index={index}
             value={value}
-            onChange={event => onChange(index, event.target.value)}
-            placeholder={`Capture ${label.toLowerCase()} ${index + 1}`}
-            className="w-full rounded-2xl border border-stone-300 bg-stone-50 px-4 py-3 text-sm text-stone-900 shadow-sm outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-200"
+            onChange={nextValue => onChange(index, nextValue)}
           />
         ))}
       </div>
     </div>
+  );
+}
+
+function BufferedWinInput({
+  label,
+  index,
+  value,
+  onChange,
+}: {
+  label: string;
+  index: number;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const { draftValue, setDraftValue, flush } = useBufferedCommit<string>({
+    value,
+    onCommit: nextValue => {
+      if (nextValue !== value) {
+        onChange(nextValue);
+      }
+
+      return nextValue;
+    },
+  });
+
+  return (
+    <input
+      aria-label={`${label} ${index + 1}`}
+      value={draftValue}
+      onChange={event => setDraftValue(event.target.value)}
+      onBlur={() => {
+        void flush();
+      }}
+      placeholder={`Capture ${label.toLowerCase()} ${index + 1}`}
+      className="w-full rounded-2xl border border-stone-300 bg-stone-50 px-4 py-3 text-sm text-stone-900 shadow-sm outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-200"
+    />
   );
 }

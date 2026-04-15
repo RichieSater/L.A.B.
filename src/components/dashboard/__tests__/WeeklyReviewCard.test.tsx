@@ -1,5 +1,5 @@
-import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { act, fireEvent, render, screen } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { WeeklyReviewCard } from '../WeeklyReviewCard';
 import type { WeeklyReviewSummary } from '../../../state/selectors';
 
@@ -181,6 +181,10 @@ function makeSummary(
 }
 
 describe('WeeklyReviewCard', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it('shows review signals and lets the user mark the week as reviewed', () => {
     const onCompleteReview = vi.fn();
     const onSetPlanBucket = vi.fn();
@@ -215,22 +219,75 @@ describe('WeeklyReviewCard', () => {
     expect(screen.getByText('Unfinished pressure')).toBeInTheDocument();
     expect(screen.getByText('Resolve Rebook therapist session before adding fresh commitments.')).toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText('Biggest win'), {
-      target: { value: 'Finally closed the lingering therapist loop.' },
-    });
     fireEvent.click(screen.getByRole('button', { name: 'Open Carry Over (1)' }));
     fireEvent.click(screen.getByRole('button', { name: 'Overdue (1)' }));
     fireEvent.click(screen.getByRole('button', { name: 'Mark review done' }));
     fireEvent.click(screen.getAllByRole('button', { name: 'Today' })[0]);
 
+    expect(onOpenAdvisorLane).toHaveBeenCalledWith('therapist', 'carry_over');
+    expect(onOpenAdvisorLane).toHaveBeenCalledWith('therapist', 'overdue');
+    expect(onCompleteReview).toHaveBeenCalledWith('2026-03-29');
+    expect(onSetPlanBucket).toHaveBeenCalledWith('therapist', 'task-1', 'today');
+  });
+
+  it('buffers review typing until blur or idle and skips unchanged blur', async () => {
+    vi.useFakeTimers();
+    const onSetReviewField = vi.fn();
+
+    render(
+      <WeeklyReviewCard
+        summary={makeSummary()}
+        onCompleteReview={vi.fn()}
+        onSetReviewField={onSetReviewField}
+        onAddFocusTask={vi.fn()}
+        onRemoveFocusTask={vi.fn()}
+        focusTaskKeys={new Set()}
+        onSetPlanBucket={vi.fn()}
+        onClearPlanBucket={vi.fn()}
+        onScheduleTask={vi.fn()}
+        onOpenAdvisorLane={vi.fn()}
+        schedulingEnabled={false}
+      />,
+    );
+
+    const biggestWin = screen.getByLabelText('Biggest win');
+    fireEvent.change(biggestWin, {
+      target: { value: 'Finally closed the lingering therapist loop.' },
+    });
+
+    expect(biggestWin).toHaveValue('Finally closed the lingering therapist loop.');
+    expect(onSetReviewField).not.toHaveBeenCalled();
+
+    await act(async () => {
+      fireEvent.blur(biggestWin);
+    });
+
+    expect(onSetReviewField).toHaveBeenCalledTimes(1);
     expect(onSetReviewField).toHaveBeenCalledWith(
       '2026-03-29',
       'biggestWin',
       'Finally closed the lingering therapist loop.',
     );
-    expect(onOpenAdvisorLane).toHaveBeenCalledWith('therapist', 'carry_over');
-    expect(onOpenAdvisorLane).toHaveBeenCalledWith('therapist', 'overdue');
-    expect(onCompleteReview).toHaveBeenCalledWith('2026-03-29');
-    expect(onSetPlanBucket).toHaveBeenCalledWith('therapist', 'task-1', 'today');
+
+    fireEvent.change(screen.getByLabelText('Next week note'), {
+      target: { value: 'Start by resolving overdue planned work.' },
+    });
+
+    await act(async () => {
+      vi.advanceTimersByTime(4000);
+    });
+
+    expect(onSetReviewField).toHaveBeenCalledTimes(2);
+    expect(onSetReviewField).toHaveBeenLastCalledWith(
+      '2026-03-29',
+      'nextWeekNote',
+      'Start by resolving overdue planned work.',
+    );
+
+    await act(async () => {
+      fireEvent.blur(screen.getByLabelText('Lesson or friction'));
+    });
+
+    expect(onSetReviewField).toHaveBeenCalledTimes(2);
   });
 });
