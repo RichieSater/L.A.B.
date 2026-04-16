@@ -13,6 +13,25 @@ function formatSessionDate(value: string | null): string {
   return new Date(value).toLocaleDateString();
 }
 
+function getSectionEntriesGridClassName(entryCount: number): string {
+  return [
+    'mt-6 grid gap-4',
+    entryCount > 1 ? 'xl:grid-cols-2' : null,
+  ]
+    .filter(Boolean)
+    .join(' ');
+}
+
+function getGroupedListGridClassName(groupCount: number): string {
+  return [
+    'grid gap-3',
+    groupCount > 1 ? 'md:grid-cols-2' : null,
+    groupCount > 2 ? 'xl:grid-cols-3' : null,
+  ]
+    .filter(Boolean)
+    .join(' ');
+}
+
 export function CompassPreviewDocument({
   session,
   config,
@@ -58,7 +77,7 @@ export function CompassPreviewDocument({
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-gray-500">{section.title}</p>
               <h2 className="text-2xl font-semibold tracking-tight text-gray-100">{section.subtitle}</h2>
             </div>
-            <div className="mt-6 grid gap-4 xl:grid-cols-2">
+            <div className={getSectionEntriesGridClassName(section.entries.length)}>
               {section.entries.map(entry => (
                 <article
                   key={entry.screenId}
@@ -142,7 +161,7 @@ function PreviewFieldView({ field }: { field: CompassPreviewField }) {
   return (
     <div className="space-y-3">
       <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">{field.label}</p>
-      <div className="grid gap-3 lg:grid-cols-2">
+      <div className={getGroupedListGridClassName(field.groups.length)}>
         {field.groups.map(group => (
           <div key={group.label} className="rounded-2xl border border-gray-800 bg-gray-900/70 px-4 py-4">
             <p className="text-sm font-semibold text-gray-100">{group.label}</p>
