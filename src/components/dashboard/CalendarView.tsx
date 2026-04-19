@@ -95,80 +95,115 @@ export function CalendarView() {
   const todayStr = today();
 
   return (
-    <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
-      {/* Month header */}
-      <div className="flex items-center justify-between mb-4">
-        <button
-          onClick={prevMonth}
-          className="p-2 text-gray-400 hover:text-gray-200 hover:bg-gray-800 rounded-lg transition-colors"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
-        </button>
-        <h3 className="text-sm font-medium text-gray-200">
-          {getMonthLabel(currentMonth.year, currentMonth.month)}
+    <section className="space-y-5">
+      <div className="max-w-3xl">
+        <p className="lab-eyebrow">Temporal Control</p>
+        <h3 className="mt-3 text-[2.2rem] font-semibold leading-none tracking-[-0.04em] text-[color:var(--lab-text)]">
+          Session Calendar
         </h3>
-        <button
-          onClick={nextMonth}
-          className="p-2 text-gray-400 hover:text-gray-200 hover:bg-gray-800 rounded-lg transition-colors"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-          </svg>
-        </button>
+        <p className="mt-3 text-sm leading-6 text-[color:var(--lab-text-muted)]">
+          Slow the system down and read the month structurally. This view emphasizes date placement, scheduled
+          sessions, and the selected-day story.
+        </p>
       </div>
 
-      {/* Day-of-week headers */}
-      <div className="grid grid-cols-7 gap-1 text-center text-xs text-gray-500 mb-2">
-        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
-          <div key={d} className="py-1">{d}</div>
-        ))}
-      </div>
+      <span className="lab-chip lab-chip--gold">{getMonthLabel(currentMonth.year, currentMonth.month)}</span>
 
-      {/* Calendar grid */}
-      <div className="grid grid-cols-7 gap-1">
-        {days.map(day => {
-          const dayEvents = eventsByDate[day.date] || [];
-          const isToday = day.date === todayStr;
-          const isSelected = day.date === selectedDate;
-          const hasScheduled = dayEvents.some(e => e.type === 'scheduled');
-
-          // Deduplicate event dots by advisor color
-          const uniqueColors = [...new Set(dayEvents.map(e => e.advisorColor))];
-
-          return (
-            <button
-              key={day.date}
-              onClick={() => setSelectedDate(isSelected ? null : day.date)}
-              className={`p-1.5 rounded-lg text-sm min-h-[52px] flex flex-col items-center transition-colors ${
-                day.isCurrentMonth ? 'text-gray-300' : 'text-gray-600'
-              } ${isToday ? 'ring-1 ring-blue-500' : ''} ${
-                isSelected ? 'bg-gray-800' : 'hover:bg-gray-800/50'
-              }`}
-            >
-              <span className="text-xs">{parseInt(day.date.split('-')[2])}</span>
-              {/* Event dots */}
-              {uniqueColors.length > 0 && (
-                <div className="flex gap-0.5 mt-1 justify-center flex-wrap">
-                  {uniqueColors.slice(0, 4).map((color, i) => (
-                    <div
-                      key={i}
-                      className={`w-1.5 h-1.5 rounded-full ${hasScheduled ? 'ring-1 ring-blue-400' : ''}`}
-                      style={{ backgroundColor: color }}
-                    />
-                  ))}
-                </div>
-              )}
+      <div className="grid gap-4 xl:grid-cols-[1fr_22rem]">
+        <div className="lab-panel rounded-[1.75rem] p-4 sm:p-5">
+          <div className="mb-4 flex items-center justify-between">
+            <button type="button" onClick={prevMonth} className="lab-button lab-button--ghost rounded-2xl px-3">
+              Prev
             </button>
-          );
-        })}
-      </div>
+            <div className="text-center">
+              <p className="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-[color:var(--lab-text-muted)]">
+                Month View
+              </p>
+              <h4 className="mt-1 text-lg font-semibold text-[color:var(--lab-text)]">
+                {getMonthLabel(currentMonth.year, currentMonth.month)}
+              </h4>
+            </div>
+            <button type="button" onClick={nextMonth} className="lab-button lab-button--ghost rounded-2xl px-3">
+              Next
+            </button>
+          </div>
 
-      {/* Selected day detail */}
-      {selectedDate && (
-        <DayDetailPanel date={selectedDate} events={eventsByDate[selectedDate] || []} onToggleComplete={handleToggleComplete} />
-      )}
-    </div>
+          <div className="mb-2 grid grid-cols-7 gap-2 text-center">
+            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
+              <div
+                key={d}
+                className="py-1 text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-[color:var(--lab-text-muted)]"
+              >
+                {d}
+              </div>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-7 gap-2">
+            {days.map(day => {
+              const dayEvents = eventsByDate[day.date] || [];
+              const isToday = day.date === todayStr;
+              const isSelected = day.date === selectedDate;
+              const hasScheduled = dayEvents.some(e => e.type === 'scheduled');
+              const uniqueColors = [...new Set(dayEvents.map(e => e.advisorColor))];
+
+              return (
+                <button
+                  key={day.date}
+                  type="button"
+                  onClick={() => setSelectedDate(isSelected ? null : day.date)}
+                  className={`min-h-[5.4rem] rounded-[1rem] border px-3 py-2 text-left transition-colors ${
+                    isSelected
+                      ? 'border-[rgba(228,209,174,0.52)] bg-[rgba(26,34,45,0.96)]'
+                      : 'border-[color:var(--lab-border-muted)] bg-[rgba(8,11,17,0.92)] hover:border-[rgba(228,209,174,0.24)]'
+                  } ${day.isCurrentMonth ? 'text-[color:var(--lab-text)]' : 'text-[color:var(--lab-text-dim)]'}`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className={`text-sm font-semibold ${isToday ? 'text-[color:var(--lab-gold)]' : ''}`}>
+                      {parseInt(day.date.split('-')[2], 10)}
+                    </span>
+                    {hasScheduled && (
+                      <span className="text-[0.6rem] font-semibold uppercase tracking-[0.16em] text-[color:var(--lab-blue)]">
+                        Live
+                      </span>
+                    )}
+                  </div>
+                  {uniqueColors.length > 0 && (
+                    <div className="mt-3 flex flex-wrap gap-1.5">
+                      {uniqueColors.slice(0, 4).map((color, i) => (
+                        <span
+                          key={i}
+                          className="inline-flex h-2.5 w-2.5 rounded-full"
+                          style={{
+                            backgroundColor: color,
+                            boxShadow: hasScheduled ? '0 0 0 1px rgba(92,138,214,0.6)' : undefined,
+                          }}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {selectedDate ? (
+          <DayDetailPanel
+            date={selectedDate}
+            events={eventsByDate[selectedDate] || []}
+            onToggleComplete={handleToggleComplete}
+          />
+        ) : (
+          <aside className="lab-panel lab-panel--ink rounded-[1.75rem] p-5">
+            <p className="lab-eyebrow">Selected Day</p>
+            <h4 className="mt-3 text-lg font-semibold text-[color:var(--lab-text)]">Open a day.</h4>
+            <p className="mt-2 text-sm leading-6 text-[color:var(--lab-text-muted)]">
+              Choose a date to inspect scheduled sessions, due tasks, and advisor-specific activity on that day.
+            </p>
+          </aside>
+        )}
+      </div>
+    </section>
   );
 }

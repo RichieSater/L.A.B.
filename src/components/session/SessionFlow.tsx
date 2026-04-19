@@ -52,7 +52,7 @@ export function SessionFlow({ advisorId }: SessionFlowProps) {
       <div className="mb-6">
         <div className="flex items-center gap-3 mb-4">
           <span className="text-2xl">{config.icon}</span>
-          <h2 className="text-xl font-bold text-gray-100">{config.displayName} Session</h2>
+          <h2 className="text-xl font-bold text-[color:var(--lab-text)]">{config.displayName} Session</h2>
         </div>
 
         {/* Step indicator */}
@@ -61,22 +61,22 @@ export function SessionFlow({ advisorId }: SessionFlowProps) {
             {steps.map((step, i) => (
               <div key={step.key} className="flex items-center gap-1 sm:gap-2">
                 <div
-                  className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-medium ${
+                  className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-medium sm:h-8 sm:w-8 sm:text-sm ${
                     i <= currentStepIndex
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-800 text-gray-500'
+                      ? 'bg-[color:var(--lab-gold)] text-[#15181e]'
+                      : 'bg-[rgba(19,28,38,0.92)] text-[color:var(--lab-text-dim)]'
                   }`}
                 >
                   {i + 1}
                 </div>
                 <span className={`text-xs sm:text-sm ${
-                  i <= currentStepIndex ? 'text-gray-300' : 'text-gray-600'
+                  i <= currentStepIndex ? 'text-[color:var(--lab-text)]' : 'text-[color:var(--lab-text-dim)]'
                 }`}>
                   {step.label}
                 </span>
                 {i < steps.length - 1 && (
-                  <div className={`w-4 sm:w-8 h-px ${
-                    i < currentStepIndex ? 'bg-blue-600' : 'bg-gray-800'
+                  <div className={`h-px w-4 sm:w-8 ${
+                    i < currentStepIndex ? 'bg-[color:var(--lab-gold)]' : 'bg-[color:var(--lab-border)]'
                   }`} />
                 )}
               </div>
@@ -98,13 +98,13 @@ export function SessionFlow({ advisorId }: SessionFlowProps) {
       {flowState.step === 'awaiting' && (
         <div className="text-center py-12">
           <div className="text-5xl mb-4">&#128172;</div>
-          <h3 className="text-xl font-semibold text-gray-100 mb-2">
+          <h3 className="mb-2 text-xl font-semibold text-[color:var(--lab-text)]">
             Have Your Conversation
           </h3>
-          <p className="text-gray-400 mb-2 max-w-lg mx-auto">
+          <p className="mx-auto mb-2 max-w-lg text-[color:var(--lab-text-muted)]">
             Paste the prompt into your preferred AI chat (Claude, ChatGPT, Gemini, etc.) and have your advisory session.
           </p>
-          <p className="text-gray-500 text-sm mb-8 max-w-lg mx-auto">
+          <p className="mx-auto mb-8 max-w-lg text-sm text-[color:var(--lab-text-dim)]">
             At the end, the AI will produce a JSON export block. Copy that block.
           </p>
 
@@ -112,19 +112,19 @@ export function SessionFlow({ advisorId }: SessionFlowProps) {
           <div className="max-w-lg mx-auto mb-8">
             <button
               onClick={() => setShowForcePrompt(!showForcePrompt)}
-              className="text-sm text-gray-400 hover:text-gray-200 underline transition-colors"
+              className="text-sm text-[color:var(--lab-text-muted)] underline transition-colors hover:text-[color:var(--lab-text)]"
             >
               {showForcePrompt ? 'Hide JSON prompt' : "AI didn't produce JSON? Get the export prompt"}
             </button>
             {showForcePrompt && (
-              <div className="mt-4 bg-gray-900 border border-gray-800 rounded-xl p-4 text-left">
-                <p className="text-sm text-gray-400 mb-3">
+              <div className="mt-4 rounded-[1.5rem] border border-[color:var(--lab-border)] bg-[rgba(8,11,17,0.96)] p-4 text-left">
+                <p className="mb-3 text-sm text-[color:var(--lab-text-muted)]">
                   Copy this prompt and paste it into your chat to request the JSON export:
                 </p>
                 <div className="mb-3">
                   <CopyButton text={forceJsonPrompt} label="Copy JSON Prompt" />
                 </div>
-                <pre className="text-xs text-gray-500 font-mono whitespace-pre-wrap max-h-40 overflow-y-auto">
+                <pre className="max-h-40 overflow-y-auto whitespace-pre-wrap font-mono text-xs text-[color:var(--lab-text-dim)]">
                   {forceJsonPrompt}
                 </pre>
               </div>
@@ -133,7 +133,7 @@ export function SessionFlow({ advisorId }: SessionFlowProps) {
 
           <button
             onClick={advanceToImport}
-            className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+            className="lab-button lab-button--gold rounded-2xl"
           >
             I Have the JSON Export &rarr;
           </button>

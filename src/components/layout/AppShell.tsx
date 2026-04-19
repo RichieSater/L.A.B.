@@ -7,11 +7,14 @@ interface AppShellProps {
 
 export function AppShell({ children }: AppShellProps) {
   return (
-    <div className="min-h-screen bg-gray-950 text-gray-100">
-      <Header />
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {children}
-      </main>
+    <div className="min-h-screen px-3 py-3 text-[color:var(--lab-text)] sm:px-4 sm:py-4">
+      <div className="lab-shell mx-auto min-h-[calc(100dvh-1.5rem)] max-w-[1440px]">
+        <div className="lab-shell__rim" aria-hidden="true" />
+        <Header />
+        <main className="lab-main">
+          {children}
+        </main>
+      </div>
     </div>
   );
 }

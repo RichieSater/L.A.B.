@@ -1,4 +1,5 @@
 import { test, expect } from '../fixtures/lab';
+import { QUANTUM_PLANNER_PATH } from '../../src/constants/routes';
 import { getCompassTestAnswerRecord } from '../../src/testing/compass-test-data';
 import {
   advanceCompassUntilScreen,
@@ -9,6 +10,8 @@ import {
   resumeCompassFromPlanner,
   startCompassAudit,
 } from '../helpers/compass';
+
+test.describe.configure({ timeout: 120000 });
 
 function trackRequestBudget(page: Parameters<typeof startCompassAudit>[0]) {
   const compassPatchResponses: string[] = [];
@@ -189,8 +192,8 @@ test('typing request budgets stay bounded across Compass and planner notes', asy
     await expect.poll(() => budget.compassPatchResponses.length).toBe(1);
     await expect.poll(() => new URL(cleanLabPage.url()).pathname).toBe(compassPath);
 
-    await cleanLabPage.goto('/planner');
-    await expect(cleanLabPage.getByRole('heading', { name: 'Daily Plan' })).toBeVisible();
+    await cleanLabPage.goto(QUANTUM_PLANNER_PATH);
+    await expect(cleanLabPage.getByRole('heading', { name: 'Daily Plan', exact: true })).toBeVisible();
     budget.reset();
 
     const headline = cleanLabPage.getByLabel('Headline');

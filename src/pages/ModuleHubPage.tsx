@@ -1,184 +1,234 @@
-import type { CSSProperties } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/auth-context';
 import {
   canAccessLabModule,
   getVisibleLabModules,
   type LabModuleDefinition,
-  type LabModuleTone,
+  type LabModuleId,
 } from '../modules/module-registry';
 
-const DOT_GRID_STYLE: CSSProperties = {
-  backgroundImage: 'radial-gradient(rgba(148, 163, 184, 0.18) 1px, transparent 1px)',
-  backgroundSize: '22px 22px',
+const MODULE_META: Record<LabModuleId, { label: string; descriptor: string; accent: 'gold' | 'teal' | 'blue' | 'neutral' }> = {
+  'golden-compass': {
+    label: 'Ceremonial',
+    descriptor: 'Annual recalibration and archive',
+    accent: 'gold',
+  },
+  'quantum-planner': {
+    label: 'Execution',
+    descriptor: 'Week, calendar, focus, review',
+    accent: 'teal',
+  },
+  'advisory-board': {
+    label: 'Routing',
+    descriptor: 'Domain pressure and next move',
+    accent: 'blue',
+  },
+  'admin-dashboard': {
+    label: 'Oversight',
+    descriptor: 'Tier controls and account review',
+    accent: 'neutral',
+  },
+  bonfire: {
+    label: 'Bonfire',
+    descriptor: 'Sealed',
+    accent: 'neutral',
+  },
+  'morning-ship': {
+    label: 'Morning Ship',
+    descriptor: 'Sealed',
+    accent: 'neutral',
+  },
+  scorecard: {
+    label: 'Scorecard',
+    descriptor: 'Sealed',
+    accent: 'neutral',
+  },
 };
 
-const MODULE_TONE_STYLES: Record<LabModuleTone, {
-  border: string;
-  glow: string;
-  pill: string;
-  text: string;
-}> = {
-  gold: {
-    border: 'border-amber-300/25 hover:border-amber-200/50',
-    glow: 'from-amber-400/18 via-amber-200/8 to-transparent',
-    pill: 'border-amber-300/30 bg-amber-500/10 text-amber-100',
-    text: 'text-amber-200',
-  },
-  sky: {
-    border: 'border-sky-300/20 hover:border-sky-200/45',
-    glow: 'from-sky-400/18 via-sky-200/8 to-transparent',
-    pill: 'border-sky-300/30 bg-sky-500/10 text-sky-100',
-    text: 'text-sky-200',
-  },
-  emerald: {
-    border: 'border-emerald-300/20 hover:border-emerald-200/45',
-    glow: 'from-emerald-400/18 via-emerald-200/8 to-transparent',
-    pill: 'border-emerald-300/30 bg-emerald-500/10 text-emerald-100',
-    text: 'text-emerald-200',
-  },
-  ember: {
-    border: 'border-orange-300/12',
-    glow: 'from-orange-400/10 via-orange-200/4 to-transparent',
-    pill: 'border-orange-300/20 bg-orange-500/8 text-orange-100/85',
-    text: 'text-orange-100/80',
-  },
-  rose: {
-    border: 'border-rose-300/12',
-    glow: 'from-rose-400/10 via-rose-200/4 to-transparent',
-    pill: 'border-rose-300/20 bg-rose-500/8 text-rose-100/85',
-    text: 'text-rose-100/80',
-  },
-  slate: {
-    border: 'border-slate-300/12',
-    glow: 'from-slate-300/10 via-slate-200/4 to-transparent',
-    pill: 'border-slate-300/20 bg-slate-500/8 text-slate-100/85',
-    text: 'text-slate-100/80',
-  },
-};
+function resolveAccentClass(accent: 'gold' | 'teal' | 'blue' | 'neutral'): string {
+  if (accent === 'gold') return 'lab-outline-gold';
+  if (accent === 'teal') return 'lab-outline-teal';
+  if (accent === 'blue') return 'lab-outline-blue';
+  return 'lab-outline-neutral';
+}
+
+function resolveChipClass(accent: 'gold' | 'teal' | 'blue' | 'neutral'): string {
+  if (accent === 'gold') return 'lab-chip lab-chip--gold';
+  if (accent === 'teal') return 'lab-chip lab-chip--teal';
+  if (accent === 'blue') return 'lab-chip lab-chip--blue';
+  return 'lab-chip lab-chip--neutral';
+}
+
+function resolveOpenButtonClass(accent: 'gold' | 'teal' | 'blue' | 'neutral'): string {
+  if (accent === 'gold') return 'lab-chip lab-chip--gold';
+  if (accent === 'teal') return 'lab-chip lab-chip--teal';
+  if (accent === 'blue') return 'lab-chip lab-chip--blue';
+  return 'lab-chip lab-chip--neutral';
+}
 
 export function ModuleHubPage() {
   const { profile } = useAuth();
   const navigate = useNavigate();
   const modules = getVisibleLabModules(profile?.accountTier);
-  const liveModuleCount = modules.filter(module => module.availability === 'available').length;
-  const comingSoonCount = modules.length - liveModuleCount;
-  const freeTier = profile?.accountTier === 'free';
+  const availableModules = modules.filter(module => module.availability === 'available');
+  const liveModules = availableModules.filter(module => canAccessLabModule(profile?.accountTier, module));
+  const lockedModules = availableModules.filter(module => !canAccessLabModule(profile?.accountTier, module));
+  const sealedModules = modules.filter(module => module.availability !== 'available');
 
   return (
-    <div className="flex min-h-[calc(100dvh-8.5rem)] items-center py-4 sm:py-8">
-      <section className="relative isolate w-full overflow-hidden rounded-[2.5rem] border border-stone-800/80 bg-[linear-gradient(180deg,_rgba(12,16,24,0.98)_0%,_rgba(20,24,34,0.98)_35%,_rgba(10,12,18,1)_100%)] px-6 py-8 shadow-[0_30px_120px_rgba(0,0,0,0.45)] sm:px-10 sm:py-10 lg:px-14 lg:py-14">
-        <div className="pointer-events-none absolute inset-0 opacity-70" style={DOT_GRID_STYLE} />
-        <div className="pointer-events-none absolute left-1/2 top-0 h-64 w-64 -translate-x-1/2 rounded-full bg-amber-400/12 blur-3xl" />
-        <div className="pointer-events-none absolute bottom-[-6rem] right-[-4rem] h-72 w-72 rounded-full bg-sky-400/10 blur-3xl" />
-
-        <div className="relative">
+    <div className="lab-page flex min-h-[calc(100dvh-10rem)] items-center py-2 sm:py-6">
+      <section className="lab-panel relative w-full overflow-hidden rounded-[2rem] px-4 py-6 sm:px-7 sm:py-8 lg:px-9 lg:py-9">
+        <div className="mx-auto max-w-[82rem]">
           <div className="max-w-3xl">
-            <p className="text-xs font-semibold uppercase tracking-[0.32em] text-stone-400">
-              The L.A.B. operating system
-            </p>
-            <h1 className="mt-5 text-5xl font-semibold tracking-tight text-white sm:text-6xl lg:text-7xl">
-              The System
-            </h1>
-            <p className="mt-5 max-w-2xl text-base leading-7 text-stone-300 sm:text-lg">
-              {freeTier
-                ? 'Golden Compass is open now. Premium unlocks Advisory Board and Quantum Planner so the full LAB operating system comes online around it.'
-                : 'Choose the module you want to enter. Quantum Planner runs the week, Advisory Board keeps domain pressure visible, and Golden Compass recalibrates the year behind it all.'}
+            <h2 className="sr-only">The System</h2>
+            <p aria-hidden="true" className="lab-eyebrow">The LAB Operating System</p>
+            <h1 className="lab-display mt-5">Operational Dossiers</h1>
+            <p className="lab-copy mt-5 max-w-[42rem]">
+              Open only the live LAB surfaces. The module shelf stays premium, file-like, and clearly separated
+              between active systems and sealed future modules.
             </p>
           </div>
 
-          <div className="mt-8 flex flex-wrap gap-3 text-xs font-semibold uppercase tracking-[0.18em] text-stone-300">
-            <span className="rounded-full border border-emerald-400/25 bg-emerald-500/10 px-4 py-2 text-emerald-100">
-              {liveModuleCount} live modules
+          <div className="mt-8 flex flex-wrap gap-3">
+            <span className="lab-chip lab-chip--gold-solid">
+              {liveModules.length} Live Module{liveModules.length === 1 ? '' : 's'}
             </span>
-            <span className="rounded-full border border-stone-700 bg-stone-900/80 px-4 py-2 text-stone-300">
-              {comingSoonCount} coming online next
+            <span className="lab-chip lab-chip--neutral">
+              {sealedModules.length} Sealed Module{sealedModules.length === 1 ? '' : 's'}
             </span>
           </div>
 
-          <div className="mt-10 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-            {modules.map(module => (
-              <ModuleCard
-                key={module.id}
-                module={module}
-                onOpen={() => {
-                  if (module.route) {
-                    navigate(module.route);
-                  }
-                }}
-              />
-            ))}
+          <div className="lab-panel mt-6 rounded-[1.75rem] p-4 sm:p-5">
+            <div className="grid gap-5 lg:grid-cols-2">
+              {liveModules.map(module => (
+                <LiveModuleCard
+                  key={module.id}
+                  module={module}
+                  onOpen={() => {
+                    if (module.route) {
+                      navigate(module.route);
+                    }
+                  }}
+                />
+              ))}
+              {lockedModules.map(module => (
+                <LockedModuleCard key={module.id} module={module} />
+              ))}
+            </div>
           </div>
+
+          {sealedModules.length > 0 && (
+            <div className="lab-panel lab-panel--strong mt-4 flex flex-wrap items-center gap-4 rounded-[1.5rem] px-5 py-4">
+              {sealedModules.map(module => (
+                <ComingSoonModuleButton key={module.id} module={module} />
+              ))}
+            </div>
+          )}
         </div>
       </section>
     </div>
   );
 }
 
-function ModuleCard({
+function LiveModuleCard({
   module,
   onOpen,
 }: {
   module: LabModuleDefinition;
   onOpen: () => void;
 }) {
-  const tone = MODULE_TONE_STYLES[module.tone];
-  const { profile } = useAuth();
-  const hasAccess = canAccessLabModule(profile?.accountTier, module);
-  const isAvailable = module.availability === 'available' && hasAccess;
-  const isLocked = module.availability === 'available' && !hasAccess;
-  const ariaLabel = isAvailable
-    ? `Open ${module.label}`
-    : isLocked
-      ? `${module.label} premium only`
-      : `${module.label} coming soon`;
-  const summary = isLocked && module.lockedSummary
-    ? module.lockedSummary
-    : module.summary;
+  const meta = MODULE_META[module.id];
+  const summary = module.summary;
 
   return (
     <button
       type="button"
-      aria-disabled={!isAvailable}
-      aria-label={ariaLabel}
-      onClick={() => {
-        if (isAvailable) {
-          onOpen();
-        }
-      }}
-      className={`group relative flex min-h-[18rem] flex-col justify-between overflow-hidden rounded-[2rem] border bg-[linear-gradient(180deg,_rgba(19,24,35,0.94)_0%,_rgba(10,12,18,0.98)_100%)] p-6 text-left shadow-sm transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300/40 ${
-        isAvailable
-          ? `${tone.border} hover:-translate-y-1 hover:shadow-[0_24px_70px_rgba(0,0,0,0.35)]`
-          : `${tone.border} cursor-default`
-      }`}
+      onClick={onOpen}
+      aria-label={`Open ${module.label}`}
+      className={`lab-panel lab-panel--soft flex min-h-[11.5rem] flex-col overflow-hidden rounded-[1.75rem] px-6 py-6 text-left transition duration-150 hover:-translate-y-[2px] hover:border-[rgba(228,209,174,0.2)] ${resolveAccentClass(meta.accent)}`}
     >
-      <div className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${tone.glow} opacity-80`} />
-      <div className="relative">
-        <div className="flex items-start justify-between gap-3">
-          <span className={`rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] ${tone.pill}`}>
-            {isAvailable ? 'Available now' : isLocked ? 'Premium only' : 'Coming soon'}
-          </span>
-          <span className={`text-[11px] font-semibold uppercase tracking-[0.22em] ${tone.text}`}>
-            Module
-          </span>
-        </div>
+      <div className="flex items-start justify-between gap-3">
+        <span className={resolveChipClass(meta.accent)}>{meta.label}</span>
+        <span className="text-[0.6rem] font-semibold uppercase tracking-[0.18em] text-[color:var(--lab-text-muted)]">
+          Module
+        </span>
+      </div>
 
-        <h2 className="mt-10 text-2xl font-semibold tracking-tight text-white sm:text-[2rem]">
-          {module.label}
-        </h2>
-        <p className="mt-4 max-w-xs text-sm leading-6 text-stone-300">
-          {summary}
+      <h2 className="mt-7 text-[1.9rem] font-semibold leading-[1.1] tracking-[-0.03em] text-[color:var(--lab-text)]">
+        {module.label}
+      </h2>
+      <p className="mt-3 max-w-[34rem] text-[0.92rem] leading-6 text-[color:var(--lab-text-muted)]">
+        {summary}
+      </p>
+
+      <div className="lab-rule mt-5" />
+
+      <div className="mt-4 flex items-center justify-between gap-3">
+        <p className="text-[0.82rem] font-semibold text-[color:var(--lab-text)]">
+          {meta.descriptor}
         </p>
+        <span className={resolveOpenButtonClass(meta.accent)}>Open</span>
+      </div>
+    </button>
+  );
+}
+
+function LockedModuleCard({
+  module,
+}: {
+  module: LabModuleDefinition;
+}) {
+  const meta = MODULE_META[module.id];
+
+  return (
+    <button
+      type="button"
+      aria-disabled="true"
+      aria-label={`${module.label} premium only`}
+      className={`lab-panel lab-panel--soft flex min-h-[11.5rem] flex-col overflow-hidden rounded-[1.75rem] px-6 py-6 text-left opacity-85 ${resolveAccentClass(meta.accent)}`}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <span className="lab-chip lab-chip--neutral">Locked</span>
+        <span className="text-[0.6rem] font-semibold uppercase tracking-[0.18em] text-[color:var(--lab-text-muted)]">
+          Premium
+        </span>
       </div>
 
-      <div className="relative flex items-center justify-between gap-3 border-t border-white/8 pt-5">
-        <span className="text-sm font-semibold text-stone-200">
-          {isAvailable ? 'Enter module' : isLocked ? 'Upgrade required' : 'Awaiting wiring'}
-        </span>
-        <span className={`text-sm font-semibold uppercase tracking-[0.18em] ${isAvailable ? 'text-white' : 'text-stone-500'}`}>
-          {isAvailable ? 'Open' : isLocked ? 'Locked' : 'Soon'}
-        </span>
+      <h2 className="mt-7 text-[1.9rem] font-semibold leading-[1.1] tracking-[-0.03em] text-[color:var(--lab-text)]">
+        {module.label}
+      </h2>
+      <p className="mt-3 max-w-[34rem] text-[0.92rem] leading-6 text-[color:var(--lab-text-muted)]">
+        {module.lockedSummary ?? module.summary}
+      </p>
+
+      <div className="lab-rule mt-5" />
+
+      <div className="mt-4 flex items-center justify-between gap-3">
+        <p className="text-[0.82rem] font-semibold text-[color:var(--lab-text)]">
+          Premium only
+        </p>
+        <span className="lab-chip lab-chip--neutral">Locked</span>
       </div>
+    </button>
+  );
+}
+
+function ComingSoonModuleButton({
+  module,
+}: {
+  module: LabModuleDefinition;
+}) {
+  return (
+    <button
+      type="button"
+      aria-disabled="true"
+      aria-label={`${module.label} coming soon`}
+      className="flex items-center gap-3"
+    >
+      <span className="lab-chip lab-chip--neutral">{module.label}</span>
+      <span className="text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-[color:var(--lab-text-muted)]">
+        Coming soon
+      </span>
     </button>
   );
 }

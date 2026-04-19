@@ -31,25 +31,22 @@ export function RecentActivityTimeline({
   onOpenAdvisorLane,
 }: RecentActivityTimelineProps) {
   return (
-    <section className="mb-6 rounded-xl border border-gray-800 bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 p-5">
+    <section className="lab-panel mb-6 rounded-[1.75rem] border-[rgba(228,209,174,0.14)] bg-[radial-gradient(circle_at_top,_rgba(228,209,174,0.06),_rgba(19,28,38,0.96)_58%)] p-5">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h3 className="text-sm font-semibold uppercase tracking-wide text-gray-300">Recent Activity</h3>
-          <p className="mt-1 max-w-2xl text-sm text-gray-500">
+          <h3 className="lab-eyebrow text-[0.68rem]">Recent Activity</h3>
+          <p className="lab-copy mt-1 max-w-2xl text-sm">
             {getTimelineDescription(summary)}
           </p>
         </div>
 
-        <div className="flex gap-1 rounded-lg bg-gray-950/80 p-1">
+        <div className="lab-tab-rail">
           {WINDOW_OPTIONS.map(option => (
             <button
               key={option.value}
               onClick={() => onSelectWindow(option.value)}
-              className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
-                selectedWindow === option.value
-                  ? 'bg-gray-200 text-gray-900'
-                  : 'text-gray-500 hover:text-gray-300'
-              }`}
+              className="lab-tab"
+              data-active={selectedWindow === option.value}
             >
               {option.label}
             </button>
@@ -64,11 +61,11 @@ export function RecentActivityTimeline({
         <ActivityStat label="Planning Loops" value={summary.counts.rituals} tone={summary.counts.rituals > 0 ? 'attention' : 'neutral'} />
       </div>
 
-      <div className="mt-4 rounded-lg border border-gray-800 bg-gray-950/80 p-4">
+      <div className="lab-subpanel mt-4 p-4">
         {summary.items.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-gray-800 px-3 py-8 text-center">
-            <p className="text-sm text-gray-400">{getEmptyStateLabel(summary)}</p>
-            <p className="mt-1 text-xs text-gray-600">
+          <div className="lab-empty-state px-3 py-8 text-center">
+            <p className="text-sm text-[color:var(--lab-text-muted)]">{getEmptyStateLabel(summary)}</p>
+            <p className="mt-1 text-xs text-[color:var(--lab-text-dim)]">
               {summary.scopeAdvisorName
                 ? 'Completed tasks, sessions, and quick logs for this advisor will appear here.'
                 : 'Completed tasks, sessions, quick logs, and planning rituals will appear here.'}
@@ -91,7 +88,7 @@ export function RecentActivityTimeline({
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
                       <div className="flex flex-wrap items-center gap-2">
-                        <p className="text-sm text-gray-100">{item.title}</p>
+                        <p className="text-sm text-[color:var(--lab-text)]">{item.title}</p>
                         <span
                           className="rounded-full px-2 py-0.5 text-[11px]"
                           style={{
@@ -102,12 +99,12 @@ export function RecentActivityTimeline({
                           {item.advisorIcon && item.advisorName ? `${item.advisorIcon} ${item.advisorName}` : 'Planning'}
                         </span>
                       </div>
-                      <p className="mt-1 text-sm text-gray-500">{item.detail}</p>
+                      <p className="mt-1 text-sm text-[color:var(--lab-text-muted)]">{item.detail}</p>
                       {advisorId && plannerShortcut && onOpenAdvisorLane && (
                         <button
                           type="button"
                           onClick={() => onOpenAdvisorLane(advisorId as AdvisorId, plannerShortcut.preset)}
-                          className="mt-2 rounded-full border border-sky-300/20 bg-sky-500/10 px-2.5 py-1 text-xs text-sky-100 transition-colors hover:border-sky-200/40 hover:text-white"
+                          className="lab-action lab-action--blue mt-2"
                         >
                           {`Open ${plannerShortcut.label} (${plannerShortcut.count})`}
                         </button>
@@ -115,10 +112,10 @@ export function RecentActivityTimeline({
                     </div>
 
                     <div className="text-right">
-                      <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                      <p className="text-xs font-medium uppercase tracking-wide text-[color:var(--lab-text-dim)]">
                         {ACTIVITY_LABELS[item.type]}
                       </p>
-                      <p className="mt-1 text-xs text-gray-400">{formatOccurredAt(item)}</p>
+                      <p className="mt-1 text-xs text-[color:var(--lab-text-muted)]">{formatOccurredAt(item)}</p>
                     </div>
                   </div>
                 </article>
@@ -126,7 +123,7 @@ export function RecentActivityTimeline({
             })}
 
             {summary.remainingCount > 0 ? (
-              <p className="border-t border-gray-800 pt-3 text-xs text-gray-500">
+              <p className="border-t border-[color:var(--lab-border-muted)] pt-3 text-xs text-[color:var(--lab-text-dim)]">
                 {summary.remainingCount} more activit{summary.remainingCount === 1 ? 'y' : 'ies'} in this window.
               </p>
             ) : null}
@@ -147,15 +144,15 @@ function ActivityStat({
   tone?: 'neutral' | 'primary' | 'success' | 'attention';
 }) {
   const toneClasses = {
-    neutral: 'border-gray-800 bg-gray-950/70 text-gray-300',
-    primary: 'border-sky-500/20 bg-sky-500/10 text-sky-200',
-    success: 'border-emerald-500/20 bg-emerald-500/10 text-emerald-200',
-    attention: 'border-amber-500/20 bg-amber-500/10 text-amber-200',
+    neutral: 'border-[color:var(--lab-border-muted)] bg-[rgba(8,11,17,0.86)] text-[color:var(--lab-text)]',
+    primary: 'border-[rgba(92,138,214,0.24)] bg-[rgba(92,138,214,0.12)] text-[#c2d6ff]',
+    success: 'border-[rgba(117,200,167,0.24)] bg-[rgba(117,200,167,0.12)] text-[color:var(--lab-success)]',
+    attention: 'border-[rgba(228,209,174,0.24)] bg-[rgba(228,209,174,0.1)] text-[color:var(--lab-gold)]',
   } as const;
 
   return (
     <div className={`rounded-lg border px-3 py-3 ${toneClasses[tone]}`}>
-      <p className="text-xs uppercase tracking-wide text-gray-500">{label}</p>
+      <p className="text-xs uppercase tracking-wide text-[color:var(--lab-text-dim)]">{label}</p>
       <p className="mt-1 text-lg font-semibold">{value}</p>
     </div>
   );

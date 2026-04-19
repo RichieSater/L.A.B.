@@ -31,8 +31,8 @@ export function TaskPlanningBoard({
     <div className="mb-6">
       <div className="flex items-center justify-between gap-3 mb-3">
         <div>
-          <h3 className="text-sm font-semibold uppercase tracking-wide text-gray-400">Planning Queue</h3>
-          <p className="text-xs text-gray-500 mt-1">
+          <h3 className="lab-eyebrow text-[0.68rem]">Planning Queue</h3>
+          <p className="lab-meta mt-1">
             Decide what deserves attention before you commit calendar time.
           </p>
         </div>
@@ -40,19 +40,19 @@ export function TaskPlanningBoard({
 
       <div className="grid gap-3 xl:grid-cols-4">
         {lanes.map(lane => (
-          <section key={lane.bucket} className="rounded-xl border border-gray-800 bg-gray-950/70 p-4">
+          <section key={lane.bucket} className="lab-panel lab-panel--ink rounded-xl p-4">
             <div className="mb-3">
               <div className="flex items-center justify-between gap-3">
-                <h4 className="text-sm font-semibold text-gray-200">{lane.label}</h4>
-                <span className="rounded-full bg-gray-800 px-2 py-0.5 text-xs text-gray-400">
+                <h4 className="text-sm font-semibold text-[color:var(--lab-text)]">{lane.label}</h4>
+                <span className="lab-chip lab-chip--neutral">
                   {lane.items.length}
                 </span>
               </div>
-              <p className="mt-1 text-xs text-gray-500">{lane.description}</p>
+              <p className="lab-meta mt-1">{lane.description}</p>
             </div>
 
             {lane.items.length === 0 ? (
-              <div className="rounded-lg border border-dashed border-gray-800 px-3 py-6 text-center text-xs text-gray-600">
+              <div className="lab-empty-state px-3 py-6 text-center text-xs">
                 No tasks parked here yet.
               </div>
             ) : (
@@ -76,21 +76,21 @@ export function TaskPlanningBoard({
           </section>
         ))}
 
-        <section className="rounded-xl border border-gray-800 bg-gray-950/70 p-4">
+        <section className="lab-panel lab-panel--ink rounded-xl p-4">
           <div className="mb-3">
             <div className="flex items-center justify-between gap-3">
-              <h4 className="text-sm font-semibold text-gray-200">Needs Triage</h4>
-              <span className="rounded-full bg-gray-800 px-2 py-0.5 text-xs text-gray-400">
+              <h4 className="text-sm font-semibold text-[color:var(--lab-text)]">Needs Triage</h4>
+              <span className="lab-chip lab-chip--neutral">
                 {unplanned.length}
               </span>
             </div>
-            <p className="mt-1 text-xs text-gray-500">
+            <p className="lab-meta mt-1">
               Open tasks without a planning home yet. Promote the most relevant ones into your queue.
             </p>
           </div>
 
           {unplannedPreview.length === 0 ? (
-            <div className="rounded-lg border border-dashed border-gray-800 px-3 py-6 text-center text-xs text-gray-600">
+            <div className="lab-empty-state px-3 py-6 text-center text-xs">
               Every open task already has a queue bucket.
             </div>
           ) : (
@@ -111,7 +111,7 @@ export function TaskPlanningBoard({
                 />
               ))}
               {remainingUnplanned > 0 && (
-                <p className="text-xs text-gray-500">
+                <p className="lab-meta">
                   {remainingUnplanned} more unplanned task{remainingUnplanned === 1 ? '' : 's'} still in the backlog.
                 </p>
               )}
@@ -147,8 +147,8 @@ function TaskPlanningCard({
   showClearAction?: boolean;
 }) {
   return (
-    <article className="rounded-lg border border-gray-800 bg-gray-900/70 p-3">
-      <p className="text-sm text-gray-100">{item.task}</p>
+    <article className="lab-subpanel lab-subpanel--soft p-3">
+      <p className="text-sm text-[color:var(--lab-text)]">{item.task}</p>
       <div className="mt-2 flex flex-wrap items-center gap-2">
         <span
           className="rounded-full px-2 py-0.5 text-xs"
@@ -159,19 +159,19 @@ function TaskPlanningCard({
         <span
           className={`rounded px-1.5 py-0.5 text-xs ${
             item.priority === 'high'
-              ? 'bg-red-900/50 text-red-400'
+              ? 'bg-[rgba(230,123,123,0.14)] text-[color:var(--lab-danger)]'
               : item.priority === 'medium'
-                ? 'bg-yellow-900/50 text-yellow-400'
-                : 'bg-gray-800 text-gray-400'
+                ? 'bg-[rgba(228,209,174,0.14)] text-[color:var(--lab-gold)]'
+                : 'bg-[rgba(39,50,64,0.9)] text-[color:var(--lab-text-muted)]'
           }`}
         >
           {item.priority}
         </span>
-        <span className="text-xs text-gray-500">
+        <span className="text-xs text-[color:var(--lab-text-dim)]">
           {item.dueDate === 'ongoing' ? 'ongoing' : `due ${item.dueDate}`}
         </span>
         {isInWeeklyFocus && (
-          <span className="rounded-full bg-blue-500/15 px-2 py-0.5 text-xs text-blue-300">
+          <span className="lab-chip lab-chip--blue">
             Focus
           </span>
         )}
@@ -199,18 +199,15 @@ function TaskPlanningCard({
               ? onRemoveFocusTask(item.advisorId, item.id)
               : onAddFocusTask(item.advisorId, item.id)
           }
-          className={`rounded-md px-2 py-1 text-xs transition-colors ${
-            isInWeeklyFocus
-              ? 'bg-blue-500/15 text-blue-300 hover:bg-blue-500/25'
-              : 'text-gray-500 hover:bg-gray-800 hover:text-gray-300'
-          }`}
+          className={`lab-action ${isInWeeklyFocus ? 'lab-action--blue' : ''}`}
+          data-active={isInWeeklyFocus}
         >
           {isInWeeklyFocus ? 'Focused' : 'Focus'}
         </button>
         {showClearAction && (
           <button
             onClick={() => onClearPlanBucket(item.advisorId, item.id)}
-            className="rounded-md px-2 py-1 text-xs text-gray-500 hover:bg-gray-800 hover:text-gray-300 transition-colors"
+            className="lab-action"
           >
             Remove
           </button>
@@ -218,7 +215,7 @@ function TaskPlanningCard({
         {schedulingEnabled && (
           <button
             onClick={() => onScheduleTask(item)}
-            className="rounded-md bg-blue-600/15 px-2 py-1 text-xs text-blue-300 hover:bg-blue-600/25 transition-colors"
+            className="lab-action lab-action--blue"
           >
             Schedule
           </button>
@@ -240,11 +237,8 @@ function PlanButton({
   return (
     <button
       onClick={onClick}
-      className={`rounded-md px-2 py-1 text-xs transition-colors ${
-        active
-          ? 'bg-gray-200 text-gray-900'
-          : 'text-gray-500 hover:bg-gray-800 hover:text-gray-300'
-      }`}
+      className="lab-action"
+      data-active={active}
     >
       {label}
     </button>

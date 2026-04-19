@@ -10,8 +10,8 @@ export function SignupPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
-        <div className="text-gray-400 text-lg">Loading...</div>
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="lab-panel rounded-[1.5rem] px-6 py-5 text-lg text-[color:var(--lab-text-muted)]">Loading...</div>
       </div>
     );
   }

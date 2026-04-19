@@ -54,45 +54,49 @@ export function CompassSessionViewPage() {
 
   if (loading) {
     return (
-      <div className="mx-auto max-w-4xl rounded-3xl border border-gray-800 bg-gray-900/70 p-8 text-center">
-        <p className="text-sm text-gray-400">Loading your Golden Compass view...</p>
+      <div className="lab-page lab-page--narrow">
+        <div className="lab-panel rounded-[1.75rem] p-8 text-center">
+          <p className="text-sm text-[color:var(--lab-text-muted)]">Loading your Golden Compass view...</p>
+        </div>
       </div>
     );
   }
 
   if (error || !session) {
     return (
-      <div className="mx-auto max-w-3xl rounded-3xl border border-red-900/50 bg-red-950/20 p-8 text-center">
-        <h2 className="text-xl font-semibold text-gray-100">Compass view unavailable</h2>
-        <p className="mt-3 text-sm text-gray-400">{error ?? 'This Compass session could not be loaded.'}</p>
+      <div className="lab-page lab-page--narrow">
+        <div className="lab-panel rounded-[1.75rem] border-[rgba(230,123,123,0.32)] bg-[rgba(230,123,123,0.12)] p-8 text-center">
+        <h2 className="text-xl font-semibold text-[color:var(--lab-text)]">Compass view unavailable</h2>
+        <p className="mt-3 text-sm text-[color:var(--lab-text-muted)]">{error ?? 'This Compass session could not be loaded.'}</p>
         <button
           type="button"
           onClick={() => navigate(GOLDEN_COMPASS_PATH)}
-          className="mt-6 rounded-full border border-amber-400/30 bg-amber-500/10 px-4 py-2 text-sm font-semibold text-amber-100 transition hover:border-amber-300/60 hover:bg-amber-500/20"
+          className="lab-button lab-button--ghost mt-6 rounded-2xl"
         >
           Back to Compass
         </button>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6">
+    <div className="lab-page space-y-6">
       <div
         data-compass-print-hidden="true"
-        className="flex flex-wrap items-center justify-between gap-3 rounded-3xl border border-gray-800 bg-gray-900/70 p-4"
+        className="lab-panel flex flex-wrap items-center justify-between gap-3 rounded-[1.75rem] p-4"
       >
         <button
           type="button"
           onClick={() => navigate(GOLDEN_COMPASS_PATH)}
-          className="rounded-full border border-gray-700 bg-gray-950/80 px-4 py-2 text-sm font-semibold text-gray-100 transition hover:border-gray-500 hover:text-white"
+          className="lab-button lab-button--ghost rounded-2xl"
         >
           Back
         </button>
         <button
           type="button"
           onClick={() => window.print()}
-          className="rounded-full border border-amber-300 bg-amber-50 px-5 py-2.5 text-sm font-semibold text-amber-950 transition hover:border-amber-200 hover:bg-amber-100"
+          className="lab-button lab-button--gold rounded-2xl"
         >
           Download PDF
         </button>

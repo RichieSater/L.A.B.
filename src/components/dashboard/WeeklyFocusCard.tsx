@@ -32,19 +32,19 @@ export function WeeklyFocusCard({
   const canAddFocus = summary.remainingSlots > 0;
 
   return (
-    <section className="mb-6 rounded-xl border border-gray-800 bg-gray-950/80 p-5">
+    <section className="lab-panel mb-6 rounded-[1.75rem] border-[rgba(228,209,174,0.14)] bg-[radial-gradient(circle_at_top,_rgba(228,209,174,0.06),_rgba(19,28,38,0.96)_58%)] p-5">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <h3 className="text-sm font-semibold uppercase tracking-wide text-gray-300">Weekly Focus</h3>
-            <span className="rounded-full bg-blue-500/15 px-2 py-0.5 text-[11px] text-blue-300">
+            <h3 className="lab-eyebrow text-[0.68rem]">Weekly Focus</h3>
+            <span className="lab-chip lab-chip--blue">
               {summary.items.length}/3 objectives
             </span>
           </div>
-          <p className="mt-1 text-sm text-gray-400">
+          <p className="lab-note mt-1">
             {formatDate(summary.weekStart)} to {formatDate(endOfWeek(summary.weekStart))}
           </p>
-          <p className="mt-2 max-w-2xl text-sm text-gray-500">
+          <p className="lab-copy mt-2 max-w-2xl text-sm">
             Keep this week grounded in a few meaningful tasks. Focus items stay tied to the canonical advisor task so planning and scheduling still flow through the same system.
           </p>
         </div>
@@ -57,11 +57,11 @@ export function WeeklyFocusCard({
       </div>
 
       <div className="mt-4 grid gap-4 xl:grid-cols-[1.2fr_1fr_1fr]">
-        <section className="rounded-lg border border-gray-800 bg-gray-900/60 p-4">
+        <section className="lab-subpanel p-4">
           <div className="mb-3 flex items-center justify-between gap-3">
             <div>
-              <h4 className="text-sm font-semibold text-gray-200">Current Objectives</h4>
-              <p className="mt-1 text-xs text-gray-500">
+              <h4 className="text-sm font-semibold text-[color:var(--lab-text)]">Current Objectives</h4>
+              <p className="lab-meta mt-1">
                 {summary.items.length === 0
                   ? 'Pick one to three tasks that define a successful week.'
                   : summary.remainingSlots > 0
@@ -72,7 +72,7 @@ export function WeeklyFocusCard({
           </div>
 
           {summary.items.length === 0 ? (
-            <div className="rounded-lg border border-dashed border-gray-800 px-3 py-6 text-center text-xs text-gray-600">
+            <div className="lab-empty-state px-3 py-6 text-center text-xs">
               No focus tasks selected yet.
             </div>
           ) : (
@@ -93,10 +93,10 @@ export function WeeklyFocusCard({
           )}
         </section>
 
-        <section className="rounded-lg border border-gray-800 bg-gray-900/60 p-4">
+        <section className="lab-subpanel p-4">
           <div className="mb-3">
-            <h4 className="text-sm font-semibold text-gray-200">Carry Forward</h4>
-            <p className="mt-1 text-xs text-gray-500">
+            <h4 className="text-sm font-semibold text-[color:var(--lab-text)]">Carry Forward</h4>
+            <p className="lab-meta mt-1">
               {summary.previousWeekStart
                 ? `Unfinished focus tasks from the week of ${formatDate(summary.previousWeekStart)}.`
                 : 'Nothing to continue from a prior focus week yet.'}
@@ -104,7 +104,7 @@ export function WeeklyFocusCard({
           </div>
 
           {summary.carryForwardCandidates.length === 0 ? (
-            <div className="rounded-lg border border-dashed border-gray-800 px-3 py-6 text-center text-xs text-gray-600">
+            <div className="lab-empty-state px-3 py-6 text-center text-xs">
               No unfinished focus tasks waiting to be carried forward.
             </div>
           ) : (
@@ -127,16 +127,16 @@ export function WeeklyFocusCard({
           )}
         </section>
 
-        <section className="rounded-lg border border-gray-800 bg-gray-900/60 p-4">
+        <section className="lab-subpanel p-4">
           <div className="mb-3">
-            <h4 className="text-sm font-semibold text-gray-200">Suggested Picks</h4>
-            <p className="mt-1 text-xs text-gray-500">
+            <h4 className="text-sm font-semibold text-[color:var(--lab-text)]">Suggested Picks</h4>
+            <p className="lab-meta mt-1">
               High-signal tasks pulled from overdue work, this-week queue items, and important unplanned backlog.
             </p>
           </div>
 
           {summary.suggestedTasks.length === 0 ? (
-            <div className="rounded-lg border border-dashed border-gray-800 px-3 py-6 text-center text-xs text-gray-600">
+            <div className="lab-empty-state px-3 py-6 text-center text-xs">
               The queue is already well-covered by current focus.
             </div>
           ) : (
@@ -162,9 +162,9 @@ export function WeeklyFocusCard({
 
 function FocusStat({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-lg border border-gray-800 bg-gray-950 px-3 py-2">
-      <p className="text-[11px] uppercase tracking-wide text-gray-500">{label}</p>
-      <p className="mt-1 text-lg font-semibold text-gray-100">{value}</p>
+    <div className="lab-stat">
+      <p className="lab-stat__label">{label}</p>
+      <p className="mt-1 text-lg font-semibold text-[color:var(--lab-text)]">{value}</p>
     </div>
   );
 }
@@ -189,10 +189,10 @@ function WeeklyFocusTaskCard({
   const weeklyLabRoute = getItemWeeklyLabRoute(item, currentDate, true);
 
   return (
-    <article className="rounded-lg border border-gray-800 bg-gray-950/70 p-3">
+    <article className="lab-subpanel lab-subpanel--soft p-3">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className={`text-sm ${item.status === 'completed' ? 'text-gray-500 line-through' : 'text-gray-100'}`}>
+          <p className={`text-sm ${item.status === 'completed' ? 'text-[color:var(--lab-text-dim)] line-through' : 'text-[color:var(--lab-text)]'}`}>
             {item.task}
           </p>
           <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -205,19 +205,19 @@ function WeeklyFocusTaskCard({
             <span
               className={`rounded px-1.5 py-0.5 text-xs ${
                 item.priority === 'high'
-                  ? 'bg-red-900/50 text-red-400'
+                  ? 'bg-[rgba(230,123,123,0.14)] text-[color:var(--lab-danger)]'
                   : item.priority === 'medium'
-                    ? 'bg-yellow-900/50 text-yellow-400'
-                    : 'bg-gray-800 text-gray-400'
+                    ? 'bg-[rgba(228,209,174,0.14)] text-[color:var(--lab-gold)]'
+                    : 'bg-[rgba(39,50,64,0.9)] text-[color:var(--lab-text-muted)]'
               }`}
             >
               {item.priority}
             </span>
-            <span className="text-xs text-gray-500">
+            <span className="text-xs text-[color:var(--lab-text-dim)]">
               {item.dueDate === 'ongoing' ? 'ongoing' : `due ${item.dueDate}`}
             </span>
             {item.carriedForwardFromWeekStart && (
-              <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-xs text-amber-300">
+              <span className="lab-chip lab-chip--gold">
                 carried forward
               </span>
             )}
@@ -225,10 +225,10 @@ function WeeklyFocusTaskCard({
         </div>
 
         <span
-          className={`rounded-full px-2 py-0.5 text-xs ${
+          className={`lab-chip ${
             item.status === 'completed'
-              ? 'bg-emerald-500/15 text-emerald-300'
-              : 'bg-blue-500/15 text-blue-300'
+              ? 'lab-chip--teal'
+              : 'lab-chip--blue'
           }`}
         >
           {item.status === 'completed' ? 'done' : 'in focus'}
@@ -253,7 +253,7 @@ function WeeklyFocusTaskCard({
         />
         <button
           onClick={() => onRemoveFocusTask(item.advisorId, item.id)}
-          className="rounded-md px-2 py-1 text-xs text-gray-500 transition-colors hover:bg-gray-800 hover:text-gray-300"
+          className="lab-action"
         >
           Remove focus
         </button>
@@ -261,7 +261,7 @@ function WeeklyFocusTaskCard({
           <button
             type="button"
             onClick={() => onOpenAdvisorLane(item.advisorId, weeklyLabRoute.preset)}
-            className="rounded-md border border-sky-400/20 bg-sky-500/10 px-2 py-1 text-xs text-sky-200 transition-colors hover:border-sky-300/40 hover:text-sky-100"
+            className="lab-action lab-action--blue"
           >
             {`Open ${weeklyLabRoute.label} in Weekly LAB`}
           </button>
@@ -269,7 +269,7 @@ function WeeklyFocusTaskCard({
         {schedulingEnabled && item.status === 'open' && (
           <button
             onClick={() => onScheduleTask(item)}
-            className="rounded-md bg-blue-600/15 px-2 py-1 text-xs text-blue-300 transition-colors hover:bg-blue-600/25"
+            className="lab-action lab-action--blue"
           >
             Schedule
           </button>
@@ -299,8 +299,8 @@ function SuggestionCard({
   const weeklyLabRoute = getItemWeeklyLabRoute(item, currentDate, false);
 
   return (
-    <article className="rounded-lg border border-gray-800 bg-gray-950/70 p-3">
-      <p className="text-sm text-gray-100">{item.task}</p>
+    <article className="lab-subpanel lab-subpanel--soft p-3">
+      <p className="text-sm text-[color:var(--lab-text)]">{item.task}</p>
       <div className="mt-2 flex flex-wrap items-center gap-2">
         <span
           className="rounded-full px-2 py-0.5 text-xs"
@@ -311,30 +311,27 @@ function SuggestionCard({
         <span
           className={`rounded px-1.5 py-0.5 text-xs ${
             item.priority === 'high'
-              ? 'bg-red-900/50 text-red-400'
+              ? 'bg-[rgba(230,123,123,0.14)] text-[color:var(--lab-danger)]'
               : item.priority === 'medium'
-                ? 'bg-yellow-900/50 text-yellow-400'
-                : 'bg-gray-800 text-gray-400'
+                ? 'bg-[rgba(228,209,174,0.14)] text-[color:var(--lab-gold)]'
+                : 'bg-[rgba(39,50,64,0.9)] text-[color:var(--lab-text-muted)]'
           }`}
         >
           {item.priority}
         </span>
-        <span className="text-xs text-gray-500">
+        <span className="text-xs text-[color:var(--lab-text-dim)]">
           {item.dueDate === 'ongoing' ? 'ongoing' : `due ${item.dueDate}`}
         </span>
       </div>
 
-      {helper && <p className="mt-2 text-xs text-gray-500">{helper}</p>}
+      {helper && <p className="lab-meta mt-2">{helper}</p>}
 
       <div className="mt-3 flex flex-wrap gap-1.5">
         <button
           onClick={onAction}
           disabled={disabled}
-          className={`rounded-md px-2 py-1 text-xs transition-colors ${
-            disabled
-              ? 'cursor-not-allowed bg-gray-800 text-gray-600'
-              : 'bg-gray-200 text-gray-900 hover:bg-white'
-          }`}
+          className={`lab-action ${disabled ? '' : ''}`}
+          data-active={!disabled}
         >
           {actionLabel}
         </button>
@@ -342,7 +339,7 @@ function SuggestionCard({
           <button
             type="button"
             onClick={() => onOpenAdvisorLane(item.advisorId, weeklyLabRoute.preset)}
-            className="rounded-md border border-sky-400/20 bg-sky-500/10 px-2 py-1 text-xs text-sky-200 transition-colors hover:border-sky-300/40 hover:text-sky-100"
+            className="lab-action lab-action--blue"
           >
             {`Open ${weeklyLabRoute.label} in Weekly LAB`}
           </button>
@@ -364,11 +361,8 @@ function PlanButton({
   return (
     <button
       onClick={onClick}
-      className={`rounded-md px-2 py-1 text-xs transition-colors ${
-        active
-          ? 'bg-gray-200 text-gray-900'
-          : 'text-gray-500 hover:bg-gray-800 hover:text-gray-300'
-      }`}
+      className="lab-action"
+      data-active={active}
     >
       {label}
     </button>

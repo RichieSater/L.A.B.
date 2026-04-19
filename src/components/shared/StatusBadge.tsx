@@ -5,10 +5,10 @@ interface StatusBadgeProps {
 
 export function StatusBadge({ status, daysOverdue }: StatusBadgeProps) {
   const styles = {
-    overdue: 'bg-red-900/50 text-red-300 border-red-700',
-    due: 'bg-yellow-900/50 text-yellow-300 border-yellow-700',
-    upcoming: 'bg-blue-900/50 text-blue-300 border-blue-700',
-    completed: 'bg-green-900/50 text-green-300 border-green-700',
+    overdue: 'border-[rgba(230,123,123,0.42)] bg-[rgba(230,123,123,0.14)] text-[#f2b1b1]',
+    due: 'border-[rgba(228,209,174,0.42)] bg-[rgba(228,209,174,0.14)] text-[color:var(--lab-gold)]',
+    upcoming: 'border-[rgba(92,138,214,0.42)] bg-[rgba(92,138,214,0.14)] text-[#b7cdfa]',
+    completed: 'border-[rgba(117,200,167,0.42)] bg-[rgba(117,200,167,0.14)] text-[#9fe1c6]',
   };
 
   const labels = {
@@ -19,7 +19,7 @@ export function StatusBadge({ status, daysOverdue }: StatusBadgeProps) {
   };
 
   return (
-    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${styles[status]}`}>
+    <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] ${styles[status]}`}>
       {labels[status]}
     </span>
   );

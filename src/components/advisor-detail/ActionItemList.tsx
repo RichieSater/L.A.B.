@@ -47,27 +47,22 @@ export function ActionItemList({
 
   return (
     <div>
-      {/* Filter tabs */}
-      <div className="flex gap-2 mb-4">
+      <div className="lab-tab-rail mb-4">
         {(['open', 'completed', 'all'] as Filter[]).map(f => (
           <button
             key={f}
             onClick={() => setFilter(f)}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-              filter === f
-                ? 'bg-gray-700 text-gray-200'
-                : 'text-gray-500 hover:text-gray-300'
-            }`}
+            className="lab-tab"
+            data-active={filter === f}
           >
             {f.charAt(0).toUpperCase() + f.slice(1)} ({counts[f]})
           </button>
         ))}
       </div>
 
-      {/* Items */}
       <div className="space-y-2">
         {filtered.length === 0 ? (
-          <p className="text-sm text-gray-500 py-4 text-center">
+          <p className="lab-empty-state py-4 text-center text-sm">
             No {filter === 'all' ? '' : filter} action items.
           </p>
         ) : (

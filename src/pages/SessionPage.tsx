@@ -24,26 +24,28 @@ export function SessionPage() {
   if (lockStatus.locked) {
     const config = ADVISOR_CONFIGS[id];
     return (
-      <div className="max-w-lg mx-auto mt-16 text-center">
+      <div className="lab-page lab-page--narrow mt-10 text-center">
+        <div className="lab-panel lab-panel--ink rounded-[1.75rem] px-6 py-10">
         <span className="text-5xl block mb-4">{config.icon}</span>
-        <h2 className="text-xl font-semibold text-gray-100 mb-2">
+        <h2 className="mb-2 text-xl font-semibold text-[color:var(--lab-text)]">
           {config.shortName} Session Locked
         </h2>
         {lockStatus.reason === 'not-yet' ? (
-          <p className="text-gray-400">
+          <p className="text-[color:var(--lab-text-muted)]">
             This session unlocks in {formatCountdown(lockStatus.unlocksAt)}.
           </p>
         ) : (
-          <p className="text-gray-400">
+          <p className="text-[color:var(--lab-text-muted)]">
             The session window has expired. Go back to reschedule.
           </p>
         )}
         <a
           href={getAdvisorPath(advisorId)}
-          className="inline-block mt-6 px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg text-sm text-gray-200 transition-colors"
+          className="lab-button lab-button--ghost mt-6 rounded-2xl"
         >
           Back to {config.shortName}
         </a>
+        </div>
       </div>
     );
   }

@@ -103,16 +103,20 @@ export function SettingsPage() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
-      <h2 className="text-2xl font-bold text-gray-100">Settings</h2>
+    <div className="lab-page lab-page--narrow space-y-6">
+      <div>
+        <p className="lab-eyebrow">Preferences</p>
+        <h2 className="mt-3 text-[2.35rem] font-semibold leading-none tracking-[-0.04em] text-[color:var(--lab-text)]">
+          Settings
+        </h2>
+      </div>
 
-      {/* Profile section */}
-      <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
-        <h3 className="text-lg font-semibold text-gray-100 mb-4">Profile</h3>
+      <div className="lab-panel rounded-[1.5rem] p-5">
+        <h3 className="mb-4 text-lg font-semibold text-[color:var(--lab-text)]">Profile</h3>
 
         <div className="space-y-4">
           <div>
-            <label htmlFor="displayName" className="block text-sm font-medium text-gray-400 mb-1">
+            <label htmlFor="displayName" className="mb-1 block text-sm font-medium text-[color:var(--lab-text-muted)]">
               Display Name
             </label>
             <div className="flex gap-3">
@@ -121,12 +125,12 @@ export function SettingsPage() {
                 type="text"
                 value={displayName}
                 onChange={e => setDisplayName(e.target.value)}
-                className="flex-1 px-3 py-2.5 bg-gray-800 border border-gray-700 rounded-lg text-gray-100 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600"
+                className="lab-input flex-1"
               />
               <button
                 onClick={handleSaveName}
                 disabled={saving || displayName === profile?.displayName}
-                className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 disabled:text-gray-500 text-white text-sm font-medium rounded-lg transition-colors"
+                className="lab-button lab-button--gold rounded-2xl"
               >
                 {saving ? 'Saving...' : saved ? 'Saved!' : 'Save'}
               </button>
@@ -135,44 +139,39 @@ export function SettingsPage() {
         </div>
       </div>
 
-      {/* Scheduling section */}
-      <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
+      <div className="lab-panel rounded-[1.5rem] p-5">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-lg font-semibold text-gray-100">Session Scheduling</h3>
-            <p className="text-sm text-gray-400 mt-1">
+            <h3 className="text-lg font-semibold text-[color:var(--lab-text)]">Session Scheduling</h3>
+            <p className="mt-1 text-sm text-[color:var(--lab-text-muted)]">
               Schedule sessions at specific times. Sessions unlock at the scheduled time and stay open for 1 hour.
             </p>
           </div>
           <button
+            type="button"
             onClick={handleToggleScheduling}
-            className={`relative w-12 h-7 rounded-full transition-colors ${
-              profile?.schedulingEnabled ? 'bg-blue-600' : 'bg-gray-700'
-            }`}
+            data-active={profile?.schedulingEnabled ? 'true' : 'false'}
+            className="lab-toggle"
           >
-            <div
-              className={`absolute top-0.5 w-6 h-6 bg-white rounded-full transition-transform ${
-                profile?.schedulingEnabled ? 'translate-x-5' : 'translate-x-0.5'
-              }`}
-            />
+            <span className="lab-toggle__thumb" />
           </button>
         </div>
       </div>
 
-      <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
+      <div className="lab-panel rounded-[1.5rem] p-5">
         <div className="flex items-center justify-between gap-4">
           <div>
-            <h3 className="text-lg font-semibold text-gray-100">Google Calendar</h3>
-            <p className="text-sm text-gray-400 mt-1">
+            <h3 className="text-lg font-semibold text-[color:var(--lab-text)]">Google Calendar</h3>
+            <p className="mt-1 text-sm text-[color:var(--lab-text-muted)]">
               One-way sync for scheduled session events. Connecting backfills upcoming sessions, and disconnecting removes synced events from Google Calendar.
             </p>
-            <p className="text-xs text-gray-500 mt-2">{calendarStatus}</p>
+            <p className="mt-2 text-xs text-[color:var(--lab-text-dim)]">{calendarStatus}</p>
             {googleCalendarNotice ? (
               <p
                 className={`text-sm mt-3 ${
                   GOOGLE_CALENDAR_MESSAGES[googleCalendarNotice].tone === 'success'
-                    ? 'text-green-400'
-                    : 'text-red-400'
+                    ? 'text-[#7dd4b0]'
+                    : 'text-[#f2b1b1]'
                 }`}
               >
                 {GOOGLE_CALENDAR_MESSAGES[googleCalendarNotice].text}
@@ -183,14 +182,14 @@ export function SettingsPage() {
             <button
               onClick={handleDisconnectCalendar}
               disabled={disconnectingCalendar}
-              className="px-4 py-2.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-200 text-sm font-medium transition-colors disabled:opacity-50"
+              className="lab-button lab-button--ghost rounded-2xl"
             >
               {disconnectingCalendar ? 'Disconnecting...' : 'Disconnect'}
             </button>
           ) : (
             <a
               href="/api/google-calendar/connect"
-              className="px-4 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium transition-colors"
+              className="lab-button lab-button--gold rounded-2xl"
             >
               Connect Google Calendar
             </a>
@@ -198,23 +197,23 @@ export function SettingsPage() {
         </div>
       </div>
 
-      <div className="bg-gray-900 border border-red-950 rounded-xl p-5">
+      <div className="lab-panel rounded-[1.5rem] border-[rgba(230,123,123,0.3)] p-5">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h3 className="text-lg font-semibold text-gray-100">Start Fresh</h3>
-            <p className="text-sm text-gray-400 mt-1">
+            <h3 className="text-lg font-semibold text-[color:var(--lab-text)]">Start Fresh</h3>
+            <p className="mt-1 text-sm text-[color:var(--lab-text-muted)]">
               Clear your app data without deleting your account.
             </p>
-            <p className="text-xs text-gray-500 mt-2">
+            <p className="mt-2 text-xs text-[color:var(--lab-text-dim)]">
               This resets advisor state, quick logs, shared metrics, and scheduled sessions. Your profile and sign-in stay the same.
             </p>
-            {resetMessage ? <p className="text-sm text-green-400 mt-3">{resetMessage}</p> : null}
-            {resetError ? <p className="text-sm text-red-400 mt-3">{resetError}</p> : null}
+            {resetMessage ? <p className="mt-3 text-sm text-[#7dd4b0]">{resetMessage}</p> : null}
+            {resetError ? <p className="mt-3 text-sm text-[#f2b1b1]">{resetError}</p> : null}
           </div>
           <button
             onClick={handleResetData}
             disabled={resettingData}
-            className="px-4 py-2.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-medium transition-colors disabled:opacity-50"
+            className="lab-button lab-button--danger rounded-2xl"
           >
             {resettingData ? 'Clearing...' : 'Start Fresh'}
           </button>

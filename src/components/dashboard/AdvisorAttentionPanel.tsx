@@ -87,11 +87,11 @@ export function AdvisorAttentionPanel({
   };
 
   return (
-    <section className="mb-6 rounded-xl border border-gray-800 bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 p-5">
+    <section className="lab-panel mb-6 rounded-[1.75rem] p-5">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h3 className="text-sm font-semibold uppercase tracking-wide text-gray-300">Attention Radar</h3>
-          <p className="mt-2 max-w-2xl text-sm text-gray-500">
+          <h3 className="text-[0.7rem] font-semibold uppercase tracking-[0.2em] text-[color:var(--lab-text-muted)]">Attention Radar</h3>
+          <p className="mt-2 max-w-2xl text-sm text-[color:var(--lab-text-muted)]">
             Reduce decisions. This board ranks which advisor needs a session, a quick log, or task triage next.
           </p>
         </div>
@@ -105,7 +105,7 @@ export function AdvisorAttentionPanel({
       </div>
 
       {focusItems.length === 0 ? (
-        <div className="mt-4 rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-4 py-5 text-sm text-emerald-300">
+        <div className="mt-4 rounded-2xl border border-[rgba(117,200,167,0.26)] bg-[rgba(117,200,167,0.08)] px-4 py-5 text-sm text-[#9fe1c6]">
           Every active advisor looks steady right now. Use the advisor cards below for normal navigation instead of triage.
         </div>
       ) : (
@@ -133,17 +133,17 @@ export function AdvisorAttentionPanel({
       )}
 
       {steadyItems.length > 0 && (
-        <div className="mt-4 rounded-lg border border-gray-800 bg-gray-950/70 p-4">
+        <div className="mt-4 rounded-[1.4rem] border border-[color:var(--lab-border-muted)] bg-[rgba(8,11,17,0.92)] p-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h4 className="text-xs font-semibold uppercase tracking-wide text-gray-400">Stable Right Now</h4>
-              <p className="mt-1 text-xs text-gray-500">
+              <h4 className="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-[color:var(--lab-text-muted)]">Stable Right Now</h4>
+              <p className="mt-1 text-xs text-[color:var(--lab-text-dim)]">
                 These advisors have enough recent signal that you can leave them alone unless priorities change.
               </p>
             </div>
             <button
               onClick={() => onOpenTasks()}
-              className="rounded-lg border border-gray-700 px-3 py-2 text-xs font-medium text-gray-300 transition-colors hover:border-gray-600 hover:text-gray-100"
+              className="lab-button lab-button--ghost rounded-2xl px-4 text-xs"
             >
               Open task board
             </button>
@@ -154,7 +154,7 @@ export function AdvisorAttentionPanel({
               <button
                 key={`steady:${item.advisorId}`}
                 onClick={() => navigate(`/advisor/${item.advisorId}`)}
-                className="rounded-lg border border-gray-800 bg-gray-900/70 px-3 py-3 text-left transition-colors hover:border-gray-700 hover:bg-gray-900"
+                className="rounded-2xl border border-[color:var(--lab-border-muted)] bg-[rgba(19,28,38,0.88)] px-3 py-3 text-left transition-colors hover:border-[rgba(245,243,238,0.18)]"
               >
                 <div className="flex items-center justify-between gap-3">
                   <span
@@ -163,7 +163,7 @@ export function AdvisorAttentionPanel({
                   >
                     {item.advisorIcon} {item.advisorName}
                   </span>
-                  <span className="text-xs text-gray-500">
+                  <span className="text-xs text-[color:var(--lab-text-dim)]">
                     {item.sessionsThisWeek > 0
                       ? `${item.sessionsThisWeek} session${item.sessionsThisWeek === 1 ? '' : 's'}`
                       : item.quickLogsThisWeek > 0
@@ -171,8 +171,8 @@ export function AdvisorAttentionPanel({
                         : `${item.completedTasksThisWeek} win${item.completedTasksThisWeek === 1 ? '' : 's'}`}
                   </span>
                 </div>
-                <p className="mt-2 text-sm text-gray-100">{item.headline}</p>
-                <p className="mt-1 text-xs text-gray-500">{item.reason}</p>
+                <p className="mt-2 text-sm text-[color:var(--lab-text)]">{item.headline}</p>
+                <p className="mt-1 text-xs text-[color:var(--lab-text-muted)]">{item.reason}</p>
               </button>
             ))}
           </div>
@@ -216,7 +216,7 @@ function AttentionCard({
   onOpenAdvisor: () => void;
 }) {
   return (
-    <article className="rounded-xl border border-gray-800 bg-gray-950/80 p-4">
+    <article className="rounded-[1.45rem] border border-[color:var(--lab-border-muted)] bg-[rgba(8,11,17,0.96)] p-4">
       <div className="flex items-start justify-between gap-3">
         <span
           className="rounded-full px-2 py-0.5 text-xs"
@@ -227,8 +227,8 @@ function AttentionCard({
         <StatusPill status={item.status} />
       </div>
 
-      <p className="mt-3 text-base font-semibold text-gray-100">{item.headline}</p>
-      <p className="mt-1 text-sm text-gray-400">{item.reason}</p>
+      <p className="mt-3 text-base font-semibold text-[color:var(--lab-text)]">{item.headline}</p>
+      <p className="mt-1 text-sm text-[color:var(--lab-text-muted)]">{item.reason}</p>
 
       <div className="mt-3 flex flex-wrap gap-2">
         <InlineStat label="Open" value={item.openTasks} />
@@ -236,7 +236,7 @@ function AttentionCard({
         <InlineStat label="Unplanned" value={item.unplannedOpen} highlight={item.unplannedOpen > 0} />
       </div>
 
-      <div className="mt-3 rounded-lg border border-gray-800 bg-gray-900/70 px-3 py-2 text-xs text-gray-500">
+      <div className="mt-3 rounded-2xl border border-[color:var(--lab-border-muted)] bg-[rgba(19,28,38,0.86)] px-3 py-2 text-xs text-[color:var(--lab-text-muted)]">
         <p>{formatSessionLine(item)}</p>
         <p className="mt-1">{formatQuickLogLine(item)}</p>
       </div>
@@ -244,21 +244,21 @@ function AttentionCard({
       <div className="mt-4 flex flex-wrap gap-2">
         <button
           onClick={onPrimaryAction}
-          className="min-w-[140px] flex-1 rounded-lg bg-gray-200 px-3 py-2 text-sm font-medium text-gray-900 transition-colors hover:bg-white"
+          className="lab-button lab-button--gold min-w-[140px] flex-1 rounded-2xl"
         >
           {getPrimaryActionLabel(item, schedulingEnabled)}
         </button>
         {onOpenPlannerLane && item.planningLabel && (
           <button
             onClick={onOpenPlannerLane}
-            className="min-w-[140px] flex-1 rounded-lg border border-blue-400/30 bg-blue-500/10 px-3 py-2 text-sm font-medium text-blue-100 transition-colors hover:border-blue-300/50 hover:text-white"
+            className="lab-button lab-button--blue min-w-[140px] flex-1 rounded-2xl"
           >
             {`Open ${item.planningLabel}`}
           </button>
         )}
         <button
           onClick={onOpenAdvisor}
-          className="rounded-lg border border-gray-700 px-3 py-2 text-sm text-gray-300 transition-colors hover:border-gray-600 hover:text-gray-100"
+          className="lab-button lab-button--ghost rounded-2xl"
         >
           Open
         </button>
@@ -266,13 +266,13 @@ function AttentionCard({
 
       {onOpenAlternatePlannerLane && item.alternatePlanningShortcuts.length > 0 && (
         <div className="mt-3">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">Other live lanes</p>
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-[color:var(--lab-text-dim)]">Other live lanes</p>
           <div className="mt-2 flex flex-wrap gap-2">
             {item.alternatePlanningShortcuts.slice(0, 2).map(shortcut => (
               <button
                 key={`${item.advisorId}:${shortcut.preset}`}
                 onClick={() => onOpenAlternatePlannerLane(shortcut)}
-                className="rounded-lg border border-gray-700 bg-gray-950/60 px-3 py-2 text-sm text-gray-300 transition-colors hover:border-gray-600 hover:text-gray-100"
+                className="lab-button lab-button--ghost rounded-2xl"
               >
                 {shortcut.label} ({shortcut.count})
               </button>
@@ -294,15 +294,15 @@ function RadarStat({
   tone?: 'neutral' | 'attention' | 'primary' | 'success';
 }) {
   const toneClasses = {
-    neutral: 'border-gray-800 bg-gray-950 text-gray-100',
-    attention: 'border-amber-500/20 bg-amber-500/5 text-amber-200',
-    primary: 'border-blue-500/20 bg-blue-500/5 text-blue-200',
-    success: 'border-emerald-500/20 bg-emerald-500/5 text-emerald-200',
+    neutral: 'border-[color:var(--lab-border-muted)] bg-[rgba(8,11,17,0.92)] text-[color:var(--lab-text)]',
+    attention: 'border-[rgba(228,209,174,0.26)] bg-[rgba(228,209,174,0.08)] text-[color:var(--lab-gold)]',
+    primary: 'border-[rgba(92,138,214,0.26)] bg-[rgba(92,138,214,0.08)] text-[#b7cdfa]',
+    success: 'border-[rgba(117,200,167,0.26)] bg-[rgba(117,200,167,0.08)] text-[#9fe1c6]',
   } as const;
 
   return (
     <div className={`rounded-lg border px-3 py-2 ${toneClasses[tone]}`}>
-      <p className="text-[11px] uppercase tracking-wide text-gray-500">{label}</p>
+      <p className="text-[11px] uppercase tracking-wide text-[color:var(--lab-text-dim)]">{label}</p>
       <p className="mt-1 text-lg font-semibold">{value}</p>
     </div>
   );
@@ -321,8 +321,8 @@ function InlineStat({
     <span
       className={`rounded-full px-2 py-1 text-xs ${
         highlight
-          ? 'bg-amber-500/10 text-amber-200'
-          : 'bg-gray-900 text-gray-400'
+          ? 'bg-[rgba(228,209,174,0.12)] text-[color:var(--lab-gold)]'
+          : 'bg-[rgba(19,28,38,0.92)] text-[color:var(--lab-text-muted)]'
       }`}
     >
       {label} {value}
@@ -334,13 +334,13 @@ function StatusPill({ status }: { status: AdvisorAttentionItem['status'] }) {
   const label = status === 'urgent' ? 'Act now' : status === 'attention' ? 'Worth a sweep' : 'Steady';
   const className =
     status === 'urgent'
-      ? 'bg-amber-500/15 text-amber-200'
+      ? 'bg-[rgba(228,209,174,0.12)] text-[color:var(--lab-gold)]'
       : status === 'attention'
-        ? 'bg-blue-500/15 text-blue-200'
-        : 'bg-emerald-500/15 text-emerald-200';
+        ? 'bg-[rgba(92,138,214,0.12)] text-[#b7cdfa]'
+        : 'bg-[rgba(117,200,167,0.12)] text-[#9fe1c6]';
 
   return (
-    <span className={`rounded-full px-2 py-0.5 text-xs ${className}`}>
+    <span className={`rounded-full px-2 py-1 text-xs font-semibold uppercase tracking-[0.14em] ${className}`}>
       {label}
     </span>
   );

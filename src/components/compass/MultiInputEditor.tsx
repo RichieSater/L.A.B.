@@ -243,19 +243,19 @@ export function MultiInputEditor({
   }
 
   return (
-    <div className="space-y-4 rounded-[1.75rem] border border-amber-300/15 bg-amber-500/5 p-4">
-      <div className="flex flex-wrap items-start justify-between gap-3 rounded-2xl border border-gray-800/80 bg-gray-950/70 px-4 py-3">
+    <div className="space-y-4 rounded-[1.75rem] border border-[rgba(228,209,174,0.16)] bg-[rgba(228,209,174,0.05)] p-4">
+      <div className="lab-subpanel lab-subpanel--soft flex flex-wrap items-start justify-between gap-3 px-4 py-3">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-amber-200/80">
             List builder
           </p>
           {requirementCopy ? (
-            <p className="mt-2 text-sm font-medium text-gray-100">{requirementCopy}</p>
+            <p className="mt-2 text-sm font-medium text-[color:var(--lab-text)]">{requirementCopy}</p>
           ) : (
-            <p className="mt-2 text-sm font-medium text-gray-100">Add items one by one</p>
+            <p className="mt-2 text-sm font-medium text-[color:var(--lab-text)]">Add items one by one</p>
           )}
         </div>
-        <p className="max-w-xs text-right text-xs leading-5 text-gray-400">
+        <p className="max-w-xs text-right text-xs leading-5 text-[color:var(--lab-text-muted)]">
           Press `Enter` to add another item. Press `Cmd/Ctrl+Enter` to continue.
         </p>
       </div>
@@ -264,7 +264,7 @@ export function MultiInputEditor({
         {rows.map((row, index) => (
           <div
             key={row.id}
-            className="flex items-center gap-3 rounded-2xl border border-gray-800 bg-gray-950/75 px-3 py-3"
+            className="lab-subpanel flex items-center gap-3 px-3 py-3"
           >
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-amber-300/30 bg-amber-500/10 text-sm font-semibold text-amber-100">
               {index + 1}
@@ -286,7 +286,7 @@ export function MultiInputEditor({
               onKeyDown={event => handleKeyDown(event, row, index)}
               placeholder={placeholder}
               aria-label={`${inputLabelPrefix} ${index + 1}`}
-              className="flex-1 rounded-full border border-gray-800 bg-gray-900/80 px-4 py-3 text-sm text-gray-100 placeholder:text-gray-500 focus:border-amber-300/50 focus:outline-none focus:ring-1 focus:ring-amber-300/20"
+              className="lab-input flex-1 rounded-full !py-3"
             />
             <button
               type="button"
@@ -295,7 +295,7 @@ export function MultiInputEditor({
               }}
               onClick={() => removeItem(row.id)}
               aria-label={`Remove item ${index + 1}`}
-              className="rounded-full border border-gray-700 px-3 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-gray-300 transition hover:border-red-300/40 hover:text-red-100"
+              className="lab-action lab-action--danger"
             >
               Remove
             </button>
@@ -311,7 +311,7 @@ export function MultiInputEditor({
         onClick={() => addItem()}
         aria-label={addItemLabel}
         disabled={!canAddMore}
-        className="rounded-full border border-amber-300/30 bg-amber-500/10 px-4 py-2 text-sm font-semibold text-amber-100 transition hover:border-amber-200/50 hover:bg-amber-500/20 disabled:cursor-not-allowed disabled:opacity-40"
+        className="lab-button lab-button--ink"
       >
         {canAddMore ? 'Add item' : 'Item limit reached'}
       </button>

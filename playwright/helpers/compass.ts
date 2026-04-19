@@ -134,12 +134,22 @@ async function expectCompassScreen(page: Page, screen: CompassScreen) {
   const primaryPrompt = screen.prompts?.[0];
 
   if (primaryPrompt) {
-    await expect(page.getByRole('heading', { name: primaryPrompt.label })).toBeVisible();
+    await expect(page.getByRole('heading', { name: primaryPrompt.label })).toBeVisible({ timeout: 15000 });
     return;
   }
 
-  const primaryCopy = screen.headline ?? screen.sectionTitle;
-  await expect(page.getByText(primaryCopy, { exact: true }).first()).toBeVisible();
+  const primaryCopy =
+    screen.headline
+    ?? screen.narrativeText
+    ?? screen.contentBlocks?.flatMap(block => [
+      ...(block.paragraphs ?? []),
+      ...(block.numberedItems ?? []),
+      ...(block.bullets ?? []),
+      ...(block.title ? [block.title] : []),
+      ...(block.attribution ? [block.attribution] : []),
+    ]).find(Boolean)
+    ?? screen.sectionTitle;
+  await expect(page.getByText(primaryCopy, { exact: true }).first()).toBeVisible({ timeout: 15000 });
 }
 
 async function fillCompassScreen(page: Page, screen: CompassScreen) {
@@ -280,4 +290,11 @@ async function continueFromScreen(page: Page, screenIndex: number) {
 
   await button.scrollIntoViewIfNeeded();
   await button.click();
+
+  if (isLastScreen) {
+    await expect(page.getByText('Compass Completed')).toBeVisible();
+    return;
+  }
+
+  await expectCompassScreen(page, COMPASS_SCREENS[screenIndex + 1]);
 }

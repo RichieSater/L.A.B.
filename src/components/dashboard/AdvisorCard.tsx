@@ -40,7 +40,7 @@ export function AdvisorCard({ advisorId }: AdvisorCardProps) {
 
   return (
     <div
-      className="bg-gray-900 rounded-xl border border-gray-800 hover:border-gray-700 transition-colors cursor-pointer"
+      className="lab-panel lab-panel--soft cursor-pointer rounded-[1.5rem] transition-colors hover:border-[rgba(245,243,238,0.22)]"
       style={{ borderLeftColor: config.domainColor, borderLeftWidth: '4px' }}
       onClick={() => navigate(`/advisor/${advisorId}`)}
     >
@@ -51,7 +51,7 @@ export function AdvisorCard({ advisorId }: AdvisorCardProps) {
             <span className="text-2xl">{config.icon}</span>
             <div>
               <h3 className="font-semibold text-gray-100">{config.shortName}</h3>
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-[color:var(--lab-text-dim)]">
                 {state.lastSessionDate
                   ? `Last: ${formatDaysAgo(state.lastSessionDate)}`
                   : 'No sessions yet'}
@@ -63,27 +63,27 @@ export function AdvisorCard({ advisorId }: AdvisorCardProps) {
 
         {/* Streak */}
         {state.streak > 0 && (
-          <div className="text-xs text-gray-400 mb-3">
+          <div className="mb-3 text-xs text-[color:var(--lab-text-muted)]">
             {state.streak} session streak
           </div>
         )}
 
         {/* Scheduled session info */}
         {lockStatus.locked && lockStatus.reason === 'not-yet' && (
-          <div className="bg-blue-900/20 border border-blue-800/30 rounded-lg p-3 mb-3">
-            <p className="text-xs text-blue-400">
+          <div className="mb-3 rounded-2xl border border-[rgba(92,138,214,0.32)] bg-[rgba(92,138,214,0.12)] p-3">
+            <p className="text-xs text-[color:var(--lab-blue)]">
               Scheduled — unlocks in {formatCountdown(lockStatus.unlocksAt)}
             </p>
           </div>
         )}
         {lockStatus.locked && lockStatus.reason === 'expired' && (
-          <div className="bg-red-900/20 border border-red-800/30 rounded-lg p-3 mb-3">
-            <p className="text-xs text-red-400">
+          <div className="mb-3 rounded-2xl border border-[rgba(230,123,123,0.32)] bg-[rgba(230,123,123,0.12)] p-3">
+            <p className="text-xs text-[#f2b1b1]">
               Session window missed
             </p>
             <button
               onClick={(e) => { e.stopPropagation(); setShowSchedule(true); }}
-              className="text-xs text-blue-400 hover:text-blue-300 mt-1"
+              className="mt-1 text-xs text-[color:var(--lab-blue)] hover:text-white"
             >
               Reschedule
             </button>
@@ -92,12 +92,12 @@ export function AdvisorCard({ advisorId }: AdvisorCardProps) {
 
         {/* Card preview or top action item */}
         {state.cardPreview ? (
-          <div className="bg-gray-800/50 rounded-lg p-3 mb-3">
-            <p className="text-sm text-gray-300 line-clamp-3">{state.cardPreview}</p>
+          <div className="mb-3 rounded-2xl border border-[color:var(--lab-border-muted)] bg-[rgba(19,28,38,0.86)] p-3">
+            <p className="line-clamp-3 text-sm text-[color:var(--lab-text)]">{state.cardPreview}</p>
           </div>
         ) : topItem ? (
-          <div className="bg-gray-800/50 rounded-lg p-3 mb-3">
-            <p className="text-sm text-gray-300 line-clamp-2">{topItem.task}</p>
+          <div className="mb-3 rounded-2xl border border-[color:var(--lab-border-muted)] bg-[rgba(19,28,38,0.86)] p-3">
+            <p className="line-clamp-2 text-sm text-[color:var(--lab-text)]">{topItem.task}</p>
             <div className="flex items-center gap-2 mt-1.5">
               <span className={`text-xs px-1.5 py-0.5 rounded ${
                 topItem.priority === 'high' ? 'bg-red-900/50 text-red-400' :
@@ -107,17 +107,17 @@ export function AdvisorCard({ advisorId }: AdvisorCardProps) {
                 {topItem.priority}
               </span>
               {topItem.dueDate !== 'ongoing' && (
-                <span className="text-xs text-gray-500">due {topItem.dueDate}</span>
+                <span className="text-xs text-[color:var(--lab-text-dim)]">due {topItem.dueDate}</span>
               )}
             </div>
           </div>
         ) : null}
 
         {/* Stats row */}
-        <div className="flex items-center justify-between text-xs text-gray-500 mb-4">
+        <div className="mb-4 flex items-center justify-between text-xs text-[color:var(--lab-text-muted)]">
           <span>{openItems.length} open tasks</span>
           {overdueCount > 0 && (
-            <span className="text-red-400">{overdueCount} overdue</span>
+            <span className="text-[#f2b1b1]">{overdueCount} overdue</span>
           )}
         </div>
 
@@ -130,9 +130,9 @@ export function AdvisorCard({ advisorId }: AdvisorCardProps) {
             }
           }}
           disabled={lockStatus.locked}
-          className="w-full py-2.5 rounded-lg font-medium text-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          className="lab-button w-full rounded-2xl disabled:cursor-not-allowed disabled:opacity-40"
           style={{
-            backgroundColor: config.domainColor + '20',
+            backgroundColor: `${config.domainColor}16`,
             color: config.domainColor,
             border: `1px solid ${config.domainColor}40`,
           }}
@@ -160,7 +160,7 @@ export function AdvisorCard({ advisorId }: AdvisorCardProps) {
                 e.stopPropagation();
                 setShowSchedule(true);
               }}
-              className="flex-1 py-2 rounded-lg text-sm text-gray-400 hover:text-gray-200 hover:bg-gray-800 transition-colors"
+              className="lab-button lab-button--ghost flex-1 rounded-2xl"
             >
               {upcomingSession ? 'Reschedule' : 'Schedule'}
             </button>
@@ -171,7 +171,7 @@ export function AdvisorCard({ advisorId }: AdvisorCardProps) {
                 e.stopPropagation();
                 setShowQuickLog(true);
               }}
-              className="flex-1 py-2 rounded-lg text-sm text-gray-400 hover:text-gray-200 hover:bg-gray-800 transition-colors"
+              className="lab-button lab-button--ghost flex-1 rounded-2xl"
             >
               Quick Log
             </button>

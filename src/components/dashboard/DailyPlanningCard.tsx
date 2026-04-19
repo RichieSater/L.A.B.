@@ -49,23 +49,23 @@ export function DailyPlanningCard({
   ].filter(Boolean) as string[];
 
   return (
-    <section className="mb-6 rounded-xl border border-gray-800 bg-gradient-to-br from-slate-950 via-gray-900 to-slate-950 p-5">
+    <section className="lab-panel mb-6 rounded-[1.75rem] border-[rgba(228,209,174,0.16)] bg-[radial-gradient(circle_at_top,_rgba(228,209,174,0.08),_rgba(19,28,38,0.96)_58%)] p-5">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <h3 className="text-sm font-semibold uppercase tracking-wide text-gray-300">Daily Plan</h3>
+            <h3 className="lab-eyebrow text-[0.68rem]">Daily Plan</h3>
             <span
-              className={`rounded-full px-2 py-0.5 text-[11px] ${
+              className={`lab-chip ${
                 summary.completedToday
-                  ? 'bg-emerald-500/15 text-emerald-300'
-                  : 'bg-sky-500/15 text-sky-300'
+                  ? 'lab-chip--teal'
+                  : 'lab-chip--blue'
               }`}
             >
               {summary.completedToday ? 'Planned' : 'Needs plan'}
             </span>
           </div>
-          <p className="mt-1 text-sm text-gray-400">{formatDate(summary.date)}</p>
-          <p className="mt-2 max-w-2xl text-sm text-gray-500">
+          <p className="lab-note mt-1">{formatDate(summary.date)}</p>
+          <p className="lab-copy mt-2 max-w-2xl text-sm">
             Start the day with one intentional sweep: protect what belongs in Today, demote stale carry-over, and pull in only the work that genuinely matters now.
           </p>
         </div>
@@ -73,11 +73,7 @@ export function DailyPlanningCard({
         <button
           onClick={() => onCompleteDailyPlan(summary.date)}
           disabled={summary.completedToday}
-          className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-            summary.completedToday
-              ? 'cursor-default bg-gray-800 text-gray-500'
-              : 'bg-gray-200 text-gray-900 hover:bg-white'
-          }`}
+          className={`lab-button ${summary.completedToday ? 'lab-button--ghost' : 'lab-button--gold'}`}
         >
           {summary.completedToday ? 'Plan complete' : 'Mark daily plan done'}
         </button>
@@ -91,33 +87,33 @@ export function DailyPlanningCard({
         <PlanningStat label="Pull In" value={summary.counts.pullInCandidates} tone={summary.counts.pullInCandidates > 0 ? 'primary' : 'neutral'} />
       </div>
 
-      <div className="mt-4 rounded-lg border border-gray-800 bg-gray-950/70 p-3">
+      <div className="lab-subpanel mt-4 p-3">
         {insights.length > 0 ? (
           <div className="space-y-1.5">
             {insights.map(insight => (
-              <p key={insight} className="text-sm text-gray-300">
+              <p key={insight} className="text-sm text-[color:var(--lab-text)]">
                 {insight}
               </p>
             ))}
           </div>
         ) : (
-          <p className="text-sm text-emerald-300">
+          <p className="text-sm text-[color:var(--lab-success)]">
             Today already looks constrained. Protect execution instead of re-triaging the queue.
           </p>
         )}
 
         {summary.completedToday && summary.completedAt && (
-          <p className="mt-3 text-xs text-gray-500">
+          <p className="lab-meta mt-3">
             Completed {new Date(summary.completedAt).toLocaleString()}.
           </p>
         )}
       </div>
 
       <div className="mt-4 grid gap-3 xl:grid-cols-[1.2fr_0.8fr]">
-        <section className="rounded-lg border border-gray-800 bg-gray-950/80 p-4">
+        <section className="lab-subpanel p-4">
           <div className="mb-3">
-            <h4 className="text-sm font-semibold text-gray-200">Today&apos;s Intent</h4>
-            <p className="mt-1 text-xs text-gray-500">
+            <h4 className="text-sm font-semibold text-[color:var(--lab-text)]">Today&apos;s Intent</h4>
+            <p className="lab-meta mt-1">
               Keep the daily plan brief enough that it reinforces action instead of becoming another journaling step.
             </p>
           </div>
@@ -138,22 +134,22 @@ export function DailyPlanningCard({
           </div>
         </section>
 
-        <section className="rounded-lg border border-gray-800 bg-gray-950/80 p-4">
+        <section className="lab-subpanel p-4">
           <div className="mb-3">
-            <h4 className="text-sm font-semibold text-gray-200">Previous Daily Plan</h4>
-            <p className="mt-1 text-xs text-gray-500">
+            <h4 className="text-sm font-semibold text-[color:var(--lab-text)]">Previous Daily Plan</h4>
+            <p className="lab-meta mt-1">
               Look at the last intentional daily sweep before you blindly carry it forward.
             </p>
           </div>
 
           {summary.previousEntry ? (
             <div className="space-y-3">
-              <div className="rounded-lg border border-gray-800 bg-gray-900/70 p-3">
-                <p className="text-xs uppercase tracking-wide text-gray-500">
+              <div className="lab-subpanel lab-subpanel--soft p-3">
+                <p className="text-xs uppercase tracking-wide text-[color:var(--lab-text-dim)]">
                   {formatDate(summary.previousEntry.date)} · {formatDaysAgo(summary.previousEntry.date)}
                 </p>
                 {summary.previousEntry.completedAt && (
-                  <p className="mt-1 text-xs text-gray-600">
+                  <p className="lab-meta mt-1">
                     Planned {new Date(summary.previousEntry.completedAt).toLocaleString()}.
                   </p>
                 )}
@@ -162,7 +158,7 @@ export function DailyPlanningCard({
               <PreviousPlanningBlock label="Guardrail" value={summary.previousEntry.guardrail} />
             </div>
           ) : (
-            <div className="rounded-lg border border-dashed border-gray-800 px-3 py-6 text-center text-xs text-gray-600">
+            <div className="lab-empty-state px-3 py-6 text-center text-xs">
               No previous daily plan captured yet.
             </div>
           )}
@@ -174,16 +170,16 @@ export function DailyPlanningCard({
           {summary.actionGroups.map(group => (
             <section
               key={group.id}
-              className="rounded-lg border border-gray-800 bg-gray-950/80 p-3"
+              className="lab-subpanel p-3"
             >
               <div className="mb-3">
                 <div className="flex items-center justify-between gap-3">
-                  <h4 className="text-sm font-semibold text-gray-200">{group.title}</h4>
-                  <span className="rounded-full bg-gray-800 px-2 py-0.5 text-xs text-gray-400">
+                  <h4 className="text-sm font-semibold text-[color:var(--lab-text)]">{group.title}</h4>
+                  <span className="lab-chip lab-chip--neutral">
                     {group.items.length + group.remainingCount}
                   </span>
                 </div>
-                <p className="mt-1 text-xs text-gray-500">{group.description}</p>
+                <p className="lab-meta mt-1">{group.description}</p>
               </div>
 
               <div className="space-y-3">
@@ -204,7 +200,7 @@ export function DailyPlanningCard({
               </div>
 
               {group.remainingCount > 0 && (
-                <p className="mt-3 text-xs text-gray-500">
+                <p className="lab-meta mt-3">
                   {group.remainingCount} more task{group.remainingCount === 1 ? '' : 's'} in this lane.
                 </p>
               )}
@@ -227,14 +223,14 @@ function PlanningStat({
 }) {
   const toneClasses =
     tone === 'primary'
-      ? 'border-sky-500/30 bg-sky-500/10 text-sky-200'
+      ? 'border-[rgba(92,138,214,0.28)] bg-[rgba(92,138,214,0.12)] text-[#c2d6ff]'
       : tone === 'attention'
-        ? 'border-amber-500/30 bg-amber-500/10 text-amber-200'
-        : 'border-gray-800 bg-gray-950 text-gray-100';
+        ? 'border-[rgba(228,209,174,0.28)] bg-[rgba(228,209,174,0.1)] text-[color:var(--lab-gold)]'
+        : 'border-[color:var(--lab-border-muted)] bg-[rgba(8,11,17,0.9)] text-[color:var(--lab-text)]';
 
   return (
     <div className={`rounded-lg border px-3 py-2 ${toneClasses}`}>
-      <p className="text-[11px] uppercase tracking-wide text-gray-500">{label}</p>
+      <p className="text-[11px] uppercase tracking-wide text-[color:var(--lab-text-dim)]">{label}</p>
       <p className="mt-1 text-lg font-semibold">{value}</p>
     </div>
   );
@@ -264,7 +260,7 @@ function PlanningField({
 
   return (
     <label className="block">
-      <span className="text-xs font-medium uppercase tracking-wide text-gray-400">{label}</span>
+      <span className="text-xs font-medium uppercase tracking-wide text-[color:var(--lab-text-dim)]">{label}</span>
       <textarea
         aria-label={label}
         value={draftValue}
@@ -274,7 +270,7 @@ function PlanningField({
         }}
         placeholder={placeholder}
         rows={3}
-        className="mt-1 w-full rounded-lg border border-gray-800 bg-gray-900 px-3 py-2 text-sm text-gray-100 placeholder:text-gray-600 focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600"
+        className="lab-textarea mt-1 w-full rounded-lg px-3 py-2 text-sm"
       />
     </label>
   );
@@ -288,9 +284,9 @@ function PreviousPlanningBlock({
   value: string;
 }) {
   return (
-    <div className="rounded-lg border border-gray-800 bg-gray-900/70 p-3">
-      <p className="text-xs uppercase tracking-wide text-gray-500">{label}</p>
-      <p className="mt-2 text-sm text-gray-300">
+    <div className="lab-subpanel lab-subpanel--soft p-3">
+      <p className="text-xs uppercase tracking-wide text-[color:var(--lab-text-dim)]">{label}</p>
+      <p className="mt-2 text-sm text-[color:var(--lab-text-muted)]">
         {value.trim().length > 0 ? value : 'No note captured.'}
       </p>
     </div>
@@ -328,8 +324,8 @@ function DailyPlanningActionCard({
   });
 
   return (
-    <article className="rounded-lg border border-gray-800 bg-gray-900/70 p-3">
-      <p className="text-sm text-gray-100">{item.task}</p>
+    <article className="lab-subpanel lab-subpanel--soft p-3">
+      <p className="text-sm text-[color:var(--lab-text)]">{item.task}</p>
       <div className="mt-2 flex flex-wrap items-center gap-2">
         <span
           className="rounded-full px-2 py-0.5 text-xs"
@@ -340,26 +336,26 @@ function DailyPlanningActionCard({
         <span
           className={`rounded px-1.5 py-0.5 text-xs ${
             item.priority === 'high'
-              ? 'bg-red-900/50 text-red-400'
+              ? 'bg-[rgba(230,123,123,0.14)] text-[color:var(--lab-danger)]'
               : item.priority === 'medium'
-                ? 'bg-yellow-900/50 text-yellow-400'
-                : 'bg-gray-800 text-gray-400'
+                ? 'bg-[rgba(228,209,174,0.14)] text-[color:var(--lab-gold)]'
+                : 'bg-[rgba(39,50,64,0.9)] text-[color:var(--lab-text-muted)]'
           }`}
         >
           {item.priority}
         </span>
-        <span className="text-xs text-gray-500">
+        <span className="text-xs text-[color:var(--lab-text-dim)]">
           {item.dueDate === 'ongoing' ? 'ongoing' : `due ${item.dueDate}`}
         </span>
         {isInWeeklyFocus && (
-          <span className="rounded-full bg-blue-500/15 px-2 py-0.5 text-xs text-blue-300">
+          <span className="lab-chip lab-chip--blue">
             in focus
           </span>
         )}
       </div>
 
       {group.id === 'carry_over' && item.planningUpdatedAt && (
-        <p className="mt-2 text-xs text-gray-500">
+        <p className="lab-meta mt-2">
           Added to Today {formatDaysAgo(formatDateKey(new Date(item.planningUpdatedAt)))}.
         </p>
       )}
@@ -383,7 +379,7 @@ function DailyPlanningActionCard({
         {item.planningBucket && (
           <button
             onClick={() => onClearPlanBucket(item.advisorId, item.id)}
-            className="rounded-md px-2 py-1 text-xs text-gray-500 transition-colors hover:bg-gray-800 hover:text-gray-300"
+            className="lab-action"
           >
             Clear
           </button>
@@ -392,7 +388,7 @@ function DailyPlanningActionCard({
           <button
             type="button"
             onClick={() => onOpenAdvisorLane(item.advisorId, weeklyLabRoute.preset)}
-            className="rounded-md border border-sky-400/20 bg-sky-500/10 px-2 py-1 text-xs text-sky-200 transition-colors hover:border-sky-300/40 hover:text-sky-100"
+            className="lab-action lab-action--blue"
           >
             {`Open ${weeklyLabRoute.label} in Weekly LAB`}
           </button>
@@ -400,7 +396,7 @@ function DailyPlanningActionCard({
         {schedulingEnabled && (
           <button
             onClick={() => onScheduleTask(item)}
-            className="rounded-md bg-blue-600/15 px-2 py-1 text-xs text-blue-300 transition-colors hover:bg-blue-600/25"
+            className="lab-action lab-action--blue"
           >
             Schedule
           </button>
@@ -422,11 +418,8 @@ function PlanButton({
   return (
     <button
       onClick={onClick}
-      className={`rounded-md px-2 py-1 text-xs transition-colors ${
-        active
-          ? 'bg-gray-200 text-gray-900'
-          : 'text-gray-500 hover:bg-gray-800 hover:text-gray-300'
-      }`}
+      className="lab-action"
+      data-active={active}
     >
       {label}
     </button>

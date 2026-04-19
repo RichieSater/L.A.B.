@@ -54,25 +54,25 @@ export function WeeklyReviewCard({
   ].filter(Boolean) as string[];
 
   return (
-    <section className="mb-6 rounded-xl border border-gray-800 bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 p-5">
+    <section className="lab-panel mb-6 rounded-[1.75rem] border-[rgba(228,209,174,0.14)] bg-[radial-gradient(circle_at_top,_rgba(228,209,174,0.06),_rgba(19,28,38,0.96)_58%)] p-5">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <h3 className="text-sm font-semibold uppercase tracking-wide text-gray-300">Weekly Review</h3>
+            <h3 className="lab-eyebrow text-[0.68rem]">Weekly Review</h3>
             <span
-              className={`rounded-full px-2 py-0.5 text-[11px] ${
+              className={`lab-chip ${
                 summary.completedThisWeek
-                  ? 'bg-emerald-500/15 text-emerald-300'
-                  : 'bg-amber-500/15 text-amber-300'
+                  ? 'lab-chip--teal'
+                  : 'lab-chip--gold'
               }`}
             >
               {summary.completedThisWeek ? 'Reviewed' : 'Needs review'}
             </span>
           </div>
-          <p className="mt-1 text-sm text-gray-400">
+          <p className="lab-note mt-1">
             {formatDate(summary.weekStart)} to {formatDate(summary.weekEnd)}
           </p>
-          <p className="mt-2 max-w-2xl text-sm text-gray-500">
+          <p className="lab-copy mt-2 max-w-2xl text-sm">
             Sweep the queue before the week drifts: pull backlog into a bucket, clear stale Today items, and keep near-term work schedulable.
           </p>
         </div>
@@ -80,11 +80,7 @@ export function WeeklyReviewCard({
         <button
           onClick={() => onCompleteReview(summary.weekStart)}
           disabled={summary.completedThisWeek}
-          className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-            summary.completedThisWeek
-              ? 'cursor-default bg-gray-800 text-gray-500'
-              : 'bg-gray-200 text-gray-900 hover:bg-white'
-          }`}
+          className={`lab-button ${summary.completedThisWeek ? 'lab-button--ghost' : 'lab-button--gold'}`}
         >
           {summary.completedThisWeek ? 'Review complete' : 'Mark review done'}
         </button>
@@ -98,33 +94,33 @@ export function WeeklyReviewCard({
         <ReviewStat label="Overdue" value={summary.counts.overdueOpen} tone={summary.counts.overdueOpen > 0 ? 'attention' : 'neutral'} />
       </div>
 
-      <div className="mt-4 rounded-lg border border-gray-800 bg-gray-950/70 p-3">
+      <div className="lab-subpanel mt-4 p-3">
         {insights.length > 0 ? (
           <div className="space-y-1.5">
             {insights.map(insight => (
-              <p key={insight} className="text-sm text-gray-300">
+              <p key={insight} className="text-sm text-[color:var(--lab-text)]">
                 {insight}
               </p>
             ))}
           </div>
         ) : (
-          <p className="text-sm text-emerald-300">
+          <p className="text-sm text-[color:var(--lab-success)]">
             Queue looks balanced right now. This is a good week to schedule from the `today` bucket instead of triaging backlog.
           </p>
         )}
 
         {summary.completedThisWeek && summary.completedAt && (
-          <p className="mt-3 text-xs text-gray-500">
+          <p className="lab-meta mt-3">
             Completed {new Date(summary.completedAt).toLocaleString()}.
           </p>
         )}
       </div>
 
       <div className="mt-4 grid gap-3 xl:grid-cols-[1.1fr_0.9fr]">
-        <section className="rounded-lg border border-gray-800 bg-gray-950/80 p-4">
+        <section className="lab-subpanel p-4">
           <div className="mb-3">
-            <h4 className="text-sm font-semibold text-gray-200">Momentum Snapshot</h4>
-            <p className="mt-1 text-xs text-gray-500">
+            <h4 className="text-sm font-semibold text-[color:var(--lab-text)]">Momentum Snapshot</h4>
+            <p className="lab-meta mt-1">
               Review actual weekly movement before you decide what deserves another slot next week.
             </p>
           </div>
@@ -160,13 +156,13 @@ export function WeeklyReviewCard({
           <div className="mt-4">
             <div className="mb-3">
               <h5 className="text-xs font-semibold uppercase tracking-wide text-gray-400">Recent Wins</h5>
-              <p className="mt-1 text-xs text-gray-500">
+              <p className="lab-meta mt-1">
                 Concrete completed tasks from this week so the review does not collapse into pure cleanup.
               </p>
             </div>
 
             {summary.recentWins.length === 0 ? (
-              <div className="rounded-lg border border-dashed border-gray-800 px-3 py-6 text-center text-xs text-gray-600">
+              <div className="lab-empty-state px-3 py-6 text-center text-xs">
                 No completed tasks captured for this week yet.
               </div>
             ) : (
@@ -178,7 +174,7 @@ export function WeeklyReviewCard({
                   >
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>
-                        <p className="text-sm text-gray-100">{item.task}</p>
+                        <p className="text-sm text-[color:var(--lab-text)]">{item.task}</p>
                         <div className="mt-2 flex flex-wrap items-center gap-2">
                           <span
                             className="rounded-full px-2 py-0.5 text-xs"
@@ -189,10 +185,10 @@ export function WeeklyReviewCard({
                           <span
                             className={`rounded px-1.5 py-0.5 text-xs ${
                               item.priority === 'high'
-                                ? 'bg-red-900/50 text-red-400'
+                                ? 'bg-[rgba(230,123,123,0.14)] text-[color:var(--lab-danger)]'
                                 : item.priority === 'medium'
-                                  ? 'bg-yellow-900/50 text-yellow-400'
-                                  : 'bg-gray-800 text-gray-400'
+                                  ? 'bg-[rgba(228,209,174,0.14)] text-[color:var(--lab-gold)]'
+                                  : 'bg-[rgba(39,50,64,0.9)] text-[color:var(--lab-text-muted)]'
                             }`}
                           >
                             {item.priority}
@@ -210,10 +206,10 @@ export function WeeklyReviewCard({
           </div>
         </section>
 
-        <section className="rounded-lg border border-gray-800 bg-gray-950/80 p-4">
+        <section className="lab-subpanel p-4">
           <div className="mb-3">
-            <h4 className="text-sm font-semibold text-gray-200">Advisor Signals</h4>
-            <p className="mt-1 text-xs text-gray-500">
+            <h4 className="text-sm font-semibold text-[color:var(--lab-text)]">Advisor Signals</h4>
+            <p className="lab-meta mt-1">
               Balance next-week planning against which domains generated momentum and which still need attention.
             </p>
           </div>
@@ -245,10 +241,10 @@ export function WeeklyReviewCard({
         </section>
       </div>
 
-      <section className="mt-4 rounded-lg border border-gray-800 bg-gray-950/80 p-4">
+      <section className="lab-subpanel mt-4 p-4">
         <div className="mb-3">
-          <h4 className="text-sm font-semibold text-gray-200">Weekly Recap</h4>
-          <p className="mt-1 text-xs text-gray-500">
+          <h4 className="text-sm font-semibold text-[color:var(--lab-text)]">Weekly Recap</h4>
+          <p className="lab-meta mt-1">
             A deterministic readout from this week&apos;s wins, advisor momentum, and unresolved planner pressure.
           </p>
         </div>
@@ -261,7 +257,7 @@ export function WeeklyReviewCard({
       </section>
 
       <div className="mt-4 grid gap-3 xl:grid-cols-[1.35fr_0.95fr]">
-        <section className="rounded-lg border border-gray-800 bg-gray-950/80 p-4">
+        <section className="lab-subpanel p-4">
           <div className="mb-3">
             <h4 className="text-sm font-semibold text-gray-200">Reflection</h4>
             <p className="mt-1 text-xs text-gray-500">
@@ -291,7 +287,7 @@ export function WeeklyReviewCard({
           </div>
         </section>
 
-        <section className="rounded-lg border border-gray-800 bg-gray-950/80 p-4">
+        <section className="lab-subpanel p-4">
           <div className="mb-3">
             <h4 className="text-sm font-semibold text-gray-200">Previous Review</h4>
             <p className="mt-1 text-xs text-gray-500">
@@ -325,7 +321,7 @@ export function WeeklyReviewCard({
               />
             </div>
           ) : (
-            <div className="rounded-lg border border-dashed border-gray-800 px-3 py-6 text-center text-xs text-gray-600">
+            <div className="lab-empty-state px-3 py-6 text-center text-xs">
               No prior weekly review captured yet.
             </div>
           )}
@@ -337,16 +333,16 @@ export function WeeklyReviewCard({
           {summary.actionGroups.map(group => (
             <section
               key={group.id}
-              className="rounded-lg border border-gray-800 bg-gray-950/80 p-3"
+              className="lab-subpanel p-3"
             >
               <div className="mb-3">
                 <div className="flex items-center justify-between gap-3">
-                  <h4 className="text-sm font-semibold text-gray-200">{group.title}</h4>
-                  <span className="rounded-full bg-gray-800 px-2 py-0.5 text-xs text-gray-400">
+                  <h4 className="text-sm font-semibold text-[color:var(--lab-text)]">{group.title}</h4>
+                  <span className="lab-chip lab-chip--neutral">
                     {group.items.length + group.remainingCount}
                   </span>
                 </div>
-                <p className="mt-1 text-xs text-gray-500">{group.description}</p>
+                <p className="lab-meta mt-1">{group.description}</p>
               </div>
 
               <div className="space-y-3">
@@ -367,7 +363,7 @@ export function WeeklyReviewCard({
               </div>
 
               {group.remainingCount > 0 && (
-                <p className="mt-3 text-xs text-gray-500">
+                <p className="lab-meta mt-3">
                   {group.remainingCount} more task{group.remainingCount === 1 ? '' : 's'} in this review lane.
                 </p>
               )}
@@ -388,23 +384,23 @@ function RecapSectionCard({
     success: 'border-emerald-500/15 bg-emerald-500/5',
     primary: 'border-sky-500/15 bg-sky-500/5',
     attention: 'border-amber-500/15 bg-amber-500/5',
-    neutral: 'border-gray-800 bg-gray-900/70',
+    neutral: 'border-[color:var(--lab-border-muted)] bg-[rgba(19,28,38,0.74)]',
   } satisfies Record<WeeklyReviewSummary['recapSections'][number]['tone'], string>;
 
   return (
     <section className={`rounded-lg border p-3 ${toneClasses[summary.tone]}`}>
-      <h5 className="text-sm font-semibold text-gray-100">{summary.title}</h5>
-      <p className="mt-1 text-xs text-gray-500">{summary.description}</p>
+      <h5 className="text-sm font-semibold text-[color:var(--lab-text)]">{summary.title}</h5>
+      <p className="lab-meta mt-1">{summary.description}</p>
       {summary.lines.length > 0 ? (
         <div className="mt-3 space-y-2">
           {summary.lines.map(line => (
-            <p key={line} className="text-sm leading-6 text-gray-200">
+            <p key={line} className="text-sm leading-6 text-[color:var(--lab-text)]">
               {line}
             </p>
           ))}
         </div>
       ) : (
-        <p className="mt-3 text-sm leading-6 text-gray-500">{summary.emptyState}</p>
+        <p className="mt-3 text-sm leading-6 text-[color:var(--lab-text-dim)]">{summary.emptyState}</p>
       )}
     </section>
   );
@@ -434,7 +430,7 @@ function ReviewField({
 
   return (
     <label className="block">
-      <span className="text-xs font-medium uppercase tracking-wide text-gray-500">{label}</span>
+      <span className="text-xs font-medium uppercase tracking-wide text-[color:var(--lab-text-dim)]">{label}</span>
       <textarea
         aria-label={label}
         value={draftValue}
@@ -444,7 +440,7 @@ function ReviewField({
         }}
         placeholder={placeholder}
         rows={3}
-        className="mt-2 w-full rounded-lg border border-gray-800 bg-gray-900/70 px-3 py-2 text-sm text-gray-100 placeholder:text-gray-600 focus:border-gray-600 focus:outline-none"
+        className="lab-textarea mt-2 w-full rounded-lg px-3 py-2 text-sm"
       />
     </label>
   );
@@ -452,9 +448,9 @@ function ReviewField({
 
 function PreviousReviewBlock({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-gray-800 bg-gray-900/70 p-3">
-      <p className="text-xs uppercase tracking-wide text-gray-500">{label}</p>
-      <p className="mt-2 text-sm text-gray-300">
+    <div className="lab-subpanel lab-subpanel--soft p-3">
+      <p className="text-xs uppercase tracking-wide text-[color:var(--lab-text-dim)]">{label}</p>
+      <p className="mt-2 text-sm text-[color:var(--lab-text-muted)]">
         {value.trim().length > 0 ? value : 'No note captured.'}
       </p>
     </div>
@@ -479,11 +475,11 @@ function ReviewStat({
             ? 'border-emerald-500/20 bg-emerald-500/10'
           : tone === 'attention'
             ? 'border-amber-500/20 bg-amber-500/10'
-            : 'border-gray-800 bg-gray-900/60'
+            : 'border-[color:var(--lab-border-muted)] bg-[rgba(19,28,38,0.74)]'
       }`}
     >
-      <p className="text-xs uppercase tracking-wide text-gray-500">{label}</p>
-      <p className="mt-1 text-xl font-semibold text-gray-100">{value}</p>
+      <p className="text-xs uppercase tracking-wide text-[color:var(--lab-text-dim)]">{label}</p>
+      <p className="mt-1 text-xl font-semibold text-[color:var(--lab-text)]">{value}</p>
     </div>
   );
 }
@@ -535,7 +531,7 @@ function AdvisorSnapshotCard({
         : 'bg-gray-800 text-gray-400';
 
   return (
-    <article className="rounded-lg border border-gray-800 bg-gray-900/70 p-3">
+    <article className="lab-subpanel lab-subpanel--soft p-3">
       <div className="flex items-start justify-between gap-3">
         <span
           className="rounded-full px-2 py-0.5 text-xs"
@@ -546,13 +542,13 @@ function AdvisorSnapshotCard({
         <span className={`rounded-full px-2 py-0.5 text-[11px] ${statusClasses}`}>{statusLabel}</span>
       </div>
 
-      <p className="mt-3 text-xs text-gray-400">
+      <p className="mt-3 text-xs text-[color:var(--lab-text-muted)]">
         {completedTasks} completed • {sessions} sessions • {quickLogs} logs
       </p>
-      <p className="mt-1 text-xs text-gray-500">
+      <p className="mt-1 text-xs text-[color:var(--lab-text-dim)]">
         {openTasks} open • {plannedOpen} planned • {overdueOpen} overdue
       </p>
-      <p className="mt-3 text-sm text-gray-300">{note}</p>
+      <p className="mt-3 text-sm text-[color:var(--lab-text-muted)]">{note}</p>
       {openTasks > 0 && (
         <div className="mt-3 space-y-2">
           <div className="flex flex-wrap gap-2">
@@ -566,7 +562,7 @@ function AdvisorSnapshotCard({
           </div>
           {alternatePlanningShortcuts.length > 0 && (
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-[color:var(--lab-text-dim)]">
                 Other scoped lanes
               </p>
               <div className="mt-2 flex flex-wrap gap-2">
@@ -575,7 +571,7 @@ function AdvisorSnapshotCard({
                     key={`${advisorId}:${shortcut.preset}`}
                     type="button"
                     onClick={() => onOpenAdvisorLane(advisorId, shortcut.preset)}
-                    className="rounded-lg border border-gray-700 bg-gray-950/70 px-3 py-2 text-xs font-medium text-gray-300 transition-colors hover:border-gray-600 hover:text-gray-100"
+                    className="lab-action"
                   >
                     {shortcut.label} ({shortcut.count})
                   </button>
@@ -623,8 +619,8 @@ function ReviewActionCard({
   schedulingEnabled: boolean;
 }) {
   return (
-    <article className="rounded-lg border border-gray-800 bg-gray-900/70 p-3">
-      <p className="text-sm text-gray-100">{item.task}</p>
+    <article className="lab-subpanel lab-subpanel--soft p-3">
+      <p className="text-sm text-[color:var(--lab-text)]">{item.task}</p>
       <div className="mt-2 flex flex-wrap items-center gap-2">
         <span
           className="rounded-full px-2 py-0.5 text-xs"
@@ -635,15 +631,15 @@ function ReviewActionCard({
         <span
           className={`rounded px-1.5 py-0.5 text-xs ${
             item.priority === 'high'
-              ? 'bg-red-900/50 text-red-400'
+              ? 'bg-[rgba(230,123,123,0.14)] text-[color:var(--lab-danger)]'
               : item.priority === 'medium'
-                ? 'bg-yellow-900/50 text-yellow-400'
-                : 'bg-gray-800 text-gray-400'
+                ? 'bg-[rgba(228,209,174,0.14)] text-[color:var(--lab-gold)]'
+                : 'bg-[rgba(39,50,64,0.9)] text-[color:var(--lab-text-muted)]'
           }`}
         >
           {item.priority}
         </span>
-        <span className="text-xs text-gray-500">{getReviewContext(group, item)}</span>
+        <span className="text-xs text-[color:var(--lab-text-dim)]">{getReviewContext(group, item)}</span>
       </div>
 
       <div className="mt-3 flex flex-wrap gap-1.5">
@@ -668,18 +664,15 @@ function ReviewActionCard({
               ? onRemoveFocusTask(item.advisorId, item.id)
               : onAddFocusTask(item.advisorId, item.id)
           }
-          className={`rounded-md px-2 py-1 text-xs transition-colors ${
-            isInWeeklyFocus
-              ? 'bg-blue-500/15 text-blue-300 hover:bg-blue-500/25'
-              : 'text-gray-500 hover:bg-gray-800 hover:text-gray-300'
-          }`}
+          className={`lab-action ${isInWeeklyFocus ? 'lab-action--blue' : ''}`}
+          data-active={isInWeeklyFocus}
         >
           {isInWeeklyFocus ? 'Focused' : 'Focus'}
         </button>
         {item.planningBucket && (
           <button
             onClick={() => onClearPlanBucket(item.advisorId, item.id)}
-            className="rounded-md px-2 py-1 text-xs text-gray-500 hover:bg-gray-800 hover:text-gray-300 transition-colors"
+            className="lab-action"
           >
             Remove
           </button>
@@ -687,7 +680,7 @@ function ReviewActionCard({
         {schedulingEnabled && (
           <button
             onClick={() => onScheduleTask(item)}
-            className="rounded-md bg-blue-600/15 px-2 py-1 text-xs text-blue-300 hover:bg-blue-600/25 transition-colors"
+            className="lab-action lab-action--blue"
           >
             Schedule
           </button>
@@ -733,11 +726,8 @@ function PlanButton({
   return (
     <button
       onClick={onClick}
-      className={`rounded-md px-2 py-1 text-xs transition-colors ${
-        active
-          ? 'bg-gray-200 text-gray-900'
-          : 'text-gray-500 hover:bg-gray-800 hover:text-gray-300'
-      }`}
+      className="lab-action"
+      data-active={active}
     >
       {label}
     </button>

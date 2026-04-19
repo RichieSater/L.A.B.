@@ -47,55 +47,51 @@ export function ActionItemRow({
   return (
     <article
       data-task-id={item.id}
-      className={`flex items-start gap-3 p-3 rounded-lg ${
-      isCompleted ? 'bg-gray-800/30' : 'bg-gray-800/50'
-    }`}
+      className={`lab-subpanel ${isCompleted ? 'bg-[rgba(19,28,38,0.6)]' : 'lab-subpanel--soft'} flex items-start gap-3 p-3`}
     >
-      {/* Checkbox */}
       <button
         onClick={() => onToggleComplete(item.id)}
-        className={`mt-0.5 w-5 h-5 rounded border flex-shrink-0 flex items-center justify-center transition-colors ${
+        className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded border transition-colors ${
           isCompleted
-            ? 'bg-green-600 border-green-600 text-white'
-            : 'border-gray-600 hover:border-gray-400'
+            ? 'border-[rgba(117,200,167,0.7)] bg-[rgba(117,200,167,0.2)] text-[color:var(--lab-success)]'
+            : 'border-[color:var(--lab-border)] hover:border-[rgba(228,209,174,0.42)]'
         }`}
       >
         {isCompleted && <span className="text-xs">&#10003;</span>}
       </button>
 
-      {/* Content */}
       <div className="flex-1 min-w-0">
-        <p className={`text-sm ${isCompleted ? 'text-gray-500 line-through' : 'text-gray-300'}`}>
+        <p className={`text-sm ${isCompleted ? 'text-[color:var(--lab-text-dim)] line-through' : 'text-[color:var(--lab-text)]'}`}>
           {item.task}
         </p>
         <div className="flex items-center gap-2 mt-1">
-          <span className="text-xs font-mono text-gray-600">{item.id}</span>
-          <span className={`text-xs px-1.5 py-0.5 rounded ${
-            item.priority === 'high' ? 'bg-red-900/50 text-red-400' :
-            item.priority === 'medium' ? 'bg-yellow-900/50 text-yellow-400' :
-            'bg-gray-700 text-gray-400'
+          <span className="font-mono text-[11px] text-[color:var(--lab-text-dim)]">{item.id}</span>
+          <span className={`rounded-full px-2 py-0.5 text-[11px] ${
+            item.priority === 'high' ? 'bg-[rgba(230,123,123,0.14)] text-[color:var(--lab-danger)]' :
+            item.priority === 'medium' ? 'bg-[rgba(228,209,174,0.14)] text-[color:var(--lab-gold)]' :
+            'bg-[rgba(39,50,64,0.9)] text-[color:var(--lab-text-muted)]'
           }`}>
             {item.priority}
           </span>
           {item.planningBucket && (
-            <span className="rounded-full bg-gray-700/80 px-2 py-0.5 text-xs text-gray-200">
+            <span className="lab-chip lab-chip--neutral">
               {item.planningBucket === 'this_week' ? 'this week' : item.planningBucket}
             </span>
           )}
           {item.isInWeeklyFocus && (
-            <span className="rounded-full bg-blue-500/15 px-2 py-0.5 text-xs text-blue-300">
+            <span className="lab-chip lab-chip--blue">
               focus
             </span>
           )}
           {item.dueDate !== 'ongoing' ? (
-            <span className={`text-xs ${isOverdue ? 'text-red-400' : 'text-gray-500'}`}>
+            <span className={`text-xs ${isOverdue ? 'text-[color:var(--lab-danger)]' : 'text-[color:var(--lab-text-dim)]'}`}>
               {isOverdue ? `Overdue ${daysAgo(item.dueDate)}d` : `due ${item.dueDate}`}
             </span>
           ) : (
-            <span className="text-xs text-gray-500">ongoing</span>
+            <span className="text-xs text-[color:var(--lab-text-dim)]">ongoing</span>
           )}
           {isCompleted && item.completedDate && (
-            <span className="text-xs text-green-500">
+            <span className="text-xs text-[color:var(--lab-success)]">
               completed {formatDaysAgo(item.completedDate)}
             </span>
           )}
@@ -120,18 +116,19 @@ export function ActionItemRow({
             />
             <button
               onClick={() => item.isInWeeklyFocus ? onRemoveWeeklyFocus(item.id) : onAddWeeklyFocus(item.id)}
-              className={`text-xs transition-colors ${
+              className={`lab-action ${
                 item.isInWeeklyFocus
-                  ? 'text-blue-300 hover:text-blue-200'
-                  : 'text-gray-500 hover:text-gray-300'
+                  ? 'lab-action--blue'
+                  : ''
               }`}
+              data-active={item.isInWeeklyFocus}
             >
               {item.isInWeeklyFocus ? 'Focused' : 'Focus'}
             </button>
             {item.planningBucket && (
               <button
                 onClick={() => onClearPlanBucket(item.id)}
-                className="text-xs text-gray-500 hover:text-gray-300 transition-colors"
+                className="lab-action"
               >
                 Clear plan
               </button>
@@ -139,7 +136,7 @@ export function ActionItemRow({
             {weeklyLabRoute && onOpenWeeklyLabRoute && (
               <button
                 onClick={() => onOpenWeeklyLabRoute(weeklyLabRoute.preset)}
-                className="rounded-full border border-sky-300/20 bg-sky-500/10 px-2 py-1 text-xs text-sky-100 transition-colors hover:border-sky-200/40 hover:text-white"
+                className="lab-action lab-action--blue"
               >
                 {`Open ${weeklyLabRoute.label} in Weekly LAB`}
               </button>
@@ -147,7 +144,7 @@ export function ActionItemRow({
             {schedulingEnabled && onScheduleTask && (
               <button
                 onClick={() => onScheduleTask(item.id)}
-                className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
+                className="lab-action lab-action--blue"
               >
                 Schedule
               </button>
@@ -171,11 +168,8 @@ function PlanActionButton({
   return (
     <button
       onClick={onClick}
-      className={`rounded-md px-2 py-1 text-xs transition-colors ${
-        active
-          ? 'bg-gray-200 text-gray-900'
-          : 'bg-gray-800 text-gray-400 hover:text-gray-200'
-      }`}
+      className="lab-action"
+      data-active={active}
     >
       {label}
     </button>

@@ -92,34 +92,36 @@ export function AdminDashboardPage() {
   });
 
   return (
-    <div className="space-y-6">
+    <div className="lab-page lab-page--narrow space-y-6">
       <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-slate-400">Admin</p>
-          <h2 className="mt-2 text-3xl font-semibold text-white">Admin Dashboard</h2>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-400">
+          <p className="lab-eyebrow">Oversight</p>
+          <h2 className="mt-3 text-[2.4rem] font-semibold leading-none tracking-[-0.04em] text-[color:var(--lab-text)]">
+            Admin Dashboard
+          </h2>
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-[color:var(--lab-text-muted)]">
             Review LAB accounts and decide whether each non-admin user stays on free or gets premium access.
           </p>
         </div>
 
         <div className="flex flex-col gap-3 sm:flex-row">
-          <label className="flex flex-col gap-2 text-sm text-gray-400">
+          <label className="flex flex-col gap-2 text-sm text-[color:var(--lab-text-muted)]">
             Search
             <input
               type="search"
               value={search}
               onChange={event => setSearch(event.target.value)}
               placeholder="Search by email, name, or id"
-              className="min-w-[16rem] rounded-lg border border-gray-700 bg-gray-900 px-3 py-2 text-gray-100 focus:border-slate-400 focus:outline-none"
+              className="lab-input min-w-[16rem]"
             />
           </label>
 
-          <label className="flex flex-col gap-2 text-sm text-gray-400">
+          <label className="flex flex-col gap-2 text-sm text-[color:var(--lab-text-muted)]">
             Sort
             <select
               value={sortBy}
               onChange={event => setSortBy(event.target.value as AdminSortKey)}
-              className="rounded-lg border border-gray-700 bg-gray-900 px-3 py-2 text-gray-100 focus:border-slate-400 focus:outline-none"
+              className="lab-select"
             >
               <option value="newest">Newest first</option>
               <option value="oldest">Oldest first</option>
@@ -131,27 +133,27 @@ export function AdminDashboardPage() {
       </div>
 
       {error ? (
-        <div className="rounded-xl border border-red-900 bg-red-950/40 px-4 py-3 text-sm text-red-200">
+        <div className="lab-panel rounded-2xl border-[rgba(230,123,123,0.32)] bg-[rgba(230,123,123,0.12)] px-4 py-3 text-sm text-[#ffd5d5]">
           {error}
         </div>
       ) : null}
 
-      <div className="rounded-2xl border border-gray-800 bg-gray-950/70 shadow-[0_24px_80px_rgba(0,0,0,0.35)]">
-        <div className="flex items-center justify-between border-b border-gray-800 px-5 py-4">
+      <div className="lab-panel overflow-hidden rounded-[1.75rem]">
+        <div className="flex items-center justify-between border-b border-[color:var(--lab-border-muted)] px-5 py-4">
           <div>
-            <h3 className="text-sm font-semibold uppercase tracking-[0.22em] text-gray-400">Users</h3>
-            <p className="mt-1 text-sm text-gray-500">
+            <h3 className="text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-[color:var(--lab-text-muted)]">Users</h3>
+            <p className="mt-1 text-sm text-[color:var(--lab-text-dim)]">
               {loading ? 'Loading users...' : `${visibleUsers.length} visible user${visibleUsers.length === 1 ? '' : 's'}`}
             </p>
           </div>
         </div>
 
         {loading ? (
-          <div className="px-5 py-8 text-sm text-gray-400">Loading account tiers...</div>
+          <div className="px-5 py-8 text-sm text-[color:var(--lab-text-muted)]">Loading account tiers...</div>
         ) : visibleUsers.length === 0 ? (
-          <div className="px-5 py-8 text-sm text-gray-400">No users matched the current search.</div>
+          <div className="px-5 py-8 text-sm text-[color:var(--lab-text-muted)]">No users matched the current search.</div>
         ) : (
-          <div className="divide-y divide-gray-800">
+          <div className="divide-y divide-[color:var(--lab-border-muted)]">
             {visibleUsers.map(user => {
               const adminUser = user.accountTier === 'admin';
               const saving = savingUserId === user.id;
@@ -164,17 +166,17 @@ export function AdminDashboardPage() {
                 >
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-3">
-                      <h4 className="text-sm font-semibold text-white">
+                      <h4 className="text-sm font-semibold text-[color:var(--lab-text)]">
                         {user.displayName ?? 'Unnamed user'}
                       </h4>
                       <span className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] ${TIER_BADGE_STYLES[user.accountTier]}`}>
                         {user.accountTier}
                       </span>
                     </div>
-                    <p className="mt-1 text-sm text-gray-300">
+                    <p className="mt-1 text-sm text-[color:var(--lab-text)]">
                       {user.primaryEmail ?? 'Missing email'}
                     </p>
-                    <p className="mt-1 text-xs text-gray-500">
+                    <p className="mt-1 text-xs text-[color:var(--lab-text-dim)]">
                       Joined {formatDate(user.createdAt)} • {user.id}
                     </p>
                   </div>
@@ -184,7 +186,7 @@ export function AdminDashboardPage() {
                       type="button"
                       disabled={adminUser || saving || user.accountTier === 'free'}
                       onClick={() => handleTierChange(user.id, 'free')}
-                      className="rounded-lg border border-amber-400/25 bg-amber-500/10 px-3 py-2 text-sm font-medium text-amber-100 transition-colors hover:bg-amber-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="lab-button lab-button--ink rounded-2xl px-4"
                     >
                       {saving && user.accountTier !== 'free' ? 'Saving...' : 'Set free'}
                     </button>
@@ -192,12 +194,12 @@ export function AdminDashboardPage() {
                       type="button"
                       disabled={adminUser || saving || user.accountTier === 'premium'}
                       onClick={() => handleTierChange(user.id, 'premium')}
-                      className="rounded-lg border border-emerald-400/25 bg-emerald-500/10 px-3 py-2 text-sm font-medium text-emerald-100 transition-colors hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="lab-button rounded-2xl border-[rgba(74,181,171,0.38)] bg-[rgba(74,181,171,0.14)] px-4 text-[#b7f1e2] hover:border-[rgba(74,181,171,0.65)] hover:text-white"
                     >
                       {saving && user.accountTier !== 'premium' ? 'Saving...' : 'Set premium'}
                     </button>
                     {adminUser ? (
-                      <span className="inline-flex items-center rounded-lg border border-slate-500/25 bg-slate-500/10 px-3 py-2 text-sm text-slate-200">
+                      <span className="inline-flex items-center rounded-2xl border border-[rgba(245,243,238,0.24)] bg-[rgba(245,243,238,0.08)] px-3 py-2 text-sm text-[color:var(--lab-text-muted)]">
                         Admin is env-managed
                       </span>
                     ) : null}

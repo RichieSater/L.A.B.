@@ -344,25 +344,25 @@ export function CompassSessionRunner({
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
-      <div className="rounded-[2rem] border border-amber-300/20 bg-[radial-gradient(circle_at_top,_rgba(245,208,116,0.12),_rgba(17,24,39,0.98)_50%)] p-6">
+      <div className="lab-panel rounded-[2rem] border-[rgba(228,209,174,0.22)] bg-[radial-gradient(circle_at_top,_rgba(228,209,174,0.12),_rgba(19,28,38,0.96)_56%)] p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.24em] text-amber-300/80">
               {currentSection.title}
             </p>
-            <h1 className="mt-2 text-3xl font-semibold tracking-tight text-gray-100">{session.title}</h1>
-            <p className="mt-2 text-sm text-gray-300">{currentSection.subtitle}</p>
+            <h1 className="lab-title mt-2 text-3xl">{session.title}</h1>
+            <p className="lab-copy mt-2 text-sm">{currentSection.subtitle}</p>
           </div>
-          <div className="rounded-full border border-gray-700 bg-gray-950/70 px-4 py-2 text-sm font-semibold text-gray-200">
+          <div className="lab-chip lab-chip--neutral min-h-[2.25rem] px-4 text-sm tracking-[0.08em]">
             {currentIndex + 1} / {totalScreens}
           </div>
         </div>
 
         <div className="mt-6 space-y-3">
-          <div className="h-2 overflow-hidden rounded-full bg-gray-900">
+          <div className="h-2 overflow-hidden rounded-full bg-[rgba(8,11,17,0.96)]">
             <div className="h-full rounded-full bg-amber-300 transition-all" style={{ width: `${progress}%` }} />
           </div>
-          <div className="flex items-center justify-between text-xs uppercase tracking-[0.18em] text-gray-500">
+          <div className="flex items-center justify-between text-xs uppercase tracking-[0.18em] text-[color:var(--lab-text-dim)]">
             <span>{progress}% complete</span>
             <span>
               {saveStatus === 'saving'
@@ -377,12 +377,12 @@ export function CompassSessionRunner({
         </div>
       </div>
 
-      <div className="rounded-[2rem] border border-gray-800 bg-gray-900/70 p-8">
+      <div className="lab-panel rounded-[2rem] p-8">
         {screen.headline ? (
           <p className="text-xs font-semibold uppercase tracking-[0.24em] text-amber-300/80">{screen.headline}</p>
         ) : null}
         {screen.narrativeText ? (
-          <p className="mt-3 whitespace-pre-line text-base leading-7 text-gray-300">{screen.narrativeText}</p>
+          <p className="lab-copy mt-3 whitespace-pre-line text-base leading-7">{screen.narrativeText}</p>
         ) : null}
 
         {screen.contentBlocks?.length ? (
@@ -426,15 +426,15 @@ export function CompassSessionRunner({
             {screen.prompts.map((prompt, promptIndex) => (
               <div
                 key={`${screen.id}-${prompt.key}-${promptIndex}`}
-                className="space-y-4 rounded-3xl border border-gray-800/80 bg-gray-950/40 p-5"
+                className="lab-subpanel lab-subpanel--soft space-y-4 p-5"
               >
                 <div className="space-y-2">
-                  <h2 className="text-xl font-semibold text-gray-100">{prompt.label}</h2>
+                  <h2 className="text-xl font-semibold text-[color:var(--lab-text)]">{prompt.label}</h2>
                   {prompt.description ? (
-                    <p className="text-sm leading-6 text-gray-400">{prompt.description}</p>
+                    <p className="text-sm leading-6 text-[color:var(--lab-text-muted)]">{prompt.description}</p>
                   ) : null}
                   {prompt.copyLines?.length ? (
-                    <div className="rounded-2xl border border-amber-300/20 bg-amber-500/10 p-4">
+                    <div className="lab-subpanel lab-subpanel--accent p-4">
                       <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-200/80">
                         Copy these lines
                       </p>
@@ -465,7 +465,7 @@ export function CompassSessionRunner({
           </div>
         ) : (
           <div className="mt-8">
-            <p className="text-sm leading-7 text-gray-400">
+            <p className="text-sm leading-7 text-[color:var(--lab-text-muted)]">
               {screen.type === 'animation'
                 ? 'Pause here, then complete the workbook when you are ready.'
                 : "Continue when you're ready."}
@@ -473,7 +473,7 @@ export function CompassSessionRunner({
           </div>
         )}
 
-        <div className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-gray-800 pt-6">
+        <div className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-[color:var(--lab-border-muted)] pt-6">
           <div className="flex gap-3">
             <button
               type="button"
@@ -482,7 +482,7 @@ export function CompassSessionRunner({
               }}
               onClick={handleBack}
               disabled={currentIndex === 0 || completing}
-              className="rounded-full border border-gray-700 px-4 py-2 text-sm font-semibold text-gray-200 transition hover:border-gray-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+              className="lab-button lab-button--ghost"
             >
               Back
             </button>
@@ -493,7 +493,7 @@ export function CompassSessionRunner({
               }}
               onClick={handleSaveAndExit}
               disabled={completing}
-              className="rounded-full border border-gray-700 bg-gray-950/80 px-4 py-2 text-sm font-semibold text-gray-300 transition hover:border-gray-500 hover:text-gray-100 disabled:cursor-not-allowed disabled:opacity-50"
+              className="lab-button lab-button--ink"
             >
               Save and Exit
             </button>
@@ -505,7 +505,7 @@ export function CompassSessionRunner({
             }}
             onClick={() => void handleNext()}
             disabled={!canProceed(screen, screenAnswers) || completing}
-            className="rounded-full border border-amber-300 bg-amber-50 px-5 py-2.5 text-sm font-semibold text-amber-950 transition hover:border-amber-200 hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-50"
+            className="lab-button lab-button--gold"
           >
             {completing ? 'Completing...' : currentIndex === totalScreens - 1 ? 'Complete Compass' : 'Continue'}
           </button>
@@ -522,23 +522,23 @@ function ContentBlockView({ block }: { block: CompassContentBlock }) {
     <div
       className={
         isHighlighted
-          ? 'rounded-2xl border border-gray-800 bg-gray-950/60 p-4'
+          ? 'lab-subpanel p-4'
           : 'space-y-3'
       }
     >
       {block.title ? (
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">{block.title}</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--lab-text-dim)]">{block.title}</p>
       ) : null}
       {block.paragraphs?.map(paragraph => (
         <p
           key={paragraph}
-          className={`text-sm leading-7 ${block.tone === 'quote' ? 'italic text-gray-200' : 'text-gray-300'}`}
+          className={`text-sm leading-7 ${block.tone === 'quote' ? 'italic text-[color:var(--lab-text)]' : 'text-[color:var(--lab-text-muted)]'}`}
         >
           {paragraph}
         </p>
       ))}
       {block.bullets?.length ? (
-        <ul className="space-y-2 pl-5 text-sm leading-7 text-gray-300">
+        <ul className="space-y-2 pl-5 text-sm leading-7 text-[color:var(--lab-text-muted)]">
           {block.bullets.map(item => (
             <li key={item} className="list-disc">
               {item}
@@ -547,7 +547,7 @@ function ContentBlockView({ block }: { block: CompassContentBlock }) {
         </ul>
       ) : null}
       {block.numberedItems?.length ? (
-        <ol className="space-y-2 pl-5 text-sm leading-7 text-gray-300">
+        <ol className="space-y-2 pl-5 text-sm leading-7 text-[color:var(--lab-text-muted)]">
           {block.numberedItems.map(item => (
             <li key={item} className="list-decimal">
               {item}
@@ -556,7 +556,7 @@ function ContentBlockView({ block }: { block: CompassContentBlock }) {
         </ol>
       ) : null}
       {block.attribution ? (
-        <p className="text-xs uppercase tracking-[0.18em] text-gray-500">{block.attribution}</p>
+        <p className="text-xs uppercase tracking-[0.18em] text-[color:var(--lab-text-dim)]">{block.attribution}</p>
       ) : null}
     </div>
   );
@@ -568,9 +568,9 @@ function RitualPreview({ items }: { items: string[] }) {
   }
 
   return (
-    <div className="mt-8 rounded-2xl border border-gray-800 bg-gray-950/50 p-4">
-      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">From the compassion box</p>
-      <ul className="mt-3 space-y-2 text-sm text-gray-300">
+    <div className="lab-subpanel mt-8 p-4">
+      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--lab-text-dim)]">From the compassion box</p>
+      <ul className="mt-3 space-y-2 text-sm text-[color:var(--lab-text-muted)]">
         {items.map(item => (
           <li key={item}>{item}</li>
         ))}
@@ -624,7 +624,7 @@ function CompassPromptField({
         onKeyDown={handleTextareaKeyDown}
         placeholder={prompt.placeholder ?? 'Write here...'}
         rows={8}
-        className="w-full rounded-3xl border border-gray-800 bg-gray-950/70 px-4 py-4 text-sm leading-7 text-gray-100 placeholder:text-gray-500 focus:border-amber-300/50 focus:outline-none focus:ring-1 focus:ring-amber-300/20"
+        className="lab-textarea w-full rounded-3xl px-4 py-4 text-sm leading-7"
       />
     );
   }
@@ -641,7 +641,7 @@ function CompassPromptField({
         onChange={event => onAnswerChange(prompt.key, event.target.value)}
         onKeyDown={handleShortTextKeyDown}
         placeholder={prompt.placeholder ?? 'Write here...'}
-        className="w-full rounded-full border border-gray-800 bg-gray-950/70 px-4 py-3 text-sm text-gray-100 placeholder:text-gray-500 focus:border-amber-300/50 focus:outline-none focus:ring-1 focus:ring-amber-300/20"
+        className="lab-input w-full rounded-full px-4 py-3 text-sm"
       />
     );
   }
@@ -656,7 +656,7 @@ function CompassPromptField({
 
           return (
             <div key={input.key} className="space-y-2">
-              <label htmlFor={inputId} className="block text-sm font-medium text-gray-200">
+              <label htmlFor={inputId} className="block text-sm font-medium text-[color:var(--lab-text)]">
                 {inputLabel}
               </label>
               {isLong ? (
@@ -667,7 +667,7 @@ function CompassPromptField({
                   onChange={event => onAnswerChange(input.key, event.target.value)}
                   placeholder={input.placeholder ?? 'Write here...'}
                   rows={4}
-                  className="w-full rounded-3xl border border-gray-800 bg-gray-950/70 px-4 py-4 text-sm leading-7 text-gray-100 placeholder:text-gray-500 focus:border-amber-300/50 focus:outline-none focus:ring-1 focus:ring-amber-300/20"
+                  className="lab-textarea w-full rounded-3xl px-4 py-4 text-sm leading-7"
                 />
               ) : (
                 <input
@@ -677,7 +677,7 @@ function CompassPromptField({
                   value={answers[input.key] ?? ''}
                   onChange={event => onAnswerChange(input.key, event.target.value)}
                   placeholder={input.placeholder ?? 'Write here...'}
-                  className="w-full rounded-full border border-gray-800 bg-gray-950/70 px-4 py-3 text-sm text-gray-100 placeholder:text-gray-500 focus:border-amber-300/50 focus:outline-none focus:ring-1 focus:ring-amber-300/20"
+                  className="lab-input w-full rounded-full px-4 py-3 text-sm"
                 />
               )}
             </div>
@@ -736,7 +736,7 @@ function CompassPromptField({
           value={answers.name ?? ''}
           onChange={event => onAnswerChange('name', event.target.value)}
           placeholder="Your name"
-          className="w-full rounded-full border border-gray-800 bg-gray-950/70 px-4 py-3 text-sm text-gray-100 placeholder:text-gray-500 focus:border-amber-300/50 focus:outline-none focus:ring-1 focus:ring-amber-300/20"
+          className="lab-input w-full rounded-full px-4 py-3 text-sm"
         />
         <textarea
           aria-label="Your signature"
@@ -744,7 +744,7 @@ function CompassPromptField({
           onChange={event => onAnswerChange('signature', event.target.value)}
           placeholder="Type your signature or commitment line"
           rows={3}
-          className="w-full rounded-3xl border border-gray-800 bg-gray-950/70 px-4 py-4 text-sm leading-7 text-gray-100 placeholder:text-gray-500 focus:border-amber-300/50 focus:outline-none focus:ring-1 focus:ring-amber-300/20"
+          className="lab-textarea w-full rounded-3xl px-4 py-4 text-sm leading-7"
         />
         <div className="grid gap-3 sm:grid-cols-2">
           <ReadOnlyField label="Date" value={date} />
@@ -767,11 +767,11 @@ function PastMonthsToggle({
   onToggle: (includeCurrentMonth: boolean) => void;
 }) {
   return (
-    <div className="mt-8 rounded-3xl border border-gray-800/80 bg-gray-950/40 p-5">
+    <div className="lab-subpanel lab-subpanel--soft mt-8 p-5">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="max-w-2xl space-y-2">
-          <h2 className="text-xl font-semibold text-gray-100">The previous 12 months</h2>
-          <p className="text-sm leading-6 text-gray-400">
+          <h2 className="text-xl font-semibold text-[color:var(--lab-text)]">The previous 12 months</h2>
+          <p className="text-sm leading-6 text-[color:var(--lab-text-muted)]">
             This list is read-only. Toggle whether the current month is part of the past-year window for this session.
           </p>
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-200/80">
@@ -782,11 +782,7 @@ function PastMonthsToggle({
           type="button"
           aria-pressed={includeCurrentMonth}
           onClick={() => onToggle(!includeCurrentMonth)}
-          className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
-            includeCurrentMonth
-              ? 'border-amber-300 bg-amber-50 text-amber-950 hover:border-amber-200 hover:bg-amber-100'
-              : 'border-gray-700 bg-gray-950/80 text-gray-200 hover:border-gray-500 hover:text-white'
-          }`}
+          className={`lab-button ${includeCurrentMonth ? 'lab-button--gold' : 'lab-button--ghost'}`}
         >
           Include current month
         </button>
@@ -796,7 +792,7 @@ function PastMonthsToggle({
         {monthNames.map(monthName => (
           <li
             key={monthName}
-            className="rounded-2xl border border-gray-800 bg-gray-900/80 px-4 py-3 text-sm font-medium text-gray-100"
+            className="lab-subpanel px-4 py-3 text-sm font-medium text-[color:var(--lab-text)]"
           >
             {monthName}
           </li>
@@ -820,10 +816,10 @@ function PastMonthlyEventsEditor({
   onItemsDraftChange: (key: string, items: string[]) => void;
 }) {
   return (
-    <div className="mt-8 space-y-6 rounded-3xl border border-gray-800/80 bg-gray-950/40 p-5">
+    <div className="lab-subpanel lab-subpanel--soft mt-8 space-y-6 p-5">
       <div className="space-y-2">
-        <h2 className="text-xl font-semibold text-gray-100">Important things that happened in each month</h2>
-        <p className="text-sm leading-6 text-gray-400">
+        <h2 className="text-xl font-semibold text-[color:var(--lab-text)]">Important things that happened in each month</h2>
+        <p className="text-sm leading-6 text-[color:var(--lab-text-muted)]">
           For each month, note any events that had a significant impact on your life.
         </p>
       </div>
@@ -833,8 +829,8 @@ function PastMonthlyEventsEditor({
           const fieldKey = LEGACY_PAST_MONTH_KEYS[index];
 
           return (
-            <div key={fieldKey} className="space-y-2 rounded-2xl border border-gray-800 bg-gray-900/70 p-4">
-              <p className="block text-sm font-semibold text-gray-100">{monthName}</p>
+            <div key={fieldKey} className="lab-subpanel lab-subpanel--soft space-y-2 p-4">
+              <p className="block text-sm font-semibold text-[color:var(--lab-text)]">{monthName}</p>
               <MultiInputEditor
                 key={`${fieldKey}-${monthName}`}
                 items={parseMultiInputItems(answers[fieldKey])}
@@ -872,14 +868,14 @@ function ChecklistRow({
   return (
     <label
       htmlFor={fieldId}
-      className="flex items-start gap-3 rounded-2xl border border-gray-800 bg-gray-950/50 px-4 py-3 text-sm text-gray-200"
+      className="lab-subpanel flex items-start gap-3 px-4 py-3 text-sm text-[color:var(--lab-text)]"
     >
       <input
         id={fieldId}
         type="checkbox"
         checked={checked}
         onChange={event => onChange(String(event.target.checked))}
-        className="mt-1 h-4 w-4 rounded border-gray-700 bg-gray-900 text-amber-300"
+        className="mt-1 h-4 w-4 rounded border-[color:var(--lab-border)] bg-[rgba(8,11,17,0.96)] text-amber-300"
       />
       <span>{item.label}</span>
     </label>
@@ -888,9 +884,9 @@ function ChecklistRow({
 
 function ReadOnlyField({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-gray-800 bg-gray-950/60 px-4 py-3">
-      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">{label}</p>
-      <p className="mt-2 text-sm text-gray-200">{value}</p>
+    <div className="lab-subpanel px-4 py-3">
+      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--lab-text-dim)]">{label}</p>
+      <p className="mt-2 text-sm text-[color:var(--lab-text)]">{value}</p>
     </div>
   );
 }
@@ -1181,10 +1177,10 @@ function CompletedCompassSummary({
 }) {
   return (
     <div className="mx-auto max-w-4xl space-y-6">
-      <div className="rounded-[2rem] border border-emerald-400/20 bg-[radial-gradient(circle_at_top,_rgba(16,185,129,0.16),_rgba(17,24,39,0.98)_52%)] p-8">
+      <div className="lab-panel rounded-[2rem] border-[rgba(117,200,167,0.26)] bg-[radial-gradient(circle_at_top,_rgba(117,200,167,0.14),_rgba(19,28,38,0.96)_54%)] p-8">
         <p className="text-xs font-semibold uppercase tracking-[0.24em] text-emerald-300/80">Compass Completed</p>
-        <h1 className="mt-2 text-3xl font-semibold tracking-tight text-gray-100">{session.title}</h1>
-        <p className="mt-3 text-sm leading-6 text-gray-300">
+        <h1 className="lab-title mt-2 text-3xl">{session.title}</h1>
+        <p className="lab-copy mt-3 text-sm leading-6">
           LAB stored the latest Compass insights and richer workbook context so the rest of the system can use what you captured here.
         </p>
       </div>
@@ -1199,21 +1195,21 @@ function CompletedCompassSummary({
         <button
           type="button"
           onClick={onBackToWeek}
-          className="rounded-full border border-amber-300 bg-amber-50 px-5 py-2.5 text-sm font-semibold text-amber-950 transition hover:border-amber-200 hover:bg-amber-100"
+          className="lab-button lab-button--gold"
         >
           Back to Weekly LAB
         </button>
         <button
           type="button"
           onClick={onViewCompass}
-          className="rounded-full border border-amber-300/40 bg-amber-500/10 px-5 py-2.5 text-sm font-semibold text-amber-100 transition hover:border-amber-200/60 hover:bg-amber-500/20"
+          className="lab-button lab-button--ink"
         >
           View Compass
         </button>
         <button
           type="button"
           onClick={onBackToCompass}
-          className="rounded-full border border-gray-700 px-5 py-2.5 text-sm font-semibold text-gray-200 transition hover:border-gray-500 hover:text-white"
+          className="lab-button lab-button--ghost"
         >
           Open Compass Library
         </button>
@@ -1224,16 +1220,16 @@ function CompletedCompassSummary({
 
 function SummaryCard({ title, items }: { title: string; items: string[] }) {
   return (
-    <div className="rounded-3xl border border-gray-800 bg-gray-900/70 p-5">
-      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">{title}</p>
+    <div className="lab-panel lab-panel--soft rounded-3xl p-5">
+      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--lab-text-dim)]">{title}</p>
       {items.length > 0 ? (
-        <ul className="mt-4 space-y-2 text-sm text-gray-200">
+        <ul className="mt-4 space-y-2 text-sm text-[color:var(--lab-text)]">
           {items.map(item => (
             <li key={item}>{item}</li>
           ))}
         </ul>
       ) : (
-        <p className="mt-4 text-sm text-gray-500">No insights captured for this section.</p>
+        <p className="mt-4 text-sm text-[color:var(--lab-text-dim)]">No insights captured for this section.</p>
       )}
     </div>
   );

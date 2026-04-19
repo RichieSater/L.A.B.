@@ -6,7 +6,6 @@ import { useAppState } from '../../state/app-context';
 import {
   selectAdvisorAttentionSummary,
   selectAdvisorsWithPinnedOrder,
-  selectAllOpenTasks,
   selectInactiveAdvisorIds,
 } from '../../state/selectors';
 import { ADVISOR_CONFIGS } from '../../advisors/registry';
@@ -30,20 +29,6 @@ const TAB_LABELS: Record<DashboardTab, string> = {
   advisors: 'Advisors',
   compass: 'Compass',
   calendar: 'Calendar',
-};
-
-const TAB_DESCRIPTIONS: Record<DashboardTab, string> = {
-  week: 'Weekly LAB',
-  advisors: 'Advisor attention and domain routing',
-  compass: 'Golden Compass',
-  calendar: 'Session calendar',
-};
-
-const TAB_SUBTITLES: Record<DashboardTab, string> = {
-  week: 'Plan the week, route work, and keep strategy visible',
-  advisors: 'See which advisors need the next meaningful action',
-  compass: 'Run a yearly reset, resume in-progress sessions, and review past compasses',
-  calendar: 'Review scheduled advisory sessions across the week',
 };
 
 const DEFAULT_AVAILABLE_TABS: DashboardAvailableTabs = ['week', 'advisors', 'compass', 'calendar'];
@@ -95,7 +80,6 @@ function DashboardView({
   const requestCounterRef = useRef(0);
   const sortedAdvisors = selectAdvisorsWithPinnedOrder(state);
   const inactiveAdvisors = selectInactiveAdvisorIds(state);
-  const allOpenItems = selectAllOpenTasks(state);
   const attention = selectAdvisorAttentionSummary(state);
   const schedulingEnabled = profile?.schedulingEnabled ?? false;
   const canOpenWeekLocally = availableTabs.includes('week');
@@ -130,40 +114,29 @@ function DashboardView({
   };
 
   return (
-    <div>
-      {/* Section header */}
-      <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
-        <div>
-          <h2 className="text-lg font-semibold text-gray-100">{TAB_DESCRIPTIONS[activeTab]}</h2>
-          <p className="text-sm text-gray-500 mt-0.5">
-            {activeTab === 'week'
-              ? `${allOpenItems.length} open tasks across all domains`
-              : TAB_SUBTITLES[activeTab]}
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          {activeTab !== 'compass' && <DailyLogButton />}
-          {availableTabs.length > 1 && (
-            <div className="flex gap-1 bg-gray-900 rounded-lg p-1">
-              {availableTabs.map(tab => (
-                <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                    activeTab === tab
-                      ? 'bg-gray-700 text-gray-200'
-                      : 'text-gray-500 hover:text-gray-300'
-                  }`}
-                >
-                  {TAB_LABELS[tab]}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        {availableTabs.length > 1 ? (
+          <div className="lab-tab-rail">
+            {availableTabs.map(tab => (
+              <button
+                key={tab}
+                type="button"
+                data-active={activeTab === tab}
+                onClick={() => setActiveTab(tab)}
+                className="lab-tab"
+              >
+                {TAB_LABELS[tab]}
+              </button>
+            ))}
+          </div>
+        ) : (
+          <span className="lab-chip lab-chip--gold">{TAB_LABELS[activeTab]}</span>
+        )}
+
+        {activeTab !== 'compass' && <DailyLogButton />}
       </div>
 
-      {/* Tab content */}
       {activeTab === 'week' && (
         <div className="space-y-6">
           <StrategicPlannerPanel />
@@ -184,8 +157,8 @@ function DashboardView({
           {sortedAdvisors.length > 0 ? (
             <AdvisorCardGrid advisorIds={sortedAdvisors} />
           ) : (
-            <div className="bg-gray-900/50 rounded-xl border border-gray-800 p-8 text-center mb-8">
-              <p className="text-gray-400 text-sm">
+            <div className="lab-panel lab-panel--soft mb-8 rounded-[1.5rem] p-8 text-center">
+              <p className="text-sm text-[color:var(--lab-text-muted)]">
                 No advisors activated yet. Choose from the available advisors below to get started.
               </p>
             </div>
@@ -193,7 +166,7 @@ function DashboardView({
 
           {inactiveAdvisors.length > 0 && (
             <div className="mt-8">
-              <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">
+              <h3 className="mb-4 text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-[color:var(--lab-text-muted)]">
                 Available Advisors
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -240,32 +213,25 @@ function InactiveAdvisorCard({
 
   return (
     <div
-      className="bg-gray-900/50 rounded-xl border border-gray-800/50 p-5 opacity-60 hover:opacity-80 transition-opacity"
+      className="lab-panel lab-panel--soft rounded-[1.35rem] p-5 opacity-75 transition-all hover:border-[rgba(245,243,238,0.24)] hover:opacity-95"
       style={{ borderLeftColor: config.domainColor + '60', borderLeftWidth: '4px' }}
     >
       <div className="flex items-center gap-3 mb-2">
         <span className="text-2xl">{config.icon}</span>
         <div>
-          <h3 className="font-semibold text-gray-300">{config.shortName}</h3>
-          <p className="text-xs text-gray-600">{config.displayName}</p>
+          <h3 className="font-semibold text-[color:var(--lab-text)]">{config.shortName}</h3>
+          <p className="text-xs text-[color:var(--lab-text-dim)]">{config.displayName}</p>
         </div>
       </div>
-      <p className="text-xs text-gray-500 mb-4 line-clamp-2">
+      <p className="mb-4 text-xs text-[color:var(--lab-text-muted)] line-clamp-2">
         {config.focusAreas.slice(0, 3).map(a => a.replace(/_/g, ' ')).join(' \u00b7 ')}
       </p>
       <button
         onClick={onActivate}
-        className="w-full py-2 rounded-lg text-sm font-medium transition-colors"
+        className="lab-button lab-button--ghost w-full rounded-2xl"
         style={{
-          backgroundColor: config.domainColor + '15',
           color: config.domainColor,
-          border: `1px solid ${config.domainColor}30`,
-        }}
-        onMouseEnter={(e) => {
-          (e.target as HTMLElement).style.backgroundColor = config.domainColor + '25';
-        }}
-        onMouseLeave={(e) => {
-          (e.target as HTMLElement).style.backgroundColor = config.domainColor + '15';
+          borderColor: `${config.domainColor}36`,
         }}
       >
         Activate

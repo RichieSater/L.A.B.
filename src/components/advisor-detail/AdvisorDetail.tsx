@@ -196,27 +196,27 @@ export function AdvisorDetail({ advisorId }: AdvisorDetailProps) {
   };
 
   return (
-    <div>
-      {/* Back link */}
+    <div className="lab-page">
       <button
         onClick={() => navigate(ADVISORY_BOARD_PATH)}
-        className="text-sm text-gray-500 hover:text-gray-300 mb-4 transition-colors"
+        className="mb-4 text-sm text-[color:var(--lab-text-muted)] transition-colors hover:text-[color:var(--lab-text)]"
       >
         &larr; Advisory Board
       </button>
 
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-6">
+      <div className="lab-panel mb-6 rounded-[1.75rem] px-6 py-6">
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
         <div className="flex items-center gap-4">
           <span className="text-4xl">{config.icon}</span>
           <div>
-            <h2 className="text-2xl font-bold text-gray-100">{config.displayName}</h2>
+            <p className="lab-eyebrow">{config.shortName}</p>
+            <h2 className="mt-2 text-[2rem] font-bold tracking-[-0.04em] text-[color:var(--lab-text)]">{config.displayName}</h2>
             <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-1">
               <StatusBadge status={status} daysOverdue={daysOverdue} />
               {state.streak > 0 && (
-                <span className="text-sm text-gray-400">{state.streak} session streak</span>
+                <span className="text-sm text-[color:var(--lab-text-muted)]">{state.streak} session streak</span>
               )}
-              <span className="text-sm text-gray-500">
+              <span className="text-sm text-[color:var(--lab-text-dim)]">
                 {state.sessions.length} total sessions
               </span>
             </div>
@@ -225,7 +225,7 @@ export function AdvisorDetail({ advisorId }: AdvisorDetailProps) {
         <div className="flex gap-2 self-start">
           <button
             onClick={() => navigate(getAdvisorSessionPath(advisorId))}
-            className="px-5 py-2.5 rounded-lg font-medium transition-colors"
+            className="lab-button rounded-2xl"
             style={{
               backgroundColor: config.domainColor,
               color: 'white',
@@ -236,7 +236,7 @@ export function AdvisorDetail({ advisorId }: AdvisorDetailProps) {
           {supportsQuickLog && (
             <button
               onClick={() => setShowQuickLog(true)}
-              className="px-4 py-2.5 rounded-lg font-medium text-gray-400 hover:text-gray-200 bg-gray-800 hover:bg-gray-700 transition-colors"
+              className="lab-button lab-button--ghost rounded-2xl"
             >
               Quick Log
             </button>
@@ -249,35 +249,33 @@ export function AdvisorDetail({ advisorId }: AdvisorDetailProps) {
               });
               navigate(ADVISORY_BOARD_PATH);
             }}
-            className="px-4 py-2.5 rounded-lg text-sm text-red-400 hover:text-red-300 hover:bg-red-900/20 transition-colors"
+            className="lab-button lab-button--danger rounded-2xl"
           >
             Deactivate
           </button>
         </div>
       </div>
+      </div>
 
-      {/* Last session info */}
       {state.lastSessionDate && (
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 mb-6">
-          <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-2">
+        <div className="lab-panel mb-6 rounded-[1.5rem] p-4">
+          <h3 className="mb-2 text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-[color:var(--lab-text-muted)]">
             Last Session — {state.lastSessionDate} ({formatDaysAgo(state.lastSessionDate)})
           </h3>
-          <p className="text-sm text-gray-300">{state.lastSessionSummary}</p>
+          <p className="text-sm text-[color:var(--lab-text)]">{state.lastSessionSummary}</p>
           {state.contextForNextSession && (
-            <div className="mt-3 pt-3 border-t border-gray-800">
-              <h4 className="text-xs text-gray-500 uppercase tracking-wide mb-1">Context for next session</h4>
-              <p className="text-sm text-gray-400">{state.contextForNextSession}</p>
+            <div className="mt-3 border-t border-[color:var(--lab-border-muted)] pt-3">
+              <h4 className="mb-1 text-xs uppercase tracking-wide text-[color:var(--lab-text-dim)]">Context for next session</h4>
+              <p className="text-sm text-[color:var(--lab-text-muted)]">{state.contextForNextSession}</p>
             </div>
           )}
         </div>
       )}
 
-      {/* Two column layout */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Action items — 2 cols */}
         <div className="lg:col-span-2">
-          <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
-            <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-4">
+          <div className="lab-panel rounded-[1.5rem] p-5">
+            <h3 className="mb-4 text-[0.7rem] font-semibold uppercase tracking-[0.2em] text-[color:var(--lab-text-muted)]">
               Tasks
             </h3>
             <ActionItemList
@@ -292,15 +290,15 @@ export function AdvisorDetail({ advisorId }: AdvisorDetailProps) {
               schedulingEnabled={schedulingEnabled}
             />
             {state.habits.length > 0 && (
-              <div className="mt-6 pt-6 border-t border-gray-800">
-                <h4 className="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-3">
+              <div className="mt-6 border-t border-[color:var(--lab-border-muted)] pt-6">
+                <h4 className="mb-3 text-sm font-semibold uppercase tracking-wide text-[color:var(--lab-text-muted)]">
                   Habits
                 </h4>
                 <div className="space-y-2">
                   {state.habits.map(habit => (
-                    <div key={habit.id} className="rounded-lg bg-gray-800/40 px-3 py-2">
-                      <p className="text-sm text-gray-200">{habit.name}</p>
-                      <p className="text-xs text-gray-500">
+                    <div key={habit.id} className="rounded-2xl border border-[color:var(--lab-border-muted)] bg-[rgba(19,28,38,0.86)] px-3 py-2">
+                      <p className="text-sm text-[color:var(--lab-text)]">{habit.name}</p>
+                      <p className="text-xs text-[color:var(--lab-text-dim)]">
                         {habit.cadence} target {habit.targetCount}{habit.unit ? ` ${habit.unit}` : ''} · {habit.status}
                       </p>
                     </div>
@@ -311,10 +309,9 @@ export function AdvisorDetail({ advisorId }: AdvisorDetailProps) {
           </div>
         </div>
 
-        {/* Metrics — 1 col */}
         <div>
-          <div className="bg-gray-900 border border-gray-800 rounded-xl p-5 mb-6">
-            <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-4">
+          <div className="lab-panel mb-6 rounded-[1.5rem] p-5">
+            <h3 className="mb-4 text-[0.7rem] font-semibold uppercase tracking-[0.2em] text-[color:var(--lab-text-muted)]">
               Metrics
             </h3>
             <MetricsSummary config={config} state={state} />
@@ -325,8 +322,8 @@ export function AdvisorDetail({ advisorId }: AdvisorDetailProps) {
             <RecentQuickLogs advisorId={advisorId} />
           )}
 
-          <div className="bg-gray-900 border border-gray-800 rounded-xl p-5 mb-6">
-            <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-4">
+          <div className="lab-panel mb-6 rounded-[1.5rem] p-5">
+            <h3 className="mb-4 text-[0.7rem] font-semibold uppercase tracking-[0.2em] text-[color:var(--lab-text-muted)]">
               Planning Context
             </h3>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
@@ -336,25 +333,25 @@ export function AdvisorDetail({ advisorId }: AdvisorDetailProps) {
               <PlannerStat label="Unplanned" value={planningCounts.unplanned} />
               <PlannerStat label="Focus" value={planningCounts.focus} />
             </div>
-            <p className="mt-3 text-sm text-gray-500">
+            <p className="mt-3 text-sm text-[color:var(--lab-text-muted)]">
               {openPlannerItems.length} open task{openPlannerItems.length === 1 ? '' : 's'} in this domain.
               {planningCounts.unplanned > 0
                 ? ` ${planningCounts.unplanned} still need${planningCounts.unplanned === 1 ? 's' : ''} a queue home.`
                 : ' Everything open already has a planning home.'}
             </p>
             {recommendedPlannerRoute && (
-              <div className="mt-4 rounded-lg border border-sky-500/20 bg-sky-500/10 p-4">
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-sky-300">Next weekly sweep</p>
-                <h4 className="mt-1 text-sm font-semibold text-gray-100">
+              <div className="mt-4 rounded-[1.4rem] border border-[rgba(92,138,214,0.34)] bg-[rgba(26,34,45,0.92)] p-4">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-[color:var(--lab-text-muted)]">Next weekly sweep</p>
+                <h4 className="mt-1 text-sm font-semibold text-[color:var(--lab-text)]">
                   {recommendedPlannerRoute.label} deserves the next sweep
                 </h4>
-                <p className="mt-1 text-xs text-gray-300">
+                <p className="mt-1 text-xs text-[color:var(--lab-text-muted)]">
                   {getPlannerRouteReason(recommendedPlannerRoute)}
                 </p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   <button
                     onClick={() => handleOpenWeeklyLab(recommendedPlannerRoute.preset)}
-                    className="rounded-full border border-sky-300/30 bg-gray-950/60 px-3 py-1.5 text-xs font-medium text-sky-100 transition-colors hover:border-sky-200/50 hover:text-white"
+                    className="lab-button lab-button--blue rounded-2xl px-4 py-2 text-xs"
                   >
                     {`Open ${recommendedPlannerRoute.label} in Weekly LAB`}
                   </button>
@@ -362,7 +359,7 @@ export function AdvisorDetail({ advisorId }: AdvisorDetailProps) {
                     <button
                       key={route.preset}
                       onClick={() => handleOpenWeeklyLab(route.preset)}
-                      className="rounded-full border border-gray-700 px-3 py-1.5 text-xs font-medium text-gray-300 transition-colors hover:border-gray-500 hover:text-gray-100"
+                      className="lab-button lab-button--ghost rounded-2xl px-4 py-2 text-xs"
                     >
                       {`${route.label} (${route.count})`}
                     </button>
@@ -373,68 +370,67 @@ export function AdvisorDetail({ advisorId }: AdvisorDetailProps) {
             <div className="mt-4 flex flex-wrap gap-2">
               <button
                 onClick={() => handleOpenWeeklyLab()}
-                className="rounded-full border border-gray-700 px-3 py-1.5 text-xs font-medium text-gray-300 transition-colors hover:border-gray-500 hover:text-gray-100"
+                className="lab-button lab-button--ghost rounded-2xl px-4 py-2 text-xs"
               >
                 {recommendedPlannerRoute ? 'Open advisor task list' : 'Open Weekly LAB'}
               </button>
               <button
                 onClick={() => navigate(GOLDEN_COMPASS_PATH)}
-                className="rounded-full border border-amber-700/40 bg-amber-950/40 px-3 py-1.5 text-xs font-medium text-amber-200 transition-colors hover:border-amber-500/60 hover:bg-amber-950/60"
+                className="lab-button lab-button--ink rounded-2xl px-4 py-2 text-xs"
               >
                 Open Compass
               </button>
             </div>
 
-            <div className="mt-4 pt-4 border-t border-gray-800">
-              <p className="text-xs text-gray-500 uppercase tracking-wide mb-2">Year goals</p>
+            <div className="mt-4 border-t border-[color:var(--lab-border-muted)] pt-4">
+              <p className="mb-2 text-xs uppercase tracking-wide text-[color:var(--lab-text-dim)]">Year goals</p>
               {yearGoals.length > 0 ? (
                 <div className="space-y-2">
                   {yearGoals.slice(0, 3).map(goal => (
-                    <p key={goal} className="text-sm text-gray-300">
+                    <p key={goal} className="text-sm text-[color:var(--lab-text)]">
                       • {goal}
                     </p>
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-gray-500">No year goals set yet.</p>
+                <p className="text-sm text-[color:var(--lab-text-muted)]">No year goals set yet.</p>
               )}
             </div>
 
-            <div className="mt-4 pt-4 border-t border-gray-800">
-              <p className="text-xs text-gray-500 uppercase tracking-wide mb-2">Weekly focus</p>
+            <div className="mt-4 border-t border-[color:var(--lab-border-muted)] pt-4">
+              <p className="mb-2 text-xs uppercase tracking-wide text-[color:var(--lab-text-dim)]">Weekly focus</p>
               {relevantFocus.length > 0 ? (
                 <div className="space-y-2">
                   {relevantFocus.map(item => (
-                    <p key={`${item.advisorId}-${item.id}`} className="text-sm text-gray-300">
+                    <p key={`${item.advisorId}-${item.id}`} className="text-sm text-[color:var(--lab-text)]">
                       • {item.task}
                     </p>
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-gray-500">No current weekly focus items for this advisor.</p>
+                <p className="text-sm text-[color:var(--lab-text-muted)]">No current weekly focus items for this advisor.</p>
               )}
             </div>
           </div>
 
-          {/* Session history */}
-          <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
-            <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-4">
+          <div className="lab-panel rounded-[1.5rem] p-5">
+            <h3 className="mb-4 text-[0.7rem] font-semibold uppercase tracking-[0.2em] text-[color:var(--lab-text-muted)]">
               Session History
             </h3>
             {state.sessions.length === 0 ? (
-              <p className="text-sm text-gray-500 text-center py-4">No sessions yet.</p>
+              <p className="py-4 text-center text-sm text-[color:var(--lab-text-muted)]">No sessions yet.</p>
             ) : (
               <div className="space-y-3">
                 {[...state.sessions].reverse().slice(0, 10).map(session => (
                   <div key={session.id} className="text-sm">
                     <div className="flex items-center justify-between">
-                      <span className="text-gray-300">{session.date}</span>
-                      <div className="flex items-center gap-2 text-xs text-gray-500">
+                      <span className="text-[color:var(--lab-text)]">{session.date}</span>
+                      <div className="flex items-center gap-2 text-xs text-[color:var(--lab-text-dim)]">
                         <span>{session.mood}</span>
                         <span>E:{session.energy}/10</span>
                       </div>
                     </div>
-                    <p className="text-gray-500 text-xs mt-0.5 line-clamp-2">{session.summary}</p>
+                    <p className="mt-0.5 line-clamp-2 text-xs text-[color:var(--lab-text-muted)]">{session.summary}</p>
                   </div>
                 ))}
               </div>
@@ -515,9 +511,9 @@ function getTaskWeeklyLabRoute(input: {
 
 function PlannerStat({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-lg border border-gray-800 bg-gray-950/70 px-3 py-2">
-      <p className="text-[11px] uppercase tracking-wide text-gray-500">{label}</p>
-      <p className="mt-1 text-base font-semibold text-gray-100">{value}</p>
+    <div className="lab-stat">
+      <p className="lab-stat__label">{label}</p>
+      <p className="mt-1 text-base font-semibold text-[color:var(--lab-text)]">{value}</p>
     </div>
   );
 }
@@ -555,18 +551,18 @@ function RecentQuickLogs({ advisorId }: { advisorId: AdvisorId }) {
   const getLabel = (id: string) => metricDefs.find(m => m.id === id)?.label ?? id;
 
   return (
-    <div className="bg-gray-900 border border-gray-800 rounded-xl p-5 mb-6">
-      <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-4">
+    <div className="lab-panel mb-6 rounded-[1.5rem] p-5">
+      <h3 className="mb-4 text-[0.7rem] font-semibold uppercase tracking-[0.2em] text-[color:var(--lab-text-muted)]">
         Recent Quick Logs
       </h3>
       <div className="space-y-3">
         {recentLogs.map((log, i) => (
-          <div key={log.timestamp ?? i} className="text-sm">
-            <span className="text-gray-500 text-xs">{log.date}</span>
+          <div key={log.timestamp ?? i} className="lab-subpanel p-3 text-sm">
+            <span className="text-xs text-[color:var(--lab-text-dim)]">{log.date}</span>
             <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-0.5">
               {Object.entries(log.logs).map(([key, val]) => (
-                <span key={key} className="text-gray-300">
-                  {getLabel(key)}: <span className="text-gray-100">{val}</span>
+                <span key={key} className="text-[color:var(--lab-text-muted)]">
+                  {getLabel(key)}: <span className="text-[color:var(--lab-text)]">{val}</span>
                 </span>
               ))}
             </div>

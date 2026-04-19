@@ -11,7 +11,7 @@ export function MetricsSummary({ config, state }: MetricsSummaryProps) {
 
   if (entries.length === 0) {
     return (
-      <div className="text-sm text-gray-500 py-4 text-center">
+      <div className="lab-empty-state py-4 text-center text-sm">
         No metrics recorded yet. Complete a session to start tracking.
       </div>
     );
@@ -32,14 +32,14 @@ export function MetricsSummary({ config, state }: MetricsSummaryProps) {
           displayValue = `${value}%`;
         }
 
-        const trendColor = trend.direction === 'up' ? 'text-green-400' :
-          trend.direction === 'down' ? 'text-red-400' :
-          'text-gray-500';
+        const trendColor = trend.direction === 'up' ? 'text-[color:var(--lab-success)]' :
+          trend.direction === 'down' ? 'text-[color:var(--lab-danger)]' :
+          'text-[color:var(--lab-text-dim)]';
 
         return (
-          <div key={metricId} className="bg-gray-800/50 rounded-lg p-3">
-            <div className="text-xs text-gray-500 mb-1">{label}</div>
-            <div className="text-lg font-semibold text-gray-200">{displayValue}</div>
+          <div key={metricId} className="lab-subpanel lab-subpanel--soft p-3">
+            <div className="mb-1 text-xs uppercase tracking-[0.16em] text-[color:var(--lab-text-dim)]">{label}</div>
+            <div className="text-lg font-semibold text-[color:var(--lab-text)]">{displayValue}</div>
             <div className={`text-xs ${trendColor} mt-0.5`}>
               {arrow} {trend.label}
             </div>

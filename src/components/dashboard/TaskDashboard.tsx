@@ -335,29 +335,28 @@ export function TaskDashboard({ navigationRequest = null }: TaskDashboardProps) 
   };
 
   return (
-    <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
-      {/* Summary */}
-      <div className="flex items-center gap-4 mb-4 text-sm">
-        <span className="text-gray-400">{openCount} open</span>
-        <span className="text-gray-500">{focusCount} in focus</span>
-        <span className="text-gray-500">{plannedCount} planned</span>
-        <span className="text-gray-500">{planning.unplanned.length} unplanned</span>
-        <span className="text-gray-500">{habits.filter(h => h.status === 'active').length} habits</span>
+    <div className="lab-panel rounded-[1.75rem] p-5">
+      <div className="mb-4 flex flex-wrap items-center gap-3 text-sm">
+        <span className="lab-chip lab-chip--neutral">{openCount} open</span>
+        <span className="lab-chip lab-chip--neutral">{focusCount} in focus</span>
+        <span className="lab-chip lab-chip--neutral">{plannedCount} planned</span>
+        <span className="lab-chip lab-chip--neutral">{planning.unplanned.length} unplanned</span>
+        <span className="lab-chip lab-chip--neutral">{habits.filter(h => h.status === 'active').length} habits</span>
         {overdueCount > 0 && (
-          <span className="text-red-400">{overdueCount} overdue</span>
+          <span className="lab-chip lab-chip--gold">{overdueCount} overdue</span>
         )}
       </div>
 
       {habits.length > 0 && (
         <div className="mb-5">
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">Active Habits</h3>
+          <h3 className="mb-2 text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-[color:var(--lab-text-muted)]">Active Habits</h3>
           <div className="grid gap-2 md:grid-cols-2">
             {habits.filter(habit => habit.status === 'active').map(habit => (
-              <div key={habit.id} className="rounded-lg bg-gray-800/40 border border-gray-800 px-3 py-2">
+              <div key={habit.id} className="rounded-2xl border border-[color:var(--lab-border-muted)] bg-[rgba(19,28,38,0.86)] px-3 py-2">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <p className="text-sm text-gray-200">{habit.name}</p>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-sm text-[color:var(--lab-text)]">{habit.name}</p>
+                    <p className="text-xs text-[color:var(--lab-text-dim)]">
                       {habit.cadence} target {habit.targetCount}{habit.unit ? ` ${habit.unit}` : ''}
                     </p>
                   </div>
@@ -534,19 +533,19 @@ export function TaskDashboard({ navigationRequest = null }: TaskDashboardProps) 
         )}
 
         {recommendedPreset && recommendedPresetReason && (
-          <div className="mb-4 rounded-xl border border-sky-500/20 bg-sky-500/10 p-4">
+          <div className="mb-4 rounded-[1.5rem] border border-[rgba(92,138,214,0.34)] bg-[rgba(26,34,45,0.92)] p-4">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-sky-300">Recommended Next Move</p>
-                <h3 className="mt-1 text-sm font-semibold text-gray-100">
+                <p className="text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-[color:var(--lab-text-muted)]">Recommended Next Move</p>
+                <h3 className="mt-1 text-lg font-semibold text-[color:var(--lab-text)]">
                   {recommendedPreset.label} deserves the next sweep
                 </h3>
-                <p className="mt-1 max-w-2xl text-sm text-gray-300">
+                <p className="mt-1 max-w-2xl text-sm text-[color:var(--lab-text-muted)]">
                   {recommendedPresetReason}
                 </p>
                 {recommendedAlternativePresets.length > 0 && (
                   <div className="mt-3">
-                    <p className="text-[11px] font-semibold uppercase tracking-wide text-sky-100/70">
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-[color:var(--lab-text-dim)]">
                       Other live lanes
                     </p>
                     <div className="mt-2 flex flex-wrap gap-2">
@@ -556,7 +555,7 @@ export function TaskDashboard({ navigationRequest = null }: TaskDashboardProps) 
                           type="button"
                           aria-label={`Open recommended ${preset.label} lane`}
                           onClick={() => applyTaskListPreset(preset.key)}
-                          className="rounded-lg border border-sky-300/20 bg-gray-950/60 px-3 py-2 text-sm text-sky-100 transition-colors hover:border-sky-200/40 hover:text-white"
+                          className="lab-button lab-button--ghost rounded-2xl"
                         >
                           {preset.label} ({preset.count})
                         </button>
@@ -568,10 +567,10 @@ export function TaskDashboard({ navigationRequest = null }: TaskDashboardProps) 
               <button
                 type="button"
                 onClick={() => applyTaskListPreset(recommendedPreset.key)}
-                className={`rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
+                className={`lab-button rounded-2xl ${
                   taskListPreset === recommendedPreset.key
-                    ? 'border-sky-300/40 bg-sky-200/15 text-sky-100'
-                    : 'border-sky-300/30 bg-gray-950/60 text-sky-200 hover:border-sky-200/50 hover:text-sky-100'
+                    ? 'border-[rgba(92,138,214,0.55)] bg-[rgba(92,138,214,0.16)] text-[#b7cdfa]'
+                    : 'lab-button--blue'
                 }`}
               >
                 {taskListPreset === recommendedPreset.key
@@ -584,12 +583,12 @@ export function TaskDashboard({ navigationRequest = null }: TaskDashboardProps) 
 
         <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h3 className="text-sm font-semibold uppercase tracking-wide text-gray-300">Task List</h3>
-            <p className="mt-1 max-w-2xl text-sm text-gray-500">
+            <h3 className="text-[0.7rem] font-semibold uppercase tracking-[0.2em] text-[color:var(--lab-text-muted)]">Execution Board</h3>
+            <p className="mt-2 max-w-2xl text-sm text-[color:var(--lab-text-muted)]">
               {selectedPresetDescription}
             </p>
             {advisorFilter !== 'all' && (
-              <p className="mt-2 text-xs uppercase tracking-wide text-gray-500">
+              <p className="mt-2 text-xs uppercase tracking-wide text-[color:var(--lab-text-dim)]">
                 Scoped to {ADVISOR_CONFIGS[advisorFilter].shortName}
               </p>
             )}
@@ -605,12 +604,12 @@ export function TaskDashboard({ navigationRequest = null }: TaskDashboardProps) 
                   disabled={disabled}
                   aria-pressed={taskListPreset === preset.key}
                   onClick={() => applyTaskListPreset(preset.key)}
-                  className={`rounded-lg border px-3 py-2 text-left transition-colors ${
+                  className={`rounded-2xl border px-3 py-2 text-left transition-colors ${
                     taskListPreset === preset.key
-                      ? 'border-gray-200 bg-gray-100 text-gray-950'
+                      ? 'border-[rgba(228,209,174,0.42)] bg-[rgba(228,209,174,0.14)] text-[color:var(--lab-text)]'
                       : disabled
-                        ? 'cursor-not-allowed border-gray-800 bg-gray-950/60 text-gray-600'
-                        : 'border-gray-800 bg-gray-950/80 text-gray-300 hover:border-gray-700 hover:text-gray-100'
+                        ? 'cursor-not-allowed border-[color:var(--lab-border-muted)] bg-[rgba(8,11,17,0.9)] text-[color:var(--lab-text-dim)]'
+                        : 'border-[color:var(--lab-border-muted)] bg-[rgba(8,11,17,0.96)] text-[color:var(--lab-text-muted)] hover:border-[rgba(228,209,174,0.24)] hover:text-[color:var(--lab-text)]'
                   }`}
                 >
                   <div className="text-xs font-semibold uppercase tracking-wide">{preset.label}</div>
@@ -624,7 +623,7 @@ export function TaskDashboard({ navigationRequest = null }: TaskDashboardProps) 
         {/* Filters */}
         <div className="mb-4 flex flex-wrap gap-4">
         {/* Status filter */}
-        <div className="flex gap-1">
+          <div className="flex gap-1 rounded-full border border-[color:var(--lab-border-muted)] bg-[rgba(8,11,17,0.92)] p-1">
           {(['open', 'completed', 'all'] as StatusFilter[]).map(f => (
             <button
               key={f}
@@ -632,10 +631,10 @@ export function TaskDashboard({ navigationRequest = null }: TaskDashboardProps) 
                 clearTaskListPreset();
                 setStatusFilter(f);
               }}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+              className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
                 statusFilter === f
-                  ? 'bg-gray-700 text-gray-200'
-                  : 'text-gray-500 hover:text-gray-300'
+                  ? 'bg-[rgba(228,209,174,0.14)] text-[color:var(--lab-text)]'
+                  : 'text-[color:var(--lab-text-dim)] hover:text-[color:var(--lab-text-muted)]'
               }`}
             >
               {f.charAt(0).toUpperCase() + f.slice(1)}
@@ -644,16 +643,16 @@ export function TaskDashboard({ navigationRequest = null }: TaskDashboardProps) 
         </div>
 
         {/* Advisor filter */}
-        <div className="flex gap-1">
+        <div className="flex gap-1 rounded-full border border-[color:var(--lab-border-muted)] bg-[rgba(8,11,17,0.92)] p-1">
           <button
             onClick={() => {
               clearTaskListPreset();
               setAdvisorFilter('all');
             }}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+            className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
               advisorFilter === 'all'
-                ? 'bg-gray-700 text-gray-200'
-                : 'text-gray-500 hover:text-gray-300'
+                ? 'bg-[rgba(228,209,174,0.14)] text-[color:var(--lab-text)]'
+                : 'text-[color:var(--lab-text-dim)] hover:text-[color:var(--lab-text-muted)]'
             }`}
           >
             All
@@ -667,10 +666,10 @@ export function TaskDashboard({ navigationRequest = null }: TaskDashboardProps) 
                   clearTaskListPreset();
                   setAdvisorFilter(id);
                 }}
-                className={`px-2 py-1.5 rounded-lg text-xs transition-colors ${
+                className={`rounded-full px-2 py-1.5 text-xs transition-colors ${
                   advisorFilter === id
-                    ? 'bg-gray-700'
-                    : 'hover:bg-gray-800'
+                    ? 'bg-[rgba(26,34,45,0.96)]'
+                    : 'hover:bg-[rgba(19,28,38,0.9)]'
                 }`}
                 style={advisorFilter === id ? { color: config.domainColor } : { color: '#9ca3af' }}
                 title={config.shortName}
@@ -682,7 +681,7 @@ export function TaskDashboard({ navigationRequest = null }: TaskDashboardProps) 
         </div>
 
         {/* Priority filter */}
-        <div className="flex gap-1">
+        <div className="flex gap-1 rounded-full border border-[color:var(--lab-border-muted)] bg-[rgba(8,11,17,0.92)] p-1">
           {(['all', 'high', 'medium', 'low'] as PriorityFilter[]).map(f => (
             <button
               key={f}
@@ -690,10 +689,10 @@ export function TaskDashboard({ navigationRequest = null }: TaskDashboardProps) 
                 clearTaskListPreset();
                 setPriorityFilter(f);
               }}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+              className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
                 priorityFilter === f
-                  ? 'bg-gray-700 text-gray-200'
-                  : 'text-gray-500 hover:text-gray-300'
+                  ? 'bg-[rgba(228,209,174,0.14)] text-[color:var(--lab-text)]'
+                  : 'text-[color:var(--lab-text-dim)] hover:text-[color:var(--lab-text-muted)]'
               }`}
             >
               {f === 'all' ? 'Priority' : f.charAt(0).toUpperCase() + f.slice(1)}
@@ -701,7 +700,7 @@ export function TaskDashboard({ navigationRequest = null }: TaskDashboardProps) 
           ))}
         </div>
 
-        <div className="flex gap-1">
+        <div className="flex gap-1 rounded-full border border-[color:var(--lab-border-muted)] bg-[rgba(8,11,17,0.92)] p-1">
           {(['all', 'planned', 'unplanned'] as PlanningFilter[]).map(f => (
             <button
               key={f}
@@ -709,10 +708,10 @@ export function TaskDashboard({ navigationRequest = null }: TaskDashboardProps) 
                 clearTaskListPreset();
                 setPlanningFilter(f);
               }}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+              className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
                 planningFilter === f
-                  ? 'bg-gray-700 text-gray-200'
-                  : 'text-gray-500 hover:text-gray-300'
+                  ? 'bg-[rgba(228,209,174,0.14)] text-[color:var(--lab-text)]'
+                  : 'text-[color:var(--lab-text-dim)] hover:text-[color:var(--lab-text-muted)]'
               }`}
             >
               {f === 'all' ? 'Planning' : f.charAt(0).toUpperCase() + f.slice(1)}
@@ -724,7 +723,7 @@ export function TaskDashboard({ navigationRequest = null }: TaskDashboardProps) 
         {/* Task list */}
         <div className="space-y-2">
           {filtered.length === 0 ? (
-            <p className="text-sm text-gray-500 py-8 text-center">
+            <p className="py-8 text-center text-sm text-[color:var(--lab-text-muted)]">
               No {statusFilter === 'all' ? '' : statusFilter + ' '}tasks
               {advisorFilter !== 'all' ? ` from ${ADVISOR_CONFIGS[advisorFilter].shortName}` : ''}
               {priorityFilter !== 'all' ? ` with ${priorityFilter} priority` : ''}.

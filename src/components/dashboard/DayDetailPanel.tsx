@@ -18,23 +18,24 @@ export function DayDetailPanel({ date, events, onToggleComplete }: DayDetailPane
   const scheduled = events.filter(e => e.type === 'scheduled');
 
   return (
-    <div className="mt-4 bg-gray-800/50 rounded-lg p-4">
-      <h4 className="text-sm font-medium text-gray-200 mb-3">{formatDate(date)}</h4>
+    <aside className="lab-panel lab-panel--ink rounded-[1.75rem] p-5">
+      <p className="lab-eyebrow">Selected Day</p>
+      <h4 className="mt-3 text-lg font-semibold text-[color:var(--lab-text)]">{formatDate(date)}</h4>
 
       {events.length === 0 && (
-        <p className="text-xs text-gray-500">No events on this day.</p>
+        <p className="mt-3 text-xs text-[color:var(--lab-text-muted)]">No events on this day.</p>
       )}
 
       {scheduled.length > 0 && (
-        <div className="mb-3">
-          <p className="text-xs text-gray-500 uppercase tracking-wide mb-2">Scheduled Sessions</p>
+        <div className="mt-4">
+          <p className="mb-2 text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-[color:var(--lab-text-muted)]">Scheduled Sessions</p>
           <div className="space-y-1.5">
             {scheduled.map((ev, i) => (
-              <div key={i} className="flex items-center gap-2">
+              <div key={i} className="flex items-center gap-2 rounded-2xl border border-[color:var(--lab-border-muted)] bg-[rgba(19,28,38,0.86)] px-3 py-2.5">
                 <div className="w-2 h-2 rounded-full ring-1 ring-blue-400" style={{ backgroundColor: ev.advisorColor }} />
-                <span className="text-xs text-gray-300">{ev.label}</span>
+                <span className="text-xs text-[color:var(--lab-text)]">{ev.label}</span>
                 {ev.scheduledTime && (
-                  <span className="text-xs text-blue-400 ml-auto">{formatTime(ev.scheduledTime)}</span>
+                  <span className="ml-auto text-xs text-[color:var(--lab-blue)]">{formatTime(ev.scheduledTime)}</span>
                 )}
               </div>
             ))}
@@ -43,13 +44,13 @@ export function DayDetailPanel({ date, events, onToggleComplete }: DayDetailPane
       )}
 
       {sessions.length > 0 && (
-        <div className="mb-3">
-          <p className="text-xs text-gray-500 uppercase tracking-wide mb-2">Sessions Due</p>
+        <div className="mt-4">
+          <p className="mb-2 text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-[color:var(--lab-text-muted)]">Sessions Due</p>
           <div className="space-y-1.5">
             {sessions.map((ev, i) => (
-              <div key={i} className="flex items-center gap-2">
+              <div key={i} className="flex items-center gap-2 rounded-2xl border border-[color:var(--lab-border-muted)] bg-[rgba(19,28,38,0.86)] px-3 py-2.5">
                 <div className="w-2 h-2 rounded-full" style={{ backgroundColor: ev.advisorColor }} />
-                <span className="text-xs text-gray-300">{ev.label}</span>
+                <span className="text-xs text-[color:var(--lab-text)]">{ev.label}</span>
               </div>
             ))}
           </div>
@@ -57,21 +58,22 @@ export function DayDetailPanel({ date, events, onToggleComplete }: DayDetailPane
       )}
 
       {tasks.length > 0 && (
-        <div>
-          <p className="text-xs text-gray-500 uppercase tracking-wide mb-2">Tasks Due</p>
+        <div className="mt-4">
+          <p className="mb-2 text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-[color:var(--lab-text-muted)]">Tasks Due</p>
           <div className="space-y-1.5">
             {tasks.map((ev, i) => (
-              <div key={i} className="flex items-start gap-2">
+              <div key={i} className="flex items-start gap-2 rounded-2xl border border-[color:var(--lab-border-muted)] bg-[rgba(19,28,38,0.86)] px-3 py-2.5">
                 {onToggleComplete && ev.itemId ? (
                   <button
+                    type="button"
                     onClick={() => onToggleComplete(ev.advisorId, ev.itemId!)}
-                    className="mt-0.5 w-4 h-4 rounded border border-gray-600 hover:border-gray-400 flex-shrink-0 flex items-center justify-center transition-colors"
+                    className="mt-0.5 flex h-4 w-4 flex-shrink-0 items-center justify-center rounded border border-[color:var(--lab-border)] transition-colors hover:border-[rgba(228,209,174,0.42)]"
                   />
                 ) : (
                   <div className="w-2 h-2 rounded-full mt-1 flex-shrink-0" style={{ backgroundColor: ev.advisorColor }} />
                 )}
                 <div className="min-w-0">
-                  <p className="text-xs text-gray-300 line-clamp-1">{ev.label}</p>
+                  <p className="line-clamp-1 text-xs text-[color:var(--lab-text)]">{ev.label}</p>
                   <div className="flex items-center gap-1.5 mt-0.5">
                     <span className="text-xs" style={{ color: ev.advisorColor }}>
                       {ev.advisorIcon} {ev.advisorName}
@@ -91,6 +93,6 @@ export function DayDetailPanel({ date, events, onToggleComplete }: DayDetailPane
           </div>
         </div>
       )}
-    </div>
+    </aside>
   );
 }
